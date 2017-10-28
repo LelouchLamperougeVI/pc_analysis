@@ -1,6 +1,10 @@
 %% Import positional data from tablet tracker
 clear frame_ts
 
+if ~exist('varset')
+    varset=who;
+end
+
 fn='VR20170925143214.csv';
 importFlag={'"ca1011 tab 2"'};
 % 
@@ -28,6 +32,8 @@ importFlag={'"ca1011rec2"'};
 % fn='VR20171007131001.csv';
 % importFlag={'"another"'};
 
+fn='VR20170910114202[1].csv';
+importFlag={'"ca1011 tab 2"'};
 
 
 
@@ -104,12 +110,37 @@ unit_vel(isnan(unit_vel))=0;
 % sync trials index
 trials_ts=arrayfun(@(x) find(frame_ts>=x,1),trials);
 
-    trials_ts(unit_pos(trials_ts)>min(unit_pos)./2)=trials_ts(unit_pos(trials_ts)>min(unit_pos)./2)+1;
-    trials=frame_ts(trials_ts);
+trials_ts(unit_pos(trials_ts)>min(unit_pos)./2)=trials_ts(unit_pos(trials_ts)>min(unit_pos)./2)+1;
+trials=frame_ts(trials_ts);
 
-    trials_ts(unit_pos(trials_ts)>min(unit_pos)./2)=trials_ts(unit_pos(trials_ts)>min(unit_pos)./2)+1;
-    trials=frame_ts(trials_ts);
+trials_ts(unit_pos(trials_ts)>min(unit_pos)./2)=trials_ts(unit_pos(trials_ts)>min(unit_pos)./2)+1;
+trials=frame_ts(trials_ts);
+
+trials_ts(unit_pos(trials_ts)>min(unit_pos)./2)=trials_ts(unit_pos(trials_ts)>min(unit_pos)./2)+1;
+trials=frame_ts(trials_ts);
+
+% compatibility with Dun's code
+behavior.ts=ts;
+behavior.pos_raw=pos;
+behavior.pos_norm=(pos-min(pos))./max(pos-min(pos));
+idx=find(diff(pos)<-10);
+behavior.pos_cum=pos(1:idx(1));
+for i=1:length(idx)-1
+    behavior.pos_cum=[behavior.pos_cum pos(idx(i)+1:idx(i+1))-pos(idx(i)+1)+behavior.pos_cum(end)];
+end
+behavior.pos_cum=[behavior.pos_cum pos(idx(end)+1:end)-pos(idx(end)+1)+behavior.pos_cum(end)];
+behavior.speed=diff(behavior.pos_cum)./diff(ts);
+behavior.speed=[behavior.speed(1) behavior.speed];
+idx=isnan(behavior.speed) | isinf(behavior.speed);
+behavior.speed(idx)=[];
+ts(idx)=[];
+behavior.speed=interp1(ts,behavior.speed,behavior.ts);
+behavior.speed_raw=unit_vel';
+behavior.trial=bsxfun(@ge,trials',ts);
+behavior.trial=sum(behavior.trial);
+behavior.trial=abs(behavior.trial-max(behavior.trial))+1;
+
     
-    trials_ts(unit_pos(trials_ts)>min(unit_pos)./2)=trials_ts(unit_pos(trials_ts)>min(unit_pos)./2)+1;
-    trials=frame_ts(trials_ts);
-    
+varset=setdiff(who,varset);
+varset=setdiff(varset,{'C','frame_ts','trials','trials_ts','cum_pos','unit_pos','unit_vel','behavior','varset'});
+clear(varset{:});
