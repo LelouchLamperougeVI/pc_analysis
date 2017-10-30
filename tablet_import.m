@@ -35,6 +35,10 @@ importFlag={'"ca1011rec2"'};
 fn='VR20170910114202[1].csv';
 importFlag={'"ca1011 tab 2"'};
 
+fn='VR20171025094004.csv';
+importFlag={'"rsc36 win1 no tunnel"','"stoped 1"'};
+
+
 
 
 if ~exist('C')
@@ -44,13 +48,28 @@ if ~exist('C')
     C=C{1,1};
 end
 
-recStart=cellfun(@(x) strcmp(x,importFlag{1}), C);
-recStart=find(recStart,1);
-
-if length(importFlag)==2
-    recFinish=cellfun(@(x) strcmp(x,importFlag{2}), C);
-    recFinish=find(recFinish,1);
+index=cellfun(@(x) strcmp(x, 'userEntry'), C);
+index=find(index);
+idx=list_box(['start';C(index+1);'end']);
+if idx{1}==1
+    recStart=1;
+else
+    recStart=index(idx{1}+1);
 end
+if idx{2}==length(C(index+1))+2
+    recFinish=length(C);
+else
+    recFinish=index(idx{2}+1);
+end
+
+
+% recStart=cellfun(@(x) strcmp(x,importFlag{1}), C);
+% recStart=find(recStart,1);
+
+% if length(importFlag)==2
+%     recFinish=cellfun(@(x) strcmp(x,importFlag{2}), C);
+%     recFinish=find(recFinish,1);
+% end
 
 
 index=cellfun(@(x) strcmp(x, {'position','count-21','pickup'}), C,'uniformoutput',false);
