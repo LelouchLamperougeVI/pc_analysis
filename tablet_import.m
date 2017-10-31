@@ -35,7 +35,7 @@ importFlag={'"ca1011rec2"'};
 fn='VR20170910114202[1].csv';
 importFlag={'"ca1011 tab 2"'};
 
-fn='VR20171025094004.csv';
+fn='VR20171025111151.csv';
 importFlag={'"rsc36 win1 no tunnel"','"stoped 1"'};
 
 
@@ -62,15 +62,9 @@ else
     recFinish=index(idx{2}+1);
 end
 
-
-% recStart=cellfun(@(x) strcmp(x,importFlag{1}), C);
-% recStart=find(recStart,1);
-
-% if length(importFlag)==2
-%     recFinish=cellfun(@(x) strcmp(x,importFlag{2}), C);
-%     recFinish=find(recFinish,1);
-% end
-
+if recStart>=recFinish
+    error('Stop messing around you dummy!')
+end
 
 index=cellfun(@(x) strcmp(x, {'position','count-21','pickup'}), C,'uniformoutput',false);
 index=cell2mat(index);
@@ -111,8 +105,15 @@ trials(trials==0)=[];
 trials(trials>frame_ts(end) | trials<frame_ts(1))=[];
 
 %make unit_pos, cum_pos and unit_vel
-unit_pos=arrayfun(@(x) find(ts>=x,1), frame_ts);
-unit_pos=pos(unit_pos);
+try
+    unit_pos=arrayfun(@(x) find(ts>=x,1), frame_ts);
+    unit_pos=pos(unit_pos);
+catch
+    ts=[ts frame_ts(end)];
+    pos=[pos pos(end)];
+    unit_pos=arrayfun(@(x) find(ts>=x,1), frame_ts);
+    unit_pos=pos(unit_pos);
+end
 
 idx=find(diff(unit_pos)<-10);
 cum_pos=unit_pos(1:idx(1));
