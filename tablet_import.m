@@ -54,12 +54,12 @@ idx=list_box(['start';C(index+1);'end']);
 if idx{1}==1
     recStart=1;
 else
-    recStart=index(idx{1}+1);
+    recStart=index(idx{1}-1);
 end
 if idx{2}==length(C(index+1))+2
     recFinish=length(C);
 else
-    recFinish=index(idx{2}+1);
+    recFinish=index(idx{2}-1);
 end
 
 if recStart>=recFinish
