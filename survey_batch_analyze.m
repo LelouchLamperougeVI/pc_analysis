@@ -95,7 +95,7 @@ end
 
 %% Get index structure using image logs
 
-fid=fopen('rsc036.txt');
+fid=fopen('rsc038.txt');
 C=textscan(fid,'%s','delimiter',',');
 fclose(fid);
 C=C{1,1};
@@ -118,6 +118,120 @@ for i=1:sum(idx(:,1))
     index(i).param=C(find(any(idx2,2))+1);
     index(i).window=C(find(any(idx2,2))+2);
 end
+
+%% Add window tag to analysis
+mouse=1;
+for i=1:length(analysis(mouse).session)
+    date=analysis(mouse).session(i).date;
+    idx=find(strcmp({index(mouse).index(:).date},strrep(date,'_','/')));
+    if ~isempty(idx)
+        for j=1:length(analysis(mouse).session(i).analysis)
+            try
+                analysis(mouse).session(i).analysis(j).window=index(mouse).index(idx).window{j}(1:4);
+                analysis(mouse).session(i).analysis(j).param=index(mouse).index(idx).param{j};
+            catch
+            end
+        end
+    end
+end
+
+%% Compare PC features across windows
+mouse=1;
+
+sparsity=cell(1,7);
+SI=cell(1,7);
+width=cell(1,7);
+proportion=cell(1,7);
+n=zeros(1,7);
+sparsity_idx=[];
+SI_idx=[];
+width_idx=[];
+proportion_idx=[];
+
+for i=1:length(analysis(mouse).session)
+    for j=1:length(analysis(mouse).session(i).analysis)
+        try
+            if strcmpi(analysis(mouse).session(i).analysis(j).param,'RUN')
+                switch analysis(mouse).session(i).analysis(j).window
+                    case 'win1'
+                        plotID=1;
+                    case 'win2'
+                        plotID=2;
+                    case 'win3'
+                        plotID=3;
+                    case 'win4'
+                        plotID=4;
+                    case 'win5'
+                        plotID=5;
+                    case 'win6'
+                        plotID=6;
+                    case 'win7'
+                        plotID=7;
+                    otherwise
+                        plotID=0;
+                end
+
+                if plotID
+                    n(plotID)=n(plotID)+1;
+                    sparsity{plotID}=[sparsity{plotID} analysis(mouse).session(i).analysis(j).sparsity];
+                    SI{plotID}=[SI{plotID} analysis(mouse).session(i).analysis(j).SI];
+                    width{plotID}=[width{plotID} analysis(mouse).session(i).analysis(j).width];
+                    proportion{plotID}=[proportion{plotID} sum(analysis(mouse).session(i).analysis(j).pval)/length(analysis(mouse).session(i).analysis(j).pval)];
+                    
+                    sparsity_idx=[sparsity_idx repmat(plotID,1,length(analysis(mouse).session(i).analysis(j).sparsity))];
+                    SI_idx=[SI_idx repmat(plotID,1,length(analysis(mouse).session(i).analysis(j).SI))];
+                    width_idx=[width_idx repmat(plotID,1,length(analysis(mouse).session(i).analysis(j).width))];
+                    proportion_idx=[proportion_idx plotID];
+                end
+            end
+        catch
+        end
+    end
+end
+
+figure;
+[p,tbl,stats] = kruskalwallis(cell2mat(SI),SI_idx,'off');
+[c,m]=multcompare(stats,'display','off');
+pval=c(:,6);
+groups=c(pval<0.05,1:2);
+groups=mat2cell(groups,ones(1,size(groups,1)),2);
+super_bar_graphs(m(:,1),m(:,2),groups,pval(pval<0.05));
+xticklabels({'2','3','4','5','6','7'})
+xlabel('window');
+ylabel('Spatial info mean ranks');
+
+figure;
+[p,tbl,stats] = kruskalwallis(cell2mat(sparsity),sparsity_idx,'off');
+[c,m]=multcompare(stats,'display','off');
+pval=c(:,6);
+groups=c(pval<0.05,1:2);
+groups=mat2cell(groups,ones(1,size(groups,1)),2);
+super_bar_graphs(m(:,1),m(:,2),groups,pval(pval<0.05));
+xticklabels({'2','3','4','5','6','7'})
+xlabel('window');
+ylabel('Sparsity mean ranks');
+
+figure;
+[p,tbl,stats] = kruskalwallis(cell2mat(width),width_idx,'off');
+[c,m]=multcompare(stats,'display','off');
+pval=c(:,6);
+groups=c(pval<0.05,1:2);
+groups=mat2cell(groups,ones(1,size(groups,1)),2);
+super_bar_graphs(m(:,1),m(:,2),groups,pval(pval<0.05));
+xticklabels({'2','3','4','5','6','7'})
+xlabel('window');
+ylabel('PC width mean ranks');
+
+figure;
+[p,tbl,stats] = kruskalwallis(cell2mat(proportion),proportion_idx,'off');
+[c,m]=multcompare(stats,'display','off');
+pval=c(:,6);
+groups=c(pval<0.05,1:2);
+groups=mat2cell(groups,ones(1,size(groups,1)),2);
+super_bar_graphs(m(:,1),m(:,2),groups,pval(pval<0.05));
+xticklabels({'2','3','4','5','6','7'})
+xlabel('window');
+ylabel('Proportion place cells mean ranks');
 
 
 

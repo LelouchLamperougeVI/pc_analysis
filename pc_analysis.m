@@ -516,12 +516,12 @@ ylabel('Speed (cm/s)');
 hold off
 
 %% Export all figures
-name='hd_all_plots';
+name='prelim_data_36';
 
 figHandles = get(groot, 'Children');
 for i=1:length(figHandles)
-%     export_fig(name,'-pdf','-append',figHandles(i));
-    print(figHandles(i),num2str(i),'-dpng');
+    export_fig(name,'-pdf','-append',figHandles(i));
+%     print(figHandles(i),num2str(i),'-dpng');
 end
 
 
