@@ -52,7 +52,7 @@ end
 %% Batch analyze data
 
 folder='X:\homes\ingrid.esteves\analysis\';
-mice={'rsc036','rsc037','rsc038','rsc039'};
+mice={'rsc036','rsc037','rsc038'};
 
 cd(folder);
 
@@ -69,45 +69,55 @@ for i=1:length(mice)
         analysis(i).session(j-2).date=l1(j).name;
         
         cd(l1(j).name);
+        l2=dir;
         
-        if exist('2'); cd 2; goback=true; else; goback=false; end
-        try
-            load behavior.mat
-            load Plane1\deconv.mat
-            load Plane1\timecourses.mat
-            [behavior,deconv]=convert_behavior(behavior,tcs,deconv);
-            analysis(i).session(j-2).analysis(1)=pc_batch_analysis(behavior,deconv);
-            analysis(i).session(j-2).nRecordings=1;
-        catch
+        for k=3:length(l2)
+            if l2(k).isdir
+                cd(l2(k).name);
+                try
+                    load behavior.mat
+                    load Plane1\deconv.mat
+                    load Plane1\timecourses.mat
+                    [behavior,deconv]=convert_behavior(behavior,tcs,deconv);
+                    analysis(i).session(j-2).analysis(k-2)=pc_batch_analysis(behavior,deconv);
+                    analysis(i).session(j-2).nRecordings=str2double(l2(k).name);
+                catch
+                end
+                cd ..
+            end
         end
-        if goback; cd ..; end
-        
-        if exist('5'); cd 5; goback=true; else; goback=false; end
-        try
-            load behavior.mat
-            load Plane1\deconv.mat
-            load Plane1\timecourses.mat
-            [behavior,deconv]=convert_behavior(behavior,tcs,deconv);
-            analysis(i).session(j-2).analysis(2)=pc_batch_analysis(behavior,deconv);
-            analysis(i).session(j-2).nRecordings=2;
-        catch
-        end
-        if goback; cd ..; end
-        
         cd ..
     end
-    
     cd ..
 end
 
 
 
+%% Get index structure using image logs
 
+fid=fopen('rsc036.txt');
+C=textscan(fid,'%s','delimiter',',');
+fclose(fid);
+C=C{1,1};
 
+idx=cellfun(@(x) strcmp(x, {'1','2','3','4','5','6','7','8','9','10','11','12','13','14'}), C,'uniformoutput',false);
+idx=cell2mat(idx);
 
-
-
-
+idx1=find(idx(:,1));
+for i=1:sum(idx(:,1))
+    index(i).date=C{idx1(i)-1};
+    try
+        idx2=idx;
+        idx2(1:idx1(i)-1,:)=0;
+        idx2(idx1(i+1):end,:)=0;
+    catch
+        idx2=idx;
+        idx2(1:idx1(i)-1,:)=0;
+    end
+    index(i).session=find(any(idx2));
+    index(i).param=C(find(any(idx2,2))+1);
+    index(i).window=C(find(any(idx2,2))+2);
+end
 
 
 
