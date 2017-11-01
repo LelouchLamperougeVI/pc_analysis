@@ -120,16 +120,17 @@ for i=1:sum(idx(:,1))
 end
 
 %% Add window tag to analysis
-mouse=1;
-for i=1:length(analysis(mouse).session)
-    date=analysis(mouse).session(i).date;
-    idx=find(strcmp({index(mouse).index(:).date},strrep(date,'_','/')));
-    if ~isempty(idx)
-        for j=1:length(analysis(mouse).session(i).analysis)
-            try
-                analysis(mouse).session(i).analysis(j).window=index(mouse).index(idx).window{j}(1:4);
-                analysis(mouse).session(i).analysis(j).param=index(mouse).index(idx).param{j};
-            catch
+for mouse=1:3
+    for i=1:length(analysis(mouse).session)
+        date=analysis(mouse).session(i).date;
+        idx=find(strcmp({index(mouse).index(:).date},strrep(date,'_','/')));
+        if ~isempty(idx)
+            for j=1:length(analysis(mouse).session(i).analysis)
+                try
+                    analysis(mouse).session(i).analysis(j).window=index(mouse).index(idx).window{j}(1:4);
+                    analysis(mouse).session(i).analysis(j).param=index(mouse).index(idx).param{j};
+                catch
+                end
             end
         end
     end
@@ -148,6 +149,7 @@ SI_idx=[];
 width_idx=[];
 proportion_idx=[];
 
+for mouse=1:3
 for i=1:length(analysis(mouse).session)
     for j=1:length(analysis(mouse).session(i).analysis)
         try
@@ -188,7 +190,7 @@ for i=1:length(analysis(mouse).session)
         end
     end
 end
-
+end
 %% Cumulative dists
 figure; hold on;
 for i=1:length(n)
@@ -200,7 +202,35 @@ for i=1:length(n)
     ylabel('cumulative freq.');
     axis square
 end
-legend(gca,'show');
+ylim([0 1])
+legend(gca,'show','location','southeast');
+
+figure; hold on;
+for i=1:length(n)
+    [c,centres]=hist(SI{i},floor(length(SI{i})/4));
+    c=cumsum(c./sum(c));
+
+    plot(centres,c,'displayname',windows_list{i});
+    xlabel('spatial info. (bits)');
+    ylabel('cumulative freq.');
+    axis square
+end
+ylim([0 1])
+legend(gca,'show','location','southeast');
+
+figure; hold on;
+for i=1:length(n)
+    [c,centres]=hist(width{i},floor(length(width{i})/4));
+    c=cumsum(c./sum(c));
+
+    plot(centres,c,'displayname',windows_list{i});
+    xlabel('place-field width (cm)');
+    ylabel('cumulative freq.');
+    axis square
+end
+ylim([0 1])
+legend(gca,'show','location','southeast');
+
 
 %% High level stats
 figure;
@@ -210,7 +240,8 @@ pval=c(:,6);
 groups=c(pval<0.05,1:2);
 groups=mat2cell(groups,ones(1,size(groups,1)),2);
 super_bar_graphs(m(:,1),m(:,2),groups,pval(pval<0.05));
-xticklabels({'2','3','4','5','6','7'})
+% xticklabels({'2','3','4','5','6','7'})
+xticklabels(windows_list2)
 xlabel('window');
 ylabel('Spatial info mean ranks');
 
@@ -222,6 +253,7 @@ groups=c(pval<0.05,1:2);
 groups=mat2cell(groups,ones(1,size(groups,1)),2);
 super_bar_graphs(m(:,1),m(:,2),groups,pval(pval<0.05));
 xticklabels({'2','3','4','5','6','7'})
+xticklabels(windows_list2)
 xlabel('window');
 ylabel('Sparsity mean ranks');
 
@@ -233,23 +265,26 @@ groups=c(pval<0.05,1:2);
 groups=mat2cell(groups,ones(1,size(groups,1)),2);
 super_bar_graphs(m(:,1),m(:,2),groups,pval(pval<0.05));
 xticklabels({'2','3','4','5','6','7'})
+xticklabels(windows_list2)
 xlabel('window');
 ylabel('PC width mean ranks');
 
 figure;
-[p,tbl,stats] = kruskalwallis(cell2mat(proportion),proportion_idx,'off');
+[p,tbl,stats] = anova1(cell2mat(proportion),proportion_idx,'off');
 [c,m]=multcompare(stats,'display','off');
 pval=c(:,6);
 groups=c(pval<0.05,1:2);
 groups=mat2cell(groups,ones(1,size(groups,1)),2);
 super_bar_graphs(m(:,1),m(:,2),groups,pval(pval<0.05));
 xticklabels({'2','3','4','5','6','7'})
+xticklabels(windows_list2)
 xlabel('window');
-ylabel('Proportion place cells mean ranks');
+ylabel('Proportion place cells');
 
 
 %% Window list and other stuff
 windows_list={'posterior RCS','anterior RCS','anterior PPC','M2','posterior PPC','S1','M1/S1'};
+windows_list2={'pRCS','aRCS','aPPC','M2','pPPC','S1','M1/S1'};
 
 vr_length=150;
 bins=50;
