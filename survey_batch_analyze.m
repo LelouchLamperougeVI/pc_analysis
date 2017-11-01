@@ -95,7 +95,7 @@ end
 
 %% Get index structure using image logs
 
-fid=fopen('rsc038.txt');
+fid=fopen('rsc036.txt');
 C=textscan(fid,'%s','delimiter',',');
 fclose(fid);
 C=C{1,1};
@@ -189,6 +189,20 @@ for i=1:length(analysis(mouse).session)
     end
 end
 
+%% Cumulative dists
+figure; hold on;
+for i=1:length(n)
+    [c,centres]=hist(sparsity{i},floor(length(sparsity{i})/4));
+    c=cumsum(c./sum(c));
+
+    plot(centres,c,'displayname',windows_list{i});
+    xlabel('sparsity (%)');
+    ylabel('cumulative freq.');
+    axis square
+end
+legend(gca,'show');
+
+%% High level stats
 figure;
 [p,tbl,stats] = kruskalwallis(cell2mat(SI),SI_idx,'off');
 [c,m]=multcompare(stats,'display','off');
@@ -233,6 +247,92 @@ xticklabels({'2','3','4','5','6','7'})
 xlabel('window');
 ylabel('Proportion place cells mean ranks');
 
+
+%% Window list and other stuff
+windows_list={'posterior RCS','anterior RCS','anterior PPC','M2','posterior PPC','S1','M1/S1'};
+
+vr_length=150;
+bins=50;
+
+
+%% Sequences across windows
+
+for session=23:36
+    for window=1:5
+        try
+            if ~isempty(analysis(1).session(session).analysis(window).stack)
+                    figure;
+                    imagesc(analysis(1).session(session).analysis(window).stack(analysis(1).session(session).analysis(window).pc_list,:));
+                    colormap jet
+                    title([windows_list(str2double(analysis(1).session(session).analysis(window).window(end))) ' ' num2str([session window])]);
+                    ylabel('ordered neuron no.');
+                    xlabel('position (cm)');
+                    set(gca,'xtick',0:bins/5:bins);
+                    set(gca,'xticklabel',strsplit(num2str(-vr_length:vr_length/5:0)));
+            end
+        catch
+        end
+    end
+end
+
+%% Q matrix
+session=33;
+window=5;
+
+qMatrix=corr(analysis(1).session(session).analysis(window).stack(analysis(1).session(session).analysis(window).pc_list,:));
+
+figure;
+imagesc(qMatrix);
+set(gca,'xtick',0:bins/5:bins);
+set(gca,'xticklabel',strsplit(num2str(-vr_length:vr_length/5:0)));
+xlabel('position (cm)');
+set(gca,'ytick',0:bins/5:bins);
+set(gca,'yticklabel',strsplit(num2str(-vr_length:vr_length/5:0)));
+ylabel('position (cm)');
+c=colorbar; c.Label.String='corr. coef.';
+colormap jet
+title(windows_list(str2double(analysis(1).session(session).analysis(window).window(end))));
+axis square
+
+%% Single place cells
+session=33;
+window=5;
+n=[128 90 112];
+% n=[];
+
+list=analysis(1).session(session).analysis(window).pc_list;
+
+count=1;
+if isempty(n)
+    figure;
+    for k=list
+        if count>25
+            count=1;
+            figure;
+        end
+        subplot(5,5,count);
+        imagesc(analysis(1).session(session).analysis(window).psth{k});
+        set(gca,'xtick',0:bins/4:bins);
+        set(gca,'xticklabel',strsplit(num2str(-vr_length:vr_length/4:0)));
+        title(['n = ' num2str(k)]);
+        colormap hot
+        ylabel('trials')
+        xlabel('distance (cm)')
+        colorbar
+        count=count+1;
+    end
+else
+    for k=n
+        figure
+        imagesc(analysis(1).session(session).analysis(window).psth{k});
+        set(gca,'xtick',0:bins/4:bins);
+        set(gca,'xticklabel',strsplit(num2str(-vr_length:vr_length/4:0)));
+        colormap hot
+        ylabel('trials')
+        xlabel('distance (cm)')
+        colorbar
+    end
+end
 
 
 
