@@ -241,7 +241,7 @@ groups=c(pval<0.05,1:2);
 groups=mat2cell(groups,ones(1,size(groups,1)),2);
 super_bar_graphs(m(:,1),m(:,2),groups,pval(pval<0.05));
 % xticklabels({'2','3','4','5','6','7'})
-xticklabels(windows_list2)
+xticklabels(windows_list2(logical(n)))
 xlabel('window');
 ylabel('Spatial info mean ranks');
 
@@ -253,7 +253,7 @@ groups=c(pval<0.05,1:2);
 groups=mat2cell(groups,ones(1,size(groups,1)),2);
 super_bar_graphs(m(:,1),m(:,2),groups,pval(pval<0.05));
 xticklabels({'2','3','4','5','6','7'})
-xticklabels(windows_list2)
+xticklabels(windows_list2(logical(n)))
 xlabel('window');
 ylabel('Sparsity mean ranks');
 
@@ -265,7 +265,7 @@ groups=c(pval<0.05,1:2);
 groups=mat2cell(groups,ones(1,size(groups,1)),2);
 super_bar_graphs(m(:,1),m(:,2),groups,pval(pval<0.05));
 xticklabels({'2','3','4','5','6','7'})
-xticklabels(windows_list2)
+xticklabels(windows_list2(logical(n)))
 xlabel('window');
 ylabel('PC width mean ranks');
 
@@ -277,14 +277,14 @@ groups=c(pval<0.05,1:2);
 groups=mat2cell(groups,ones(1,size(groups,1)),2);
 super_bar_graphs(m(:,1),m(:,2),groups,pval(pval<0.05));
 xticklabels({'2','3','4','5','6','7'})
-xticklabels(windows_list2)
+xticklabels(windows_list2(logical(n)))
 xlabel('window');
 ylabel('Proportion place cells');
 
 
 %% Window list and other stuff
-windows_list={'posterior RCS','anterior RCS','anterior PPC','M2','posterior PPC','S1','M1/S1'};
-windows_list2={'pRCS','aRCS','aPPC','M2','pPPC','S1','M1/S1'};
+windows_list={'posterior RCS','anterior RCS','M1/M2','M2','PPC','S1','M1/S1'};
+windows_list2={'pRCS','aRCS','M1/M2','M2','PPC','S1','M1/S1'};
 
 vr_length=150;
 bins=50;
