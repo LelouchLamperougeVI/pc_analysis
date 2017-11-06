@@ -5,41 +5,8 @@ if ~exist('varset')
     varset=who;
 end
 
-fn='VR20170925143214.csv';
-importFlag={'"ca1011 tab 2"'};
-% 
-% fn='VR20170820163035.csv';
-% importFlag={'"ca1012 classroom w cues belt"'};
-
-fn='VR20170924160716.csv';
-importFlag={'"ca1011 tread"'};
-
-fn='VR20170925143214.csv';
-importFlag={'"ca1011 tread"'};
-
-fn='VR20170926185442.csv';
-% importFlag={'"ca1011 tread"','"done"'};
-importFlag={'"another"'};
-
-% fn='VR20170927153204.csv';
-% importFlag={'"go"'};
-
-fn='VR20170930191750.csv';
-importFlag={'"ca1011rec2"'};
-% fn='VR20170910114202[1].csv';
-% importFlag={'"ca1011 tab 2"'};
-
-% fn='VR20171007131001.csv';
-% importFlag={'"another"'};
-
-fn='VR20170910114202[1].csv';
-importFlag={'"ca1011 tab 2"'};
-
-fn='VR20171025111151.csv';
-importFlag={'"rsc36 win1 no tunnel"','"stoped 1"'};
-
-
-
+[fn,path]=uigetfile('*');
+cd(path);
 
 if ~exist('C')
     fid=fopen(fn);
@@ -69,9 +36,7 @@ end
 index=cellfun(@(x) strcmp(x, {'position','count-21','pickup'}), C,'uniformoutput',false);
 index=cell2mat(index);
 index(1:recStart,:)=0;
-if length(importFlag)==2
-    index(recFinish:end,:)=0;
-end
+index(recFinish:end,:)=0;
 
 idx=find(index(:,1));
 for i=1:length(idx)
