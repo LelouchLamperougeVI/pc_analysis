@@ -144,53 +144,63 @@ SI=cell(1,7);
 width=cell(1,7);
 proportion=cell(1,7);
 n=zeros(1,7);
-sparsity_idx=[];
-SI_idx=[];
-width_idx=[];
+window_idx=[];
+mouse_idx=[];
+sample_idx=[];
 proportion_idx=[];
+count=1;
 
-for mouse=1:3
-for i=1:length(analysis(mouse).session)
-    for j=1:length(analysis(mouse).session(i).analysis)
-        try
-            if strcmpi(analysis(mouse).session(i).analysis(j).param,'RUN')
-                switch analysis(mouse).session(i).analysis(j).window
-                    case 'win1'
-                        plotID=1;
-                    case 'win2'
-                        plotID=2;
-                    case 'win3'
-                        plotID=3;
-                    case 'win4'
-                        plotID=4;
-                    case 'win5'
-                        plotID=5;
-                    case 'win6'
-                        plotID=6;
-                    case 'win7'
-                        plotID=7;
-                    otherwise
-                        plotID=0;
-                end
+for mouse=mouse
+    for i=1:length(analysis(mouse).session)
+        for j=1:length(analysis(mouse).session(i).analysis)
+            try
+                if strcmpi(analysis(mouse).session(i).analysis(j).param,'RUN')
+                    switch analysis(mouse).session(i).analysis(j).window
+                        case 'win1'
+                            plotID=1;
+                        case 'win2'
+                            plotID=2;
+                        case 'win3'
+                            plotID=3;
+                        case 'win4'
+                            plotID=4;
+                        case 'win5'
+                            plotID=5;
+                        case 'win6'
+                            plotID=6;
+                        case 'win7'
+                            plotID=7;
+                        otherwise
+                            plotID=0;
+                    end
 
-                if plotID
-                    n(plotID)=n(plotID)+1;
-                    sparsity{plotID}=[sparsity{plotID} analysis(mouse).session(i).analysis(j).sparsity];
-                    SI{plotID}=[SI{plotID} analysis(mouse).session(i).analysis(j).SI];
-                    width{plotID}=[width{plotID} analysis(mouse).session(i).analysis(j).width];
-                    proportion{plotID}=[proportion{plotID} sum(analysis(mouse).session(i).analysis(j).pval)/length(analysis(mouse).session(i).analysis(j).pval)];
-                    
-                    sparsity_idx=[sparsity_idx repmat(plotID,1,length(analysis(mouse).session(i).analysis(j).sparsity))];
-                    SI_idx=[SI_idx repmat(plotID,1,length(analysis(mouse).session(i).analysis(j).SI))];
-                    width_idx=[width_idx repmat(plotID,1,length(analysis(mouse).session(i).analysis(j).width))];
-                    proportion_idx=[proportion_idx plotID];
+                    if plotID
+                        n(plotID)=n(plotID)+1;
+                        sparsity{plotID}=[sparsity{plotID} analysis(mouse).session(i).analysis(j).sparsity];
+                        SI{plotID}=[SI{plotID} analysis(mouse).session(i).analysis(j).SI];
+                        width{plotID}=[width{plotID} analysis(mouse).session(i).analysis(j).width];
+                        proportion{plotID}=[proportion{plotID} sum(analysis(mouse).session(i).analysis(j).pval)/length(analysis(mouse).session(i).analysis(j).pval)];
+
+                        window_idx=[window_idx repmat(plotID,1,length(analysis(mouse).session(i).analysis(j).sparsity))];
+                        mouse_idx=[mouse_idx repmat(mouse,1,length(analysis(mouse).session(i).analysis(j).sparsity))];
+                        sample_idx=[sample_idx repmat(count,1,length(analysis(mouse).session(i).analysis(j).sparsity))];
+                        proportion_idx=[proportion_idx plotID];
+                        count=count+1;
+                    end
                 end
+            catch
             end
-        catch
         end
     end
 end
-end
+
+%% Window list and other stuff
+windows_list={'posterior RCS','anterior RCS','M1/M2','M2','PPC','S1','M1/S1'};
+windows_list2={'pRCS','aRCS','M1/M2','M2','PPC','S1','M1/S1'};
+
+vr_length=150;
+bins=50;
+
 %% Cumulative dists
 figure; hold on;
 for i=1:length(n)
@@ -203,7 +213,7 @@ for i=1:length(n)
     axis square
 end
 ylim([0 1])
-legend(gca,'show','location','southeast');
+% legend(gca,'show','location','southeast');
 
 figure; hold on;
 for i=1:length(n)
@@ -216,7 +226,7 @@ for i=1:length(n)
     axis square
 end
 ylim([0 1])
-legend(gca,'show','location','southeast');
+% legend(gca,'show','location','southeast');
 
 figure; hold on;
 for i=1:length(n)
@@ -229,12 +239,90 @@ for i=1:length(n)
     axis square
 end
 ylim([0 1])
-legend(gca,'show','location','southeast');
+% legend(gca,'show','location','southeast');
 
 
 %% High level stats
+mouse=1;
+
 figure;
-[p,tbl,stats] = kruskalwallis(cell2mat(SI),SI_idx,'off');
+sample=[];
+idx=[];
+tmp=cell2mat(SI);
+for i=min(sample_idx):max(sample_idx)
+    sample(i)=mean(tmp(sample_idx==i));
+    idx(i)=window_idx(find(sample_idx==i,1));
+end
+[p,tbl,stats] = kruskalwallis(sample,idx,'off');
+[c,m]=multcompare(stats,'display','off');
+pval=c(:,6);
+groups=c(pval<0.05,1:2);
+groups=mat2cell(groups,ones(1,size(groups,1)),2);
+super_bar_graphs(m(:,1),m(:,2),groups,pval(pval<0.05));
+% xticklabels({'2','3','4','5','6','7'})
+xticklabels(windows_list2(logical(n)))
+xlabel('window');
+ylabel('Mean spatial info mean ranks');
+
+figure;
+sample=[];
+idx=[];
+tmp=cell2mat(sparsity);
+for i=min(sample_idx):max(sample_idx)
+    sample(i)=mean(tmp(sample_idx==i));
+    idx(i)=window_idx(find(sample_idx==i,1));
+end
+[p,tbl,stats] = kruskalwallis(sample,idx,'off');
+[c,m]=multcompare(stats,'display','off');
+pval=c(:,6);
+groups=c(pval<0.05,1:2);
+groups=mat2cell(groups,ones(1,size(groups,1)),2);
+super_bar_graphs(m(:,1),m(:,2),groups,pval(pval<0.05));
+xticklabels(windows_list2(logical(n)))
+xlabel('window');
+ylabel('Mean sparsity mean ranks');
+
+figure;
+sample=[];
+idx=[];
+tmp=cell2mat(SI);
+for i=min(sample_idx):max(sample_idx)
+    sample(i)=mean(tmp(sample_idx==i));
+    idx(i)=window_idx(find(sample_idx==i,1));
+end
+[p,tbl,stats] = kruskalwallis(sample,idx,'off');
+[c,m]=multcompare(stats,'display','off');
+pval=c(:,6);
+groups=c(pval<0.05,1:2);
+groups=mat2cell(groups,ones(1,size(groups,1)),2);
+super_bar_graphs(m(:,1),m(:,2),groups,pval(pval<0.05));
+xticklabels(windows_list2(logical(n)))
+xlabel('window');
+ylabel('Mean field width mean ranks');
+
+figure;
+[p,tbl,stats] = anova1(cell2mat(proportion),proportion_idx,'off');
+[c,m]=multcompare(stats,'display','off');
+pval=c(:,6);
+groups=c(pval<0.05,1:2);
+groups=mat2cell(groups,ones(1,size(groups,1)),2);
+super_bar_graphs(m(:,1),m(:,2),groups,pval(pval<0.05));
+xticklabels(windows_list2(logical(n)))
+xlabel('window');
+ylabel('Proportion place cells');
+
+%% KS statistic (D)
+for i=1:length(SI)
+    try
+        [f,x]=ecdf(SI{i});
+        norm_f=normcdf(x,mean(SI{i}),std(SI{i}));
+        [~,~,D(i)]=kstest(x,'CDF',[x norm_f]);
+    catch
+    end
+end
+
+figure;
+[p,tbl,stats] = kruskalwallis(cell2mat(SI),window_idx,'off');
 [c,m]=multcompare(stats,'display','off');
 pval=c(:,6);
 groups=c(pval<0.05,1:2);
@@ -245,53 +333,7 @@ xticklabels(windows_list2(logical(n)))
 xlabel('window');
 ylabel('Spatial info mean ranks');
 
-figure;
-[p,tbl,stats] = kruskalwallis(cell2mat(sparsity),sparsity_idx,'off');
-[c,m]=multcompare(stats,'display','off');
-pval=c(:,6);
-groups=c(pval<0.05,1:2);
-groups=mat2cell(groups,ones(1,size(groups,1)),2);
-super_bar_graphs(m(:,1),m(:,2),groups,pval(pval<0.05));
-xticklabels({'2','3','4','5','6','7'})
-xticklabels(windows_list2(logical(n)))
-xlabel('window');
-ylabel('Sparsity mean ranks');
-
-figure;
-[p,tbl,stats] = kruskalwallis(cell2mat(width),width_idx,'off');
-[c,m]=multcompare(stats,'display','off');
-pval=c(:,6);
-groups=c(pval<0.05,1:2);
-groups=mat2cell(groups,ones(1,size(groups,1)),2);
-super_bar_graphs(m(:,1),m(:,2),groups,pval(pval<0.05));
-xticklabels({'2','3','4','5','6','7'})
-xticklabels(windows_list2(logical(n)))
-xlabel('window');
-ylabel('PC width mean ranks');
-
-figure;
-[p,tbl,stats] = anova1(cell2mat(proportion),proportion_idx,'off');
-[c,m]=multcompare(stats,'display','off');
-pval=c(:,6);
-groups=c(pval<0.05,1:2);
-groups=mat2cell(groups,ones(1,size(groups,1)),2);
-super_bar_graphs(m(:,1),m(:,2),groups,pval(pval<0.05));
-xticklabels({'2','3','4','5','6','7'})
-xticklabels(windows_list2(logical(n)))
-xlabel('window');
-ylabel('Proportion place cells');
-
-
-%% Window list and other stuff
-windows_list={'posterior RCS','anterior RCS','M1/M2','M2','PPC','S1','M1/S1'};
-windows_list2={'pRCS','aRCS','M1/M2','M2','PPC','S1','M1/S1'};
-
-vr_length=150;
-bins=50;
-
-
 %% Sequences across windows
-
 for session=23:36
     for window=1:5
         try
