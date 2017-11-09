@@ -1,4 +1,5 @@
 function [behavior,deconv]=convert_behavior(behavior,tcs,deconv)
+%convert Dun's analysis into mine
 
 frame_ts=tcs.tt;
 idx=find(frame_ts>behavior.ts(end),1);

@@ -1,15 +1,12 @@
 function analysis=pc_batch_analysis(behavior,deconv)
+% streamlined version of pc_analysis
 
 v2struct(behavior);
 
 vr_length=round(range(unit_pos));
-
 sr=1/mean(diff(frame_ts));
 
-[c,centres]=hist((abs(unit_vel)),length(unit_vel)/2);
-
-thres=findpeaks(-c);
-thres=(centres(thres.loc(1)));
+thres=noRun(unit_vel);
 
 sd=4;
 bins=50;

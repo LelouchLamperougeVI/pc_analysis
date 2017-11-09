@@ -15,7 +15,6 @@ for shuffles=1:shuffles
 end
 
 d=Smooth(deconv,[19.1*sig 0]);
-d=zscore(d);
 [coef,score]=pca(d);
 cor=zeros(size(d,2),6);
 for i=1:6
