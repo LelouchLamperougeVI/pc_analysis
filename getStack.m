@@ -57,11 +57,11 @@ Pi=zeros(size(deconv,2),bins); %for SI test
     end
 %     raw_psth{k}(all(isnan(raw_psth{k}),2),:)=[];
     raw_psth(isnan(raw_psth))=0;
-    psth=arrayfun(@(x) Smooth(raw_psth(:,:,x),[0 sd]),1:length(list),'uniformoutput',false);
+    psth=arrayfun(@(x) fast_smooth(raw_psth(:,:,x),sd,2),1:length(list),'uniformoutput',false);
 % end
 % Pi=occupancy_series;
 stack=arrayfun(@(x) mean(raw_psth(:,:,x)),1:length(list),'uniformoutput',false);
 stack=cell2mat(stack);
 stack=reshape(stack,bins,size(deconv,2));
-stack=Smooth(stack,[sd 0]);
+stack=fast_smooth(stack,sd);
 raw_stack=stack;
