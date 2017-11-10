@@ -36,3 +36,9 @@ smoothed=conv(kernel,data);
 smoothed=smoothed(floor(kernelSize/2)+1:end-ceil(kernelSize/2)+1);
 smoothed=reshape(smoothed,dataSize+kernelSize*2,[]);
 smoothed(end-kernelSize*2+1:end,:)=[];
+
+switch dim
+    case 1
+    case 2
+        smoothed=smoothed';
+end
