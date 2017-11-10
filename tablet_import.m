@@ -124,6 +124,12 @@ behavior.speed_raw=unit_vel';
 behavior.trial=bsxfun(@ge,trials',ts);
 behavior.trial=sum(behavior.trial);
 behavior.trial=abs(behavior.trial-max(behavior.trial))+1;
+% for my code
+behavior.frame_ts=frame_ts;
+behavior.trials=trials;
+behavior.trials_ts=trials_ts;
+behavior.unit_pos=unit_pos;
+behavior.unit_vel=unit_vel;
 
     
 varset=setdiff(who,varset);
