@@ -8,6 +8,8 @@ analysis=pc_batch_analysis(behavior,deconv);
 v2struct(analysis);
 v2struct(behavior);
 
+deconv=deconv(:,analysis.pc_list);
+
 run_sequences=zeros(length(trials_ts)-1,size(deconv,2));
 
 for i=1:length(trials_ts)-1
