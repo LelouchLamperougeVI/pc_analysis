@@ -5,9 +5,11 @@ function [scores,pval]=mult_needleWunsch(sequences)
 % Inputs
 %   sequences:  a N x M matrix with N individual sequences of length M
 %
-% Output
+% Outputs
 %   scores: matrix of Needleman-Wunsch scores for sequence pairs
 %   pval:   significance of score calculated from shuffled dist
+%
+% by HaoRan Chang
 
 scores=needleWunsch(sequences(1,:),sequences(1,:));
 scores=diag(scores.*ones(1,size(sequences,1)));

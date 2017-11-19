@@ -1,4 +1,4 @@
-function [eScore,M,traceback]=needleWunsch(seq1,seq2)
+function [eScore,M,trace,traceback]=needleWunsch(seq1,seq2,traceFlag)
 % a modified Needleman-Wunsch algorithm for global alignment of replay
 % sequences
 %
@@ -21,7 +21,12 @@ for i=2:size(M,1)
     end
 end
 
-eScore=scoreIt(M,traceback);
+eScore=M(end,end);
+
+if nargin==3 && traceFlag
+    trace=trackIt(M,traceback);
+    trace=unpackCell(trace);
+end
 
 function simM=getSimM(seq1,seq2)
 % compute similarity matrix
@@ -30,42 +35,46 @@ simM=sqrt(simM);
 simM=double(simM==floor(simM));
 simM(~simM)=-1;
 
-function score=scoreIt(M,traceback)
+function trace=trackIt(M,traceback)
 % scoring function
 scoring=true;
 i=size(M,1);
 j=size(M,2);
-score=M(i,j);
+trace=[];
 while(scoring)
     switch traceback(i,j)
         case 1
             j=j-1;
+            trace=['1' trace];
         case 2
             i=i-1;
+            trace=['2' trace];
         case 4
             i=i-1;
             j=j-1;
+            trace=['4' trace];
             
         case 3
             recursiveM=M(1:i,1:j); % first time in my life using a recursive function :)
             recursiveTrace={traceback(1:i,1:j),traceback(1:i,1:j)};
-            recursiveTrace{1}(i,j)=1;
-            recursiveTrace{2}(i,j)=2;
-            score=score+[scoreIt(recursiveM,recursiveTrace{1}) scoreIt(recursiveM,recursiveTrace{2})]-M(i,j);
+            recursiveTrace{1}(i,j)=2;
+            recursiveTrace{2}(i,j)=1;
+            trace={strcat(trackIt(recursiveM,recursiveTrace{1}),trace),strcat(trackIt(recursiveM,recursiveTrace{2}),trace)};
+%             trace=trace+[trackIt(recursiveM,recursiveTrace{1}) trackIt(recursiveM,recursiveTrace{2})]-M(i,j);
             break
         case 5
             recursiveM=M(1:i,1:j);
             recursiveTrace={traceback(1:i,1:j),traceback(1:i,1:j)};
             recursiveTrace{1}(i,j)=4;
             recursiveTrace{2}(i,j)=1;
-            score=score+[scoreIt(recursiveM,recursiveTrace{1}) scoreIt(recursiveM,recursiveTrace{2})]-M(i,j);
+            trace={strcat(trackIt(recursiveM,recursiveTrace{1}),trace),strcat(trackIt(recursiveM,recursiveTrace{2}),trace)};
             break
         case 6
             recursiveM=M(1:i,1:j);
             recursiveTrace={traceback(1:i,1:j),traceback(1:i,1:j)};
             recursiveTrace{1}(i,j)=4;
             recursiveTrace{2}(i,j)=2;
-            score=score+[scoreIt(recursiveM,recursiveTrace{1}) scoreIt(recursiveM,recursiveTrace{2})]-M(i,j);
+            trace={strcat(trackIt(recursiveM,recursiveTrace{1}),trace),strcat(trackIt(recursiveM,recursiveTrace{2}),trace)};
             break
             
         case 7
@@ -74,11 +83,28 @@ while(scoring)
             recursiveTrace{1}(i,j)=4;
             recursiveTrace{2}(i,j)=2;
             recursiveTrace{3}(i,j)=1;
-            score=score+[scoreIt(recursiveM,recursiveTrace{1}) scoreIt(recursiveM,recursiveTrace{2}) scoreIt(recursiveM,recursiveTrace{3})]-M(i,j);
+            trace={strcat(trackIt(recursiveM,recursiveTrace{1}),trace),strcat(trackIt(recursiveM,recursiveTrace{2}),trace),strcat(trackIt(recursiveM,recursiveTrace{3}),trace)};
             break
     end
-    score=score+M(i,j);
+%     trace=trace+M(i,j);
     if i==1 && j==1
         scoring=false;
     end
 end
+
+function C=unpackCell(C)
+% unpack trace
+if ~iscellstr(C)
+    C=horzcat(C{:});
+    for i=1:length(C)
+        if iscell(C{i})
+            tmp=unpackCell(C{i});
+            C=horzcat(C,tmp);
+        end
+    end
+end
+idx=zeros(length(C));
+for i=1:length(C)
+    idx(i)=iscell(C{i});
+end
+C(logical(idx))=[];        
