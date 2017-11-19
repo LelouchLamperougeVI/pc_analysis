@@ -46,8 +46,36 @@ while(scoring)
             i=i-1;
             j=j-1;
             
+        case 3
+            recursiveM=M(1:i,1:j); % first time in my life using a recursive function :)
+            recursiveTrace={traceback(1:i,1:j),traceback(1:i,1:j)};
+            recursiveTrace{1}(i,j)=1;
+            recursiveTrace{2}(i,j)=2;
+            score=score+[scoreIt(recursiveM,recursiveTrace{1}) scoreIt(recursiveM,recursiveTrace{2})]-M(i,j);
+            break
         case 5
-            score=
+            recursiveM=M(1:i,1:j);
+            recursiveTrace={traceback(1:i,1:j),traceback(1:i,1:j)};
+            recursiveTrace{1}(i,j)=4;
+            recursiveTrace{2}(i,j)=1;
+            score=score+[scoreIt(recursiveM,recursiveTrace{1}) scoreIt(recursiveM,recursiveTrace{2})]-M(i,j);
+            break
+        case 6
+            recursiveM=M(1:i,1:j);
+            recursiveTrace={traceback(1:i,1:j),traceback(1:i,1:j)};
+            recursiveTrace{1}(i,j)=4;
+            recursiveTrace{2}(i,j)=2;
+            score=score+[scoreIt(recursiveM,recursiveTrace{1}) scoreIt(recursiveM,recursiveTrace{2})]-M(i,j);
+            break
+            
+        case 7
+            recursiveM=M(1:i,1:j);
+            recursiveTrace={traceback(1:i,1:j),traceback(1:i,1:j),traceback(1:i,1:j)};
+            recursiveTrace{1}(i,j)=4;
+            recursiveTrace{2}(i,j)=2;
+            recursiveTrace{3}(i,j)=1;
+            score=score+[scoreIt(recursiveM,recursiveTrace{1}) scoreIt(recursiveM,recursiveTrace{2}) scoreIt(recursiveM,recursiveTrace{3})]-M(i,j);
+            break
     end
     score=score+M(i,j);
     if i==1 && j==1
