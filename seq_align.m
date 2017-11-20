@@ -25,6 +25,9 @@ end
 %%
 ax1=subplot(2,1,1);
 imagesc(d');
+ylabel('neuron no.')
 ax2=subplot(2,1,2);
 plot(score(:,1:6));
+xlabel('frame')
+ylabel('PC score')
 linkaxes([ax1 ax2],'x');

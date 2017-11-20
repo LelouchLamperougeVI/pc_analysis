@@ -10,7 +10,7 @@ for i=1:size(pc,2)
     sd=std(pc(:,i));
     peaks=findpeaks(pc(:,i));
     peaks=peaks.loc;
-    peaks(pc(peaks,i)<2*sd)=[];
+    peaks(pc(peaks,i)<2*sd+mean(pc(:,i)))=[];
     down_peaks=findpeaks(-pc(:,i));
     down_peaks=down_peaks.loc;
     
