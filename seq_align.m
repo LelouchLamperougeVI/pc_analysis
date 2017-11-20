@@ -1,6 +1,6 @@
 % function seq_align(temp,match)
-sig=.5;
-shuffles=10;
+sig=.2; %seconds
+shuffles=1;
 
 coef=zeros(size(deconv,2),size(deconv,2),shuffles+1);
 coef(:,:,1)=pca(Smooth(deconv,[19.1*sig 0]));
@@ -14,7 +14,7 @@ for shuffles=1:shuffles
     coef(:,:,shuffles+1)=pca(Smooth(shifted_d,[19.1*sig 0]),'algorithm','eig');
 end
 
-d=Smooth(deconv,[19.1*sig 0]);
+d=fast_smooth(deconv,19.1*sig);
 d=zscore(d);
 [coef,score]=pca(d);
 cor=zeros(size(d,2),6);
