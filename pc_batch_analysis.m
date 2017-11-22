@@ -29,10 +29,10 @@ Pi=Pi';
 SI_series=Pi.*lamb./m_lamb.*log2(lamb./m_lamb);
 SI=sum(SI_series);
 
-useGPU=false;
-shuffles=500;
-
-for i=1:shuffles
+% useGPU=false;
+shuffles=1000;
+SI=[SI;zeros(shuffles,1)];
+parfor i=1:shuffles
     perm=ceil(rand(1)*size(deconv,1));
     shuffled_den=[deconv(perm:end,:);deconv(1:perm-1,:)];
     
@@ -42,7 +42,7 @@ for i=1:shuffles
     Pi1=Pi1';
     
     temp=Pi1.*lamb1./m_lamb1.*log2(lamb1./m_lamb1);
-    SI=[SI;sum(temp)];
+    SI(i+1)=sum(temp);
 end
 
 pval=1-sum(SI(1,:)>SI(2:end,:))./shuffles;
