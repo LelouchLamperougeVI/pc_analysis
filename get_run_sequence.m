@@ -10,9 +10,10 @@ v2struct(behavior);
 
 deconv=deconv(:,analysis.pc_list);
 
-run_sequences=zeros(length(trials_ts)-1,size(deconv,2));
+run_sequences=zeros(length(behavior.trials_ts)-1,size(deconv,2));
 
-for i=1:length(trials_ts)-1
-    seq=max(deconv(trials_ts(i):trials_ts(i+1)-1,:));
+for i=1:length(behavior.trials_ts)-1
+    seq=deconv(behavior.trials_ts(i):behavior.trials_ts(i+1)-1,:);
+    [~,seq]=max(seq);
     [~,run_sequences(i,:)]=sort(seq);
 end
