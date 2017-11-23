@@ -11,6 +11,7 @@ for i=1:size(pc,2)
     peaks=findpeaks(pc(:,i));
     peaks=peaks.loc;
     peaks(pc(peaks,i)<2*sd+mean(pc(:,i)))=[];
+%     peaks(pc(peaks,i)<2*sd)=[];
     down_peaks=findpeaks(-pc(:,i));
     down_peaks=down_peaks.loc;
     
