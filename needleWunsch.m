@@ -30,9 +30,9 @@ end
 
 function simM=getSimM(seq1,seq2)
 % compute similarity matrix
-simM=seq1'*seq2;
-simM=sqrt(simM);
-simM=double(simM==floor(simM));
+simM=seq1'==seq2;
+% simM=sqrt(simM);
+% simM=double(simM==floor(simM));
 simM(~simM)=-1;
 
 function trace=trackIt(M,traceback)
