@@ -1,7 +1,11 @@
 function analysis=pc_batch_analysis(behavior,deconv)
 % streamlined version of pc_analysis
 
-v2struct(behavior);
+% v2struct(behavior);
+unit_pos=behavior.unit_pos;
+unit_vel=behavior.unit_vel;
+frame_ts=behavior.frame_ts;
+trials=behavior.trials;
 
 vr_length=round(range(unit_pos));
 sr=1/mean(diff(frame_ts));
@@ -36,7 +40,7 @@ parfor i=1:shuffles
     perm=ceil(rand(1)*size(deconv,1));
     shuffled_den=[deconv(perm:end,:);deconv(1:perm-1,:)];
     
-    [~,~,lamb1,Pi1]=getStack(bins,sd,vr_length,shuffled_den,thres,behavior.unit_pos,behavior.unit_vel,behavior.frame_ts,behavior.trials);
+    [~,~,lamb1,Pi1]=getStack(bins,sd,vr_length,shuffled_den,thres,unit_pos,unit_vel,frame_ts,trials);
     m_lamb1=mean(lamb1);
     Pi1=Pi1./sum(Pi1,2);
     Pi1=Pi1';
