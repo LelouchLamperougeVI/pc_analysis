@@ -25,15 +25,16 @@ eScore=M(end,end);
 
 if nargin==3 && traceFlag
     trace=trackIt(M,traceback);
-    trace=unpackCell(trace);
+    try
+        trace=unpackCell(trace);
+    catch
+    end
 end
 
 function simM=getSimM(seq1,seq2)
 % compute similarity matrix
-simM=seq1'==seq2;
-% simM=sqrt(simM);
-% simM=double(simM==floor(simM));
-simM(~simM)=-1;
+simM=double(seq1'==seq2);
+simM(simM==0)=-1;
 
 function trace=trackIt(M,traceback)
 % scoring function
