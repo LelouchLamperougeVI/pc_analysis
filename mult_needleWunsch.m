@@ -15,19 +15,18 @@ function [scores,pval]=mult_needleWunsch(sequences)
 % scores=diag(scores.*ones(1,length(sequences)));
 scores=zeros(length(sequences));
 for i=1:length(sequences)
-    for j=i:length(sequences)
+    parfor j=i:length(sequences)
         scores(i,j)=needleWunsch(sequences{i},sequences{j});
     end
 end
 
 scores=scores+scores'-diag(diag(scores));
 
-shuffles=100;
+shuffles=1000;
 shuffled_scores=zeros(1,shuffles);
-for i=1:shuffles
+parfor i=1:shuffles
     idx=[randi(length(sequences)) randi(length(sequences))];
     shuffled_scores(i)=needleWunsch(sequences{idx(1)}(randperm(length(sequences{idx(1)}))),sequences{idx(2)}(randperm(length(sequences{idx(2)}))));
-    i
 end
 
 pval=zeros(length(sequences));
