@@ -1,4 +1,4 @@
-function analysis=pc_batch_analysis(behavior,deconv)
+function analysis=pc_batch_analysis(behavior,deconv,maskNeurons,mimg)
 % streamlined version of pc_analysis
 
 % v2struct(behavior);
@@ -78,7 +78,7 @@ width=width.*vr_length./bins;
 SI=sum(SI_series);
 SI=SI(1,pc_list);
 
-analysis=v2struct(vr_length,sr,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width);
+analysis=v2struct(vr_length,sr,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,maskNeurons,mimg);
 
 
 
