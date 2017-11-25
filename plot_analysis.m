@@ -22,7 +22,7 @@ for k=analysis.pc_list
     count=count+1;
 end
 
-stack=analysis.raw_stack;
+stack=analysis.raw_stack(:,analysis.pc_list);
 
 stack=(stack-repmat(min(stack),bins,1));
 stack=stack./repmat(max(stack),bins,1);
