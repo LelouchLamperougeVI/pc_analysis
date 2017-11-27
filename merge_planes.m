@@ -1,6 +1,11 @@
-function analysis=merge_planes(analysis1,analysis2)
+function analysis=merge_planes(analysis1,analysis2,plotFlag)
 % merge data from two planes, taking care to get rid of the same cells
-thres=15; %pixels
+if nargin<3
+    plotFlag=0;
+end
+
+dist_thres=30; %pixels
+sp_thres=.6;
 
 mimg1=analysis1.mimg;
 mimg2=analysis2.mimg;
@@ -9,9 +14,11 @@ mimg2=analysis2.mimg;
 trans=imregtform(mimg2,mimg1,'translation',optimizer,metric);
 reg=imwarp(mimg2,trans,'OutputView',imref2d(size(mimg1)));
 
-figure
-imshowpair(mimg1,reg,'scaling','joint');
-title('overlaid planes');
+if plotFlag
+    figure
+    imshowpair(mimg1,reg,'scaling','joint');
+    title('overlaid planes');
+end
 
 trans.T=round(trans.T);
 analysis2.maskNeurons=imwarp(analysis2.maskNeurons,trans,'OutputView',imref2d(size(mimg1)));
@@ -49,17 +56,16 @@ dist=sqrt((x1'-x2).^2+(y1'-y2).^2);
 % start=[mu sig L k x0];
 % 
 % estimates=mle(dist,'pdf',pdf,'start',start);
-dist=dist<thres;
+dist=dist<dist_thres;
 
 for i=1:size(dist,1)
     for j=1:size(dist,2)
-        if dist(i,j)
-            if ~any(analysis1.pc_list==i) || ~any(analysis2.pc_list==j) % are they even place cells?
-                dist(i,j)=false;
-            else
-                coef=corr(analysis1.raw_stack(:,i),analysis2.raw_stack(:,j));
-                if coef>0.6
-                    dist(i,j)=false;
+        if dist(i,j) % distance too close?
+            if corr2(analysis1.maskNeurons==i,analysis2.maskNeurons==j)>sp_thres %spatial corr too high?
+                if any(analysis1.pc_list==i) || any(analysis2.pc_list==j) % are they even place cells?
+                    if corr(analysis1.raw_stack(:,i),analysis2.raw_stack(:,j))>0.6
+                        dist(i,j)=false;
+                    end
                 end
             end
         end
@@ -84,11 +90,12 @@ new_mask(overlap)=analysis1.maskNeurons(overlap);
 new_mimg=analysis1.mimg+analysis2.mimg;
 analysis=pc_batch_analysis(analysis1.behavior,deconv,new_mask,new_mimg);
 
-
-figure
-mask=~~analysis.maskNeurons+same_cells;
-mask(mask>=10)=2;
-imagesc(mask);
-axis square
-colormap hot
-title('overlapping cells');
+if plotFlag
+    figure
+    mask=~~analysis.maskNeurons+same_cells;
+    mask(mask>=10)=2;
+    imagesc(mask);
+    axis square
+    colormap hot
+    title('overlapping cells');
+end
