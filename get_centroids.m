@@ -1,4 +1,4 @@
-function centroid_mask=get_centroids(analysis)
+function [centroid_mask,pc_list]=get_centroids(analysis)
 centroid_mask=zeros(size(analysis.maskNeurons));
 for i=1:length(analysis.psth)
     centroids=regionprops(analysis.maskNeurons==i,'centroid');
@@ -7,3 +7,4 @@ for i=1:length(analysis.psth)
     centroid_mask(centroids(1),centroids(2))=i;
 end
 centroid_mask=centroid_mask';
+pc_list=analysis.pc_list;
