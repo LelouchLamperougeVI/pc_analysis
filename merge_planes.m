@@ -72,7 +72,7 @@ dist=find(dist);
 same_cells=zeros(size(analysis1.maskNeurons));
 count=0;
 for i=dist
-    same_cells(analysis2.maskNeurons==i-count)=2;
+    same_cells(analysis2.maskNeurons==i-count)=10;
     analysis2.maskNeurons(analysis2.maskNeurons==i-count)=0;
     analysis2.maskNeurons(analysis2.maskNeurons>i-count)=analysis2.maskNeurons(analysis2.maskNeurons>i-count)-1;
     count=count+1;
@@ -86,7 +86,9 @@ analysis=pc_batch_analysis(analysis1.behavior,deconv,new_mask,new_mimg);
 
 
 figure
-imagesc(~~analysis.maskNeurons+same_cells);
+mask=~~analysis.maskNeurons+same_cells;
+mask(mask>=10)=2;
+imagesc(mask);
 axis square
 colormap hot
 title('overlapping cells');
