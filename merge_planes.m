@@ -1,4 +1,4 @@
-function analysis=merge_planes(analysis1,analysis2,plotFlag)
+function [analysis,numRejected]=merge_planes(analysis1,analysis2,plotFlag)
 % merge data from two planes, taking care to get rid of the same cells
 if nargin<3
     plotFlag=0;
@@ -73,6 +73,7 @@ for i=1:size(dist,1)
 end
 
 dist=any(dist);
+numRejected=sum(dist);
 deconv=[analysis1.deconv analysis2.deconv(:,~dist)];
 dist=find(dist);
 same_cells=zeros(size(analysis1.maskNeurons));

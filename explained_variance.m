@@ -15,8 +15,8 @@ for i=2:1:size(cor1,1)-1
     corr3=[corr3 cor3(i,1:i-1)];
 end
 
-[ev,p1]=partialcorr(corr1',corr2',corr3');
-[rev,p2]=partialcorr(corr2',corr3',corr1');
+[rev,p1]=partialcorr(corr1',corr2',corr3');
+[ev,p2]=partialcorr(corr2',corr3',corr1');
 
 if nargin>4 && plotFlag
     figure;

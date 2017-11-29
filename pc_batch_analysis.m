@@ -1,5 +1,28 @@
-function analysis=pc_batch_analysis(behavior,deconv,maskNeurons,mimg)
-% streamlined version of pc_analysis
+function analysis=pc_batch_analysis(varargin)
+% analysis = pc_batch_analysis(behavior, deconv, params);
+%
+% Parameters
+%   'mask', maskNeurons, mimg
+%       required for merging two planes
+% 
+%   'test',
+%       'si' (default) SI shuffle test
+%       'gmm' new method based on GMM! more rigorous than SI
+%       'mixed' two tests combined
+%
+%   'shuffles', 1000 (default)
+%       number of shuffles for tests
+%
+%   'bins', 50 (default)
+%       number of spatial bins
+%
+%   'sd', 4 (default)
+%       smoothing kernel s.d. in cm
+
+behavior=varargin{1};
+deconv=varargin{2};
+
+[maskFlag,testFlag,shuffles,bins,sd]=parse_input(varargin);
 
 % v2struct(behavior);
 unit_pos=behavior.unit_pos;
@@ -11,9 +34,6 @@ vr_length=round(range(unit_pos));
 sr=1/mean(diff(frame_ts));
 
 thres=noRun(unit_vel);
-
-sd=4;
-bins=50;
 
 [psth,raw_psth,raw_stack,Pi,vel_stack]=getStack(bins,sd,vr_length,deconv,thres,unit_pos,unit_vel,frame_ts,trials);
 
@@ -33,29 +53,35 @@ Pi=Pi';
 SI_series=Pi.*lamb./m_lamb.*log2(lamb./m_lamb);
 SI=sum(SI_series);
 
-% useGPU=false;
-shuffles=1000;
-SI=[SI;zeros(shuffles,length(SI))];
-parfor i=1:shuffles
-    perm=ceil(rand(1)*size(deconv,1));
-    shuffled_den=[deconv(perm:end,:);deconv(1:perm-1,:)];
-    
-    [~,~,lamb1,Pi1]=getStack(bins,sd,vr_length,shuffled_den,thres,unit_pos,unit_vel,frame_ts,trials);
-    m_lamb1=mean(lamb1);
-    Pi1=Pi1./sum(Pi1,2);
-    Pi1=Pi1';
-    
-    temp=Pi1.*lamb1./m_lamb1.*log2(lamb1./m_lamb1);
-    SI(i+1,:)=sum(temp);
+%SI test
+if testFlag==1 || testFlag==3
+    SI=[SI;zeros(shuffles,length(SI))];
+    parfor i=1:shuffles
+        perm=ceil(rand(1)*size(deconv,1));
+        shuffled_den=[deconv(perm:end,:);deconv(1:perm-1,:)];
+
+        [~,~,lamb1,Pi1]=getStack(bins,sd,vr_length,shuffled_den,thres,unit_pos,unit_vel,frame_ts,trials);
+        m_lamb1=mean(lamb1);
+        Pi1=Pi1./sum(Pi1,2);
+        Pi1=Pi1';
+
+        temp=Pi1.*lamb1./m_lamb1.*log2(lamb1./m_lamb1);
+        SI(i+1,:)=sum(temp);
+    end
+
+    pval=1-sum(SI(1,:)>SI(2:end,:))./shuffles;
+    pc_list=find(pval<0.05);
 end
+SI=sum(SI_series);
+SI=SI(1,pc_list);
+%
 
-pval=1-sum(SI(1,:)>SI(2:end,:))./shuffles;
-pc_list=find(pval<0.05);
-
-
+%sparsity
 sparsity=sum(Pi.*lamb).^2./sum(Pi.*lamb.^2);
 sparsity=sparsity(1,pc_list);
 
+
+%PC width
 baseline_thres=range(raw_stack).*.2+min(raw_stack);
 width_series=raw_stack>baseline_thres;
 width_series=width_series(:,pc_list);
@@ -74,15 +100,56 @@ for i=1:size(width_series,2)
     width(i)=max(temp);
 end
 width=width.*vr_length./bins;
-
-SI=sum(SI_series);
-SI=SI(1,pc_list);
-
-analysis=v2struct(vr_length,sr,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,behavior,maskNeurons,mimg);
+%
 
 
+if maskFlag
+    maskNeurons=varargin{maskFlag+1};
+    mimg=varargin{maskFlag+2};
+    analysis=v2struct(vr_length,sr,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,behavior,maskNeurons,mimg);
+else
+    analysis=v2struct(vr_length,sr,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,behavior);
+end
 
 
+function [maskFlag,testFlag,shuffles,bins,sd]=parse_input(inputs)
+maskFlag=0;
+testFlag=1;
+shuffles=1000;
+sd=4;
+bins=50;
+
+idx=3;
+while(idx<length(inputs))
+    switch lower(inputs{idx})
+        case 'mask'
+            maskFlag=idx;
+            idx=idx+2;
+        case 'test'
+            idx=idx+1;
+            switch inputs{idx}
+                case 'si'
+                    testFlag=1;
+                case 'gmm'
+                    testFlag=2;
+                case 'mixed'
+                    testFlag=3;
+                otherwise
+                    error('not a valid test');
+            end
+        case 'shuffles'
+            idx=idx+1;
+            shuffles=inputs{idx};
+        case 'bins'
+            idx=idx+1;
+            bins=inputs{idx};
+        case 'sd'
+            idx=idx+1;
+            sd=inputs{idx};
+        otherwise
+    end
+    idx=idx+1;
+end
 
 
 

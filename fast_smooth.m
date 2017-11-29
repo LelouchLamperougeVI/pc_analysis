@@ -10,6 +10,11 @@ function smoothed=fast_smooth(data,sig,dim)
 %
 % by HaoRan Chang
 
+if sig==0
+    smoothed=data;
+    return
+end
+
 if nargin==2
     dim=1;
 end
