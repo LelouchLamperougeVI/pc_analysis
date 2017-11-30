@@ -16,26 +16,28 @@ index=[13 12 0
 index=repelem(index,bins,bins);
 
 for i=1:length(centroids)
-    all_cells=logical(centroids{i});
-    place_cells=zeros(size(centroids{i}));
-    SI_cells=zeros(size(centroids{i}));
-    count=1;
-    for k=pc_list{i}
-        place_cells(centroids{i}==k)=1;
-        SI_cells(centroids{i}==k)=SI{i}(count);
-        count=count+1;
+    if ~isempty(centroids{i})
+        all_cells=logical(centroids{i});
+        place_cells=zeros(size(centroids{i}));
+        SI_cells=zeros(size(centroids{i}));
+        count=1;
+        for k=pc_list{i}
+            place_cells(centroids{i}==k)=1;
+            SI_cells(centroids{i}==k)=SI{i}(count);
+            count=count+1;
+        end
+
+        all_cells=mat2cell(all_cells,winSize/bins.*ones(1,bins),winSize/bins.*ones(1,bins));
+        place_cells=mat2cell(place_cells,winSize/bins.*ones(1,bins),winSize/bins.*ones(1,bins));
+        SI_cells(SI_cells==0)=NaN;
+        SI_cells=mat2cell(SI_cells,winSize/bins.*ones(1,bins),winSize/bins.*ones(1,bins));
+
+        all_cells=cellfun(@(x) sum(sum(x)),all_cells);
+        place_cells=cellfun(@(x) sum(sum(x)),place_cells);
+        SI_map(index==i)=cellfun(@(x) mean(mean(x,'omitnan'),'omitnan'),SI_cells);
+
+        map(index==i)=place_cells./all_cells;
     end
-    
-    all_cells=mat2cell(all_cells,winSize/bins.*ones(1,bins),winSize/bins.*ones(1,bins));
-    place_cells=mat2cell(place_cells,winSize/bins.*ones(1,bins),winSize/bins.*ones(1,bins));
-    SI_cells(SI_cells==0)=NaN;
-    SI_cells=mat2cell(SI_cells,winSize/bins.*ones(1,bins),winSize/bins.*ones(1,bins));
-    
-    all_cells=cellfun(@(x) sum(sum(x)),all_cells);
-    place_cells=cellfun(@(x) sum(sum(x)),place_cells);
-    SI_map(index==i)=cellfun(@(x) mean(mean(x,'omitnan'),'omitnan'),SI_cells);
-    
-    map(index==i)=place_cells./all_cells;
 end
 
 map(isnan(map))=0;
