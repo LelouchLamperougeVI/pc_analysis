@@ -89,7 +89,7 @@ overlap=logical(logical(analysis1.maskNeurons).*logical(analysis2.maskNeurons));
 new_mask=analysis1.maskNeurons+analysis2.maskNeurons;
 new_mask(overlap)=analysis1.maskNeurons(overlap);
 new_mimg=analysis1.mimg+analysis2.mimg;
-analysis=pc_batch_analysis(analysis1.behavior,deconv,new_mask,new_mimg);
+analysis=pc_batch_analysis(analysis1.behavior,deconv,'mask',new_mask,new_mimg);
 
 if plotFlag
     figure
