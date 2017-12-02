@@ -3,8 +3,12 @@ winSize=800;
 numWin=[6 3];
 smoothing=2;
 
+fov=835.76; %um
+bregma=3; %top left corner
+
 map=zeros(bins*numWin(1),bins*numWin(2));
 SI_map=map;
+mimg_map=zeros(winSize*numWin(1),winSize*numWin(2));
 
 index=[13 12 0
     4 8 11
@@ -13,7 +17,8 @@ index=[13 12 0
     1 5 14
     16 15 0];
 
-index=repelem(index,bins,bins);
+mimg_index=repelem(index,winSize,winSize);
+map_index=repelem(index,bins,bins);
 
 for i=1:length(centroids)
     if ~isempty(centroids{i})
@@ -34,9 +39,11 @@ for i=1:length(centroids)
 
         all_cells=cellfun(@(x) sum(sum(x)),all_cells);
         place_cells=cellfun(@(x) sum(sum(x)),place_cells);
-        SI_map(index==i)=cellfun(@(x) mean(mean(x,'omitnan'),'omitnan'),SI_cells);
+        SI_map(map_index==i)=cellfun(@(x) mean(mean(x,'omitnan'),'omitnan'),SI_cells);
 
-        map(index==i)=place_cells./all_cells;
+        map(map_index==i)=place_cells./all_cells;
+        
+        mimg_map(mimg_index==i)=mimg_cell{i};
     end
 end
 
@@ -44,13 +51,40 @@ map(isnan(map))=0;
 SI_map(isnan(SI_map))=0;
 
 figure
+imagesc(mimg_map)
+pbaspect([numWin(2) numWin(1) 1]);
+colormap gray;
+xticks(0:winSize/fov*winSize/2:winSize*numWin(2));
+xticklabels(split(num2str(0:winSize/2:winSize*numWin(2))));
+xlabel('ML (\mum)');
+[idx,~]=find(index==bregma);
+yticks(unique([fliplr((idx-1)*winSize:-winSize/fov*winSize/2:0) (idx-1)*winSize:winSize/fov*winSize/2:winSize*numWin(1)]));
+label=fliplr(0:winSize/2:winSize*numWin(1));
+yticklabels(split(num2str(label-label(length(fliplr((idx-1)*winSize:-winSize/fov*winSize/2:0))))));
+ylabel('AP (\mum)');
+
+figure
 imagesc(Smooth(map,[smoothing smoothing]))
 pbaspect([numWin(2) numWin(1) 1]);
 colormap jet;
 c=colorbar; c.Label.String='Fraction place cells';
+xticks(0:bins/fov*winSize/2:bins*numWin(2));
+xticklabels(split(num2str(0:winSize/2:winSize*numWin(2))));
+xlabel('ML (\mum)');
+yticks(unique([fliplr((idx-1)*bins:-bins/fov*winSize/2:0) (idx-1)*bins:bins/fov*winSize/2:bins*numWin(1)]));
+label=fliplr(0:winSize/2:winSize*numWin(1));
+yticklabels(split(num2str(label-label(length(fliplr((idx-1)*winSize:-winSize/fov*winSize/2:0))))));
+ylabel('AP (\mum)');
 
 figure
 imagesc(Smooth(SI_map,[smoothing smoothing]))
 pbaspect([numWin(2) numWin(1) 1]);
 colormap jet;
 c=colorbar; c.Label.String='Spatial info (bits)';
+xticks(0:bins/fov*winSize/2:bins*numWin(2));
+xticklabels(split(num2str(0:winSize/2:winSize*numWin(2))));
+xlabel('ML (\mum)');
+yticks(unique([fliplr((idx-1)*bins:-bins/fov*winSize/2:0) (idx-1)*bins:bins/fov*winSize/2:bins*numWin(1)]));
+label=fliplr(0:winSize/2:winSize*numWin(1));
+yticklabels(split(num2str(label-label(length(fliplr((idx-1)*winSize:-winSize/fov*winSize/2:0))))));
+ylabel('AP (\mum)');

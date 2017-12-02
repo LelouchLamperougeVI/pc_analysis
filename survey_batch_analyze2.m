@@ -6,13 +6,14 @@ for i=layer:2:8
 i
     [behavior,deconv,tcs,maskNeurons,mimg]=load_data('rsc036','2017_11_09',num2str(i),1);
     [behavior,deconv]=convert_behavior(behavior,tcs,deconv);
-    analysis1=pc_batch_analysis(behavior,deconv,maskNeurons,mimg);
+    analysis1=pc_batch_analysis(behavior,deconv,'mask',maskNeurons,mimg);
     [behavior,deconv,tcs,maskNeurons,mimg]=load_data('rsc036','2017_11_09',num2str(i),2);
     [behavior,deconv]=convert_behavior(behavior,tcs,deconv);
-    analysis2=pc_batch_analysis(behavior,deconv,maskNeurons,mimg);
+    analysis2=pc_batch_analysis(behavior,deconv,'mask',maskNeurons,mimg);
     analysis=merge_planes(analysis1,analysis2);
     [centroids{index(count)},pc_list{index(count)}]=get_centroids(analysis);
     SI{index(count)}=analysis.SI;
+    mimg_cell{index(count)}=analysis.mimg;
     count=count+1;
 end
 
@@ -22,13 +23,14 @@ for i=layer:2:12
 i
     [behavior,deconv,tcs,maskNeurons,mimg]=load_data('rsc036','2017_11_13',num2str(i),1);
     [behavior,deconv]=convert_behavior(behavior,tcs,deconv);
-    analysis1=pc_batch_analysis(behavior,deconv,maskNeurons,mimg);
+    analysis1=pc_batch_analysis(behavior,deconv,'mask',maskNeurons,mimg);
     [behavior,deconv,tcs,maskNeurons,mimg]=load_data('rsc036','2017_11_13',num2str(i),2);
     [behavior,deconv]=convert_behavior(behavior,tcs,deconv);
-    analysis2=pc_batch_analysis(behavior,deconv,maskNeurons,mimg);
+    analysis2=pc_batch_analysis(behavior,deconv,'mask',maskNeurons,mimg);
     analysis=merge_planes(analysis1,analysis2);
     [centroids{index(count)},pc_list{index(count)}]=get_centroids(analysis);
     SI{index(count)}=analysis.SI;
+    mimg_cell{index(count)}=analysis.mimg;
     count=count+1;
 end
 
@@ -38,13 +40,14 @@ for i=layer:2:6
 i
     [behavior,deconv,tcs,maskNeurons,mimg]=load_data('rsc036','2017_11_14',num2str(i),1);
     [behavior,deconv]=convert_behavior(behavior,tcs,deconv);
-    analysis1=pc_batch_analysis(behavior,deconv,maskNeurons,mimg);
+    analysis1=pc_batch_analysis(behavior,deconv,'mask',maskNeurons,mimg);
     [behavior,deconv,tcs,maskNeurons,mimg]=load_data('rsc036','2017_11_14',num2str(i),2);
     [behavior,deconv]=convert_behavior(behavior,tcs,deconv);
-    analysis2=pc_batch_analysis(behavior,deconv,maskNeurons,mimg);
+    analysis2=pc_batch_analysis(behavior,deconv,'mask',maskNeurons,mimg);
     analysis=merge_planes(analysis1,analysis2);
     [centroids{index(count)},pc_list{index(count)}]=get_centroids(analysis);
     SI{index(count)}=analysis.SI;
+    mimg_cell{index(count)}=analysis.mimg;
     count=count+1;
 end
 
@@ -54,13 +57,14 @@ for i=layer:2:8
 i
     [behavior,deconv,tcs,maskNeurons,mimg]=load_data('rsc036','2017_11_15',num2str(i),1);
     [behavior,deconv]=convert_behavior(behavior,tcs,deconv);
-    analysis1=pc_batch_analysis(behavior,deconv,maskNeurons,mimg);
+    analysis1=pc_batch_analysis(behavior,deconv,'mask',maskNeurons,mimg);
     [behavior,deconv,tcs,maskNeurons,mimg]=load_data('rsc036','2017_11_15',num2str(i),2);
     [behavior,deconv]=convert_behavior(behavior,tcs,deconv);
-    analysis2=pc_batch_analysis(behavior,deconv,maskNeurons,mimg);
+    analysis2=pc_batch_analysis(behavior,deconv,'mask',maskNeurons,mimg);
     analysis=merge_planes(analysis1,analysis2);
     [centroids{index(count)},pc_list{index(count)}]=get_centroids(analysis);
     SI{index(count)}=analysis.SI;
+    mimg_cell{index(count)}=analysis.mimg;
     count=count+1;
 end
 
