@@ -7,9 +7,18 @@ if nargin==1
 end
 
 if plotFlag(1)
+    stack=analysis.raw_stack;
+
+    stack=(stack-repmat(min(stack),bins,1));
+    stack=stack./repmat(max(stack),bins,1);
+
+    [~,idx]=max(stack);
+    [~,ordered]=sort(idx);
+    ordered=ordered(any(analysis.pc_list'==ordered));
+    
     figure;
     count=1;
-    for k=analysis.pc_list
+    for k=ordered
         if 1
             if count>25
                 count=1;
