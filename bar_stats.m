@@ -4,6 +4,8 @@ function h = bar_stats(varargin)
 % Inputs
 %   x:  matrix with R observations and C variables
 %   'groups' (optional): vector index of groups
+%   'g_labels': group labels
+%   'v_labels': variable labels
 %   'type':
 %       'mean' (default for ttest)
 %       'median' (default for wilcoxon)
@@ -12,7 +14,9 @@ function h = bar_stats(varargin)
 %       'wilcoxon'
 
 x=varargin{1};
-[groups,type,testFlag]=parse_input(varargin);
+[groups,type,testFlag,g_labels,v_labels]=parse_input(varargin);
+p=zeros(1,length(unique(groups)));
+count=1;
 for i=unique(groups)
     idx=groups==i;
     X=zeros(sum(idx),size(x,2));
@@ -20,19 +24,22 @@ for i=unique(groups)
         X(:,k)=x(idx,k);
     end
     if testFlag==1
-        [~,p]=ttest2(X(:,1),X(:,2));
+        [~,p(count)]=ttest2(X(:,1),X(:,2));
     elseif testFlag==2
-        [p,~,stats]=ranksum(X(:,1),X(:,2));
+        [p(count),~,stats]=ranksum(X(:,1),X(:,2));
     end
     if type==1
         line=mean(X);
     elseif type==2
         line=median(X);
     end
+    count=count+1;
 end
+p(p>0.05)=NaN;
+h=grouped_boxplot(x,groups,g_labels,v_labels,p);
 
 
-function [groups,type,testFlag]=parse_input(inputs)
+function [groups,type,testFlag,g_labels,v_labels]=parse_input(inputs)
 groups=1:size(inputs{1});
 type=1;
 testFlag=0;
@@ -57,6 +64,12 @@ while(idx<length(inputs))
         case 'groups'
             idx=idx+1;
             groups=inputs{idx};
+        case 'g_labels'
+            idx=idx+1;
+            g_labels=inputs{idx};
+        case 'v_labels'
+            idx=idx+1;
+            v_labels=inputs{idx};
         case 'type'
             idx=idx+1;
             switch inputs{idx}

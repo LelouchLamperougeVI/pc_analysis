@@ -59,7 +59,7 @@ for i=1:length(path)
 end
 
 %%
-fid=fopen('rsc_log.csv');
+fid=fopen('rsc37_log.csv');
 C=textscan(fid,'%s','delimiter',',');
 fclose(fid);
 C=C{1,1};
@@ -75,3 +75,15 @@ for i=1:length(date)
 end
 
 %% Stats
+bar_stats([ev' rev'],'groups',window,'g_labels',cellstr(strrep(num2str(0:7),' ','')'),'v_labels',{'ev','rev'},'test','wilcoxon');
+
+
+
+
+
+
+
+
+
+
+
