@@ -79,6 +79,7 @@ bar_stats([ev' rev'],'groups',window,'g_labels',cellstr(strrep(num2str(0:7),' ',
 
 
 
+bar_stats([ev' rev'],'groups',window,'g_labels',{'pRSC','mRSC','aRSC','M2','M2','PPC','S1','M1'},'v_labels',{'ev','rev'},'test','wilcoxon');
 
 
 
