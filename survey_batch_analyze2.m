@@ -67,7 +67,7 @@ i
     mimg_cell{index(count)}=analysis.mimg;
     count=count+1;
 end
-
+%%
 index=[4];
 count=1;
 for i=layer:2:2
@@ -102,8 +102,7 @@ end
 
 
 
-
-
+%%
 
 
 
