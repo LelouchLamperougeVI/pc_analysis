@@ -84,7 +84,7 @@ bar_stats([ev' rev'],'groups',window,'g_labels',{'pRSC','mRSC','aRSC','M2','M2',
 
 
 
-
+bar_stats([ev' rev'],'groups',window,'g_labels',g_labels,'v_labels',{'ev','rev'},'test','wilcoxon');
 
 
 
