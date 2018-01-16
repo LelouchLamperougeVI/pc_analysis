@@ -3,7 +3,8 @@ function deconv=poisson_sim(varargin)
 % Inputs:
 %   m: number of samples
 %   n: number of neurons
-%   'assemblies': index vector of neuronal assemblies e.g. [1 1 0 2 2 0 2]
+%   'assemblies': logical index of neuronal assemblies with R assemblies
+%       for C neurons
 %   'R': mean spike rate [min max] chosen at random from a uniform
 %       distribution between the assigned values (default [1 5])
 %   'prob': probability of activation e.g. 0.005
@@ -14,6 +15,7 @@ function deconv=poisson_sim(varargin)
 m=varargin{1};
 n=varargin{2};
 [assemblies,R,prob,activationR]=parse_input(varargin);
+assemblies=logical(assemblies);
 
 R=ceil((diff(R)+1)*rand(n,1)+R(1)-1);
 deconv=arrayfun(@(x) poissrnd(x,m,1),R,'uniformoutput',false);
@@ -21,9 +23,9 @@ deconv=reshape(cell2mat(deconv),m,n);
 
 bins=ceil(m*prob);
 
-for i=1:length(unique(assemblies))-1
+for i=1:size(assemblies,1)
     events=randi(m,1,bins);
-    deconv(events,assemblies==i)=randi(diff(activationR)+1,bins,sum(assemblies==i))+activationR(1)-1;
+    deconv(events,assemblies(i,:))=randi(diff(activationR)+1,bins,sum(assemblies(i,:)))+activationR(1)-1;
 end
 
 function [assemblies,R,prob,activationR]=parse_input(inputs)

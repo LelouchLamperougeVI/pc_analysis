@@ -1,4 +1,4 @@
-function lopes_pca(deconv,smooth,plotFlag)
+function assemblies=lopes_pca(deconv,smooth,plotFlag)
 % PCA cell-assemblies detection methods adapted from Lopes-dos-Santos et
 % al. 2011
 if nargin<3
@@ -86,5 +86,12 @@ while(r<=size(BIM,1))
     end
 %     ALM(BIM(r,:),BIM(r,:))={[cell2mat(ALM(BIM(r,:),BIM(r,:))) L]};
     r=r+1;
+end
+
+assemblies=cell(1,L);
+for i=1:size(ALM,1)
+    for j=cell2mat(ALM(i,i))
+        assemblies(j)={[cell2mat(assemblies(j)) assembly_neurons(i)]};
+    end
 end
 
