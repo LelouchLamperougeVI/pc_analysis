@@ -1,6 +1,14 @@
-function assemblies=lopes_pca(deconv,smooth,plotFlag)
+function [assemblies,R]=lopes_pca(deconv,smooth,plotFlag)
 % PCA cell-assemblies detection methods adapted from Lopes-dos-Santos et
 % al. 2011
+% Inputs:
+%   deconv: raw data with R samples and C neurons
+%   smooth: smoothing factor
+%   plotFlag: set true for relevant figures and verbose
+% Outputs:
+%   assemblies: cell array of assembly neurons
+%   R: activation strength for R samples and C assemblies
+
 if nargin<3
     plotFlag=false;
 end
@@ -71,17 +79,22 @@ count=sum(BIM,2);
 [~,idx]=sort(count);
 BIM=BIM(idx,:); % reorder BIM rows by increasing number of interactions
 
-ALM=cell(size(interaction,1));
+BIM_index=ones(size(interaction,1),1); % rows index for BIM
+BIM_index(ident)=0;
+BIM_index=find(BIM_index);
+BIM_index=BIM_index(idx);
+
+ALM=cell(size(interaction,1)); % clustering algorithm
 L=0;
 r=1;
 while(r<=size(BIM,1))
-    rr=idx(r);
+    rr=BIM_index(r);
     if isempty(cell2mat(ALM(rr,:)))
         L=L+1;
-    end
-    for i=find(BIM(r,:))
-        for j=find(BIM(r,:))
-            ALM(i,j)={[ALM{i,j} L]};
+        for i=find(BIM(r,:))
+            for j=find(BIM(r,:))
+                ALM(i,j)={[ALM{i,j} L]};
+            end
         end
     end
 %     ALM(BIM(r,:),BIM(r,:))={[cell2mat(ALM(BIM(r,:),BIM(r,:))) L]};
@@ -95,3 +108,27 @@ for i=1:size(ALM,1)
     end
 end
 
+if plotFlag
+    fprintf('Detected assemblies: \n');
+    arrayfun(@(x) fprintf(['\t Assembly ' num2str(x) ':\t' mat2str(assemblies{x}) '\n']),1:length(assemblies));
+end
+
+R=zeros(size(deconv,1),length(assemblies)); % the math in the original paper was a bit dodgy (or maybe I'm just too dumb to understand) so I changed it a bit without affecting the outcomes
+for i=1:length(assemblies)
+    a=sum(assembly_space(assemblies{i},:))./norm(sum(assembly_space(assemblies{i},:)));
+%     alpha=sum(repmat(a*assembly_space(assemblies{i},:),length(assemblies{i}),1).*assembly_space(assemblies{i},:),2);
+    alpha=sum(repmat(a,size(assembly_space,1),1).*assembly_space,2);
+    psi=alpha*alpha';
+%     Z=deconv(:,assemblies{i});
+    R(:,i)=sum(deconv*psi.*deconv,2);
+end
+
+if plotFlag
+    figure;
+    ax1=subplot(2,1,1);
+    imagesc(deconv');
+    colormap gray;
+    ax2=subplot(2,1,2);
+    plot(R);
+    linkaxes([ax1,ax2],'x');
+end
