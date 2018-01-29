@@ -20,6 +20,7 @@ for i=1:size(deconv,2)
     end
     
     if any(i==1:3) && plotFlag % plot 3 examples
+        figure;
         signal=deconv(:,i);
         signal(signal<=0)=[];
         histlog(signal(clusters),50);

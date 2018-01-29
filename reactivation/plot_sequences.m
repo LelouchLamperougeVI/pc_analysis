@@ -1,6 +1,8 @@
-function h=plot_sequences(sequences)
+function h=plot_sequences(sequences,order)
 sequences(sequences==0)=NaN;
-[~,order]=sort(mean(sequences,2));
+if nargin<2
+    [~,order]=sort(mean(sequences,2));
+end
 sequences=sequences(order,:);
 m=max(sequences)+6;
 m=cumsum(m)-m(1);

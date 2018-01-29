@@ -1,4 +1,4 @@
-function sequences=cossart_sequences(deconv,tcs,smooth)
+function [sequences,assemblies]=cossart_sequences(deconv,tcs,smooth)
 % Sequence detection from calcium signals adapted from Malvache et al. 2016
 
 deconv=ca_filt(deconv); % not sure if this step is even necessary

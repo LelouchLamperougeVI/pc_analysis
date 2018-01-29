@@ -18,11 +18,13 @@ function analysis=pc_batch_analysis(varargin)
 %
 %   'sd', 4 (default)
 %       smoothing kernel s.d. in cm
+%   'par', true (default)
+%       use parallel processing to speed up
 
 behavior=varargin{1};
 deconv=varargin{2};
 
-[maskFlag,testFlag,shuffles,bins,sd]=parse_input(varargin);
+[maskFlag,testFlag,parFlag,shuffles,bins,sd]=parse_input(varargin);
 
 % v2struct(behavior);
 unit_pos=behavior.unit_pos;
@@ -56,17 +58,32 @@ SI=sum(SI_series);
 %SI test
 if testFlag==1 || testFlag==3
     SI=[SI;zeros(shuffles,length(SI))];
-    parfor i=1:shuffles
-        perm=ceil(rand(1)*size(deconv,1));
-        shuffled_den=[deconv(perm:end,:);deconv(1:perm-1,:)];
+    if parFlag
+        parfor i=1:shuffles
+            perm=ceil(rand(1)*size(deconv,1));
+            shuffled_den=[deconv(perm:end,:);deconv(1:perm-1,:)];
 
-        [~,~,lamb1,Pi1]=getStack(bins,sd,vr_length,shuffled_den,thres,unit_pos,unit_vel,frame_ts,trials);
-        m_lamb1=mean(lamb1);
-        Pi1=Pi1./sum(Pi1,2);
-        Pi1=Pi1';
+            [~,~,lamb1,Pi1]=getStack(bins,sd,vr_length,shuffled_den,thres,unit_pos,unit_vel,frame_ts,trials);
+            m_lamb1=mean(lamb1);
+            Pi1=Pi1./sum(Pi1,2);
+            Pi1=Pi1';
 
-        temp=Pi1.*lamb1./m_lamb1.*log2(lamb1./m_lamb1);
-        SI(i+1,:)=sum(temp);
+            temp=Pi1.*lamb1./m_lamb1.*log2(lamb1./m_lamb1);
+            SI(i+1,:)=sum(temp);
+        end
+    else
+        for i=1:shuffles
+            perm=ceil(rand(1)*size(deconv,1));
+            shuffled_den=[deconv(perm:end,:);deconv(1:perm-1,:)];
+
+            [~,~,lamb1,Pi1]=getStack(bins,sd,vr_length,shuffled_den,thres,unit_pos,unit_vel,frame_ts,trials);
+            m_lamb1=mean(lamb1);
+            Pi1=Pi1./sum(Pi1,2);
+            Pi1=Pi1';
+
+            temp=Pi1.*lamb1./m_lamb1.*log2(lamb1./m_lamb1);
+            SI(i+1,:)=sum(temp);
+        end
     end
 
     pval=1-sum(SI(1,:)>SI(2:end,:))./shuffles;
@@ -112,9 +129,10 @@ else
 end
 
 
-function [maskFlag,testFlag,shuffles,bins,sd]=parse_input(inputs)
+function [maskFlag,testFlag,parFlag,shuffles,bins,sd]=parse_input(inputs)
 maskFlag=0;
 testFlag=1;
+parFlag=true;
 shuffles=1000;
 sd=4;
 bins=50;
@@ -146,6 +164,9 @@ while(idx<length(inputs))
         case 'sd'
             idx=idx+1;
             sd=inputs{idx};
+        case 'par'
+            idx=idx+1;
+            parFlag=inputs{idx};
         otherwise
     end
     idx=idx+1;
