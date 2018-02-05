@@ -17,8 +17,9 @@ struct threadData{
     double *padded_pt, *kernel, *A, *conv;
 };
 
-void cpyColumn(double *receiver, double *giver, int col, int start, int n){ //copy matrix column to array
-    for(int i=0; i<n; i++){
+void cpyColumn(double *receiver, double *giver, int col, int start, int n){
+    int i;
+    for(i=0; i<n; i++){
         memcpy(receiver + start + i, giver + i + n*col, sizeof(double));
     }
 }
@@ -33,10 +34,11 @@ void *convolve(struct threadData *data){
     double *A = data->A;
     double *conv = data->conv;
 
-    for(int i=start; i<stop; i++){
+    int i, j, k;
+    for(i=start; i<stop; i++){
         cpyColumn(padded_pt, A, i, k_size - 1, a_size);
-        for(int j=0; j<=(a_size + 2*(k_size-1) - k_size); j++){
-            for(int k=0; k<k_size; k++){
+        for(j=0; j<=(a_size + 2*(k_size-1) - k_size); j++){
+            for(k=0; k<k_size; k++){
                 conv[i*(a_size+k_size-1) + j] += padded_pt[j+k] * kernel[i*k_size + k_size - k - 1];
             }
         }
@@ -44,7 +46,7 @@ void *convolve(struct threadData *data){
 }
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-    
+
     if(nrhs != 2){
         if(nrhs < 2){
             mexErrMsgTxt("Two inputs are required");
@@ -54,7 +56,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     }
 
     double *A, *kernel, *conv;
-    int n, a_size, k_size;
+    int n, a_size, k_size, i;
 
     A = mxGetPr(prhs[0]);
     kernel = mxGetPr(prhs[1]);
@@ -77,7 +79,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     int tasksPerThread = (n + NUMTHREADS - 1) / NUMTHREADS;
 
     mxArray *padded;
-    for(int i=0; i<NUMTHREADS; i++){
+    for(i=0; i<NUMTHREADS; i++){
         padded = mxCreateDoubleMatrix(1, (a_size + 2 * (k_size - 1)), mxREAL);
         data[i].padded_pt = mxGetPr(padded);
         data[i].kernel = kernel;
@@ -90,13 +92,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     }
     data[NUMTHREADS - 1].stop = n;
 
-    for(int i=0; i<NUMTHREADS; i++){
+    for(i=0; i<NUMTHREADS; i++){
         pthread_create(&thread[i], NULL, convolve, &data[i]);
     }
-    
-    for(int i=0; i<NUMTHREADS; i++){
+
+    for(i=0; i<NUMTHREADS; i++){
         pthread_join(thread[i], NULL);
     }
-    
+
     return;
 }
