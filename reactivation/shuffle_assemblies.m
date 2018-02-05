@@ -8,6 +8,7 @@ end
 
 deconv=ca_filt(deconv); % get rid of "noise"
 r=deconv>0; % binarize spiking probability matrix
+r=adjacency_matrix(r,1); % construct adjacency matrix
 
 number_sims=1000;
 C=zeros(1,number_sims*size(r,1));
@@ -27,7 +28,7 @@ sd_series=(sum(r,2)-mu)./sigma;
 if plotFlag
     figure;
     ax1=subplot(2,1,1);
-    mat_scatter(r,'k');
+    mat_scatter(deconv>0,'k');
     ax2=subplot(2,1,2);
     plot(sd_series);
     linkaxes([ax1,ax2],'x');

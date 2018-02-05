@@ -36,6 +36,7 @@ vr_length=round(range(unit_pos));
 sr=1/mean(diff(frame_ts));
 
 thres=noRun(unit_vel);
+% thres=0;
 
 [psth,raw_psth,raw_stack,Pi,vel_stack]=getStack(bins,sd,vr_length,deconv,thres,unit_pos,unit_vel,frame_ts,trials);
 
