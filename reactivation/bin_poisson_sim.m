@@ -21,14 +21,18 @@ function q=bin_poisson_sim(varargin)
   q=rand(m,n);
   q=bsxfun(@lt,q,R);
 
-  assemblies=logical(assemblies);
+  if ~isempty(assemblies) & ~isempty(prob)
+    assemblies=logical(assemblies);
 
-  for i=1:size(assemblies,1)
-      events=randi(m,1,round(m*prob(i)));
-      q(events,assemblies(i,:))=1;
+    for i=1:size(assemblies,1)
+        events=randi(m,1,round(m*prob(i)));
+        q(events,assemblies(i,:))=1;
+    end
   end
 
-  function [assemblies,R,prob]=parse_input(inputs)
+
+
+function [assemblies,R,prob]=parse_input(inputs)
   assemblies=[];
   R=[];
   prob=[];
@@ -50,10 +54,14 @@ function q=bin_poisson_sim(varargin)
       idx=idx+1;
   end
 
-  if any([isempty(assemblies) isempty(R) isempty(prob)])
-      error('missing inputs');
+  if isempty(R)
+      error('missing spiking probability input');
   end
 
   if length(prob)==1
-    prob=prob.*ones(1,length(R));
+    prob=prob.*ones(1,size(assemblies,1));
+  end
+
+  if length(R)==1
+    R=R.*ones(1,inputs{2});
   end

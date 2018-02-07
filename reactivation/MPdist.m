@@ -5,7 +5,7 @@ function varargout=MPdist(M,N,lamb)
 
 q=M/N;
 if q<=1
-    warning('Threshold prediction inaccurate due to q > 1 condition not satisfied');
+    % warning('Threshold prediction inaccurate due to q > 1 condition not satisfied');
 end
 a=(1+sqrt(1/q))^2+N^(-2/3);
 b=(1-sqrt(1/q))^2;

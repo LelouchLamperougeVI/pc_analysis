@@ -1,0 +1,14 @@
+%% percent accuracy as function of network size and time samples
+
+m=1000;
+n=1000;
+
+A=zeros(500,100);
+
+for i=500:m
+  for j=500:n
+    q=bin_poisson_sim(i,j,'R',0.05); %estimated from real data
+    assemblies=bin_pca(q);
+    A(i,j)=assemblies.accuracy;
+  end
+end
