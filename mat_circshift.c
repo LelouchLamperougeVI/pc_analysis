@@ -18,10 +18,11 @@ struct threadData{
 };
 
 void shiftCol(double *A, double *shifted, int col, int m, int shift){
-    for(int i=0; i<m-shift; i++){
+    int i;
+    for(i=0; i<m-shift; i++){
         shifted[col*m + i] = A[col*m + i + shift];
     }
-    for(int i=m-shift; i<m; i++){
+    for(i=m-shift; i<m; i++){
         shifted[col*m + i] = A[col*m + i - m + shift];
     }
 }
@@ -34,13 +35,14 @@ void *shifter(struct threadData *data){
     double *index = data->index;
     double *shifted = data->shifted;
 
-    for(int i=start; i<stop; i++){
+    int i;
+    for(i=start; i<stop; i++){
         shiftCol(A, shifted, i, m, (int) index[i]);
     }
 }
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-    
+
     if(nrhs != 2){
         if(nrhs < 2){
             mexErrMsgTxt("Two inputs are required");
@@ -71,7 +73,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     pthread_t thread[NUMTHREADS];
     int tasksPerThread = (n + NUMTHREADS - 1) / NUMTHREADS;
 
-    for(int i=0; i<NUMTHREADS; i++){
+    int i;
+    for(i=0; i<NUMTHREADS; i++){
         data[i].A = A;
         data[i].shifted = shifted;
         data[i].index = index;
@@ -81,13 +84,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     }
     data[NUMTHREADS - 1].stop = n;
 
-    for(int i=0; i<NUMTHREADS; i++){
+    for(i=0; i<NUMTHREADS; i++){
         pthread_create(&thread[i], NULL, shifter, &data[i]);
     }
-    
-    for(int i=0; i<NUMTHREADS; i++){
+
+    for(i=0; i<NUMTHREADS; i++){
         pthread_join(thread[i], NULL);
     }
-    
+
     return;
 }

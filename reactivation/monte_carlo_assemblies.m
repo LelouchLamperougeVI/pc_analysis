@@ -6,7 +6,7 @@ if nargin<2
     plotFlag=false;
 end
 
-deconv=ca_filt(deconv); % get rid of "noise"
+% deconv=ca_filt(deconv); % get rid of "noise"
 r=deconv>0; % binarize spiking probability matrix
 
 pn=sum(r)./size(r,1);
@@ -18,7 +18,7 @@ P=zeros(1,number_sims*size(r,1));
 C=P;
 for i=1:number_sims
     temp=r;
-    
+
     shift=randi(size(temp,1),1,size(temp,2));
     temp=mat_circshift(double(temp),shift);
 

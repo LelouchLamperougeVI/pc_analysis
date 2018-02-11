@@ -10,3 +10,5 @@ function assemblies=bin_pca(q)
   [thres,epdf]=MPdist(size(q,1),size(q,2),min(e):0.01:max(e)); % get upper/lower thresholds for eigenvalue significance
 
   assemblies.accuracy=sum(e<thres(2) & e>thres(1))/length(e);
+  assemblies.numAssemblies=sum(e>thres(2));
+  assemblies.numAssembliesNeurons=sum(e>thres(2) | e<thres(1));
