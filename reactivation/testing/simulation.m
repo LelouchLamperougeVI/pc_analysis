@@ -61,3 +61,51 @@ parfor i=1:length(neuAssembly)
   end
   A(i,:)=temp;
 end
+
+%% sequences
+q=logical(ca_filt(deconv));
+q=adjacency_matrix(q,3);
+[assemblies,R]=lopes_pca(q,0,0);
+
+thres=0.05;
+idx=zeros(size(R));
+n=0;
+for i=1:size(R,2)
+    while(sum(R(:,i)>n)/size(R,1)>thres)
+        n=n+0.1;
+    end
+    idx(:,i)=R(:,i)>n;
+end
+idx=get_head(idx);
+R(~idx)=0;
+[~,e]=max(R');
+e(~logical(sum(idx,2)))=0;
+
+sequences=cossart_sequences2(tcs.ratio,e,assemblies);
+
+seq=1;
+thres=200; %frames
+lol=e(e>0);
+lol=find(lol==seq);
+lol([false diff(find(e==seq))<thres])=[];
+lol=sequences(lol,:);
+[~,order]=sort(mean(lol));
+lol=lol(:,order);
+lol=lol+repmat(cumsum(max(lol')'),1,size(lol,2));
+temp=size(lol,1);
+lol=reshape(lol',1,[]);
+plot(lol,repmat(1:size(sequences,2),1,temp),'.');
+
+
+
+
+
+
+
+
+
+
+
+
+
+

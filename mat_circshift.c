@@ -10,7 +10,7 @@
 #include "mex.h"
 #include "pthread.h"
 
-#define NUMTHREADS 8
+#define NUMTHREADS 7
 
 struct threadData{
     int start, stop, m;

@@ -104,7 +104,7 @@ end
 assemblies=cell(1,L);
 for i=1:size(ALM,1)
     for j=cell2mat(ALM(i,i))
-        assemblies(j)={[cell2mat(assemblies(j)) assembly_neurons(i)]};
+        assemblies(j)={sort([cell2mat(assemblies(j)) assembly_neurons(i)])};
     end
 end
 
