@@ -81,25 +81,40 @@ R(~idx)=0;
 [~,e]=max(R');
 e(~logical(sum(idx,2)))=0;
 
-sequences=cossart_sequences2(tcs.ratio,e,assemblies);
+sequences=cossart_sequences2(raw,e,assemblies);
 
-seq=1;
-thres=200; %frames
-lol=e(e>0);
-lol=find(lol==seq);
-lol([false diff(find(e==seq))<thres])=[];
-lol=sequences(lol,:);
-[~,order]=sort(mean(lol));
-lol=lol(:,order);
-lol=lol+repmat(cumsum(max(lol')'),1,size(lol,2));
-temp=size(lol,1);
-lol=reshape(lol',1,[]);
-plot(lol,repmat(1:size(sequences,2),1,temp),'.');
+for seq=1:9
+    thres=200; %frames
+    lol=e(e>0);
+    lol=find(lol==seq);
+    lol([false diff(find(e==seq))<thres])=[];
+    lol=sequences(lol,:);
+    match=lol;
+    [~,order]=sort(mean(lol));
+    lol=lol(:,order);
+    lol=lol+repmat(cumsum(max(lol')'),1,size(lol,2));
+    temp=size(lol,1);
+    lol=reshape(lol',1,[]);
+    plot(lol,repmat(1:size(sequences,2),1,temp),'.');
 
+    sampling_rate=19.1; %fps
+    lag_window=0.2; %seconds
+    e_window=round(lag_window*sampling_rate/2);
 
+    stack=analysis.raw_stack;
+    [~,template]=max(stack);
+    template=template./50.*mean(diff(behavior.trials));
 
+    match=mean(match)./(2*e_window+1).*lag_window;
+    template(isnan(match))=[];
+    match(isnan(match))=[];
 
-
+    for cf=1:20
+        coef(cf)=corr(match',template'./cf);
+    end
+    hold on;
+    plot(coef);
+end
 
 
 
