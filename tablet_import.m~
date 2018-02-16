@@ -47,8 +47,26 @@ idx=charArray_cmp(trials','trial');
 trials=C(find(c_index==4)+2,:);
 idx=logical(idx) & logical(charArray_cmp(trials','trigger'));
 trials=C(find(c_index==4)-1,:);
-trials=charArray2double(trials(idx,:)');
+trials=charArray2double(trials(:,idx)');
 
+
+ts=arrayfun(@(x) str2double(ts(x,:)),1:size(ts,1));
+
+idx=find(c_index==4);
+trials=zeros(1,length(idx));
+for i=1:length(idx)
+    count=C{idx(i)-1};
+    if strcmp(C{idx(i)+1},'trial')
+        if strcmp(C{idx(i)+2},'trigger')
+            trials(i)=str2double(count);
+        else
+            trials(i)=0;
+        end
+    else
+        trials(i)=0;
+    end
+end
+trials(trials==0)=[];
 trials(trials>frame_ts(end) | trials<frame_ts(1))=[];
 
 %make unit_pos, cum_pos and unit_vel
@@ -77,11 +95,11 @@ unit_vel(isnan(unit_vel))=0;
 % sync trials index
 trials_ts=arrayfun(@(x) find(frame_ts>=x,1),trials);
 
-% trials_ts(unit_pos(trials_ts)>min(unit_pos)./2)=trials_ts(unit_pos(trials_ts)>min(unit_pos)./2)+1;
-% trials=frame_ts(trials_ts);
+trials_ts(unit_pos(trials_ts)>min(unit_pos)./2)=trials_ts(unit_pos(trials_ts)>min(unit_pos)./2)+1;
+trials=frame_ts(trials_ts);
 
-% trials_ts(unit_pos(trials_ts)>min(unit_pos)./2)=trials_ts(unit_pos(trials_ts)>min(unit_pos)./2)+1;
-% trials=frame_ts(trials_ts);
+trials_ts(unit_pos(trials_ts)>min(unit_pos)./2)=trials_ts(unit_pos(trials_ts)>min(unit_pos)./2)+1;
+trials=frame_ts(trials_ts);
 
 trials_ts(unit_pos(trials_ts)>min(unit_pos)./2)=trials_ts(unit_pos(trials_ts)>min(unit_pos)./2)+1;
 trials=frame_ts(trials_ts);
@@ -113,3 +131,7 @@ behavior.trials_ts=trials_ts;
 behavior.unit_pos=unit_pos;
 behavior.unit_vel=unit_vel;
 
+    
+% varset=setdiff(who,varset);
+% varset=setdiff(varset,{'C','frame_ts','trials','trials_ts','cum_pos','unit_pos','unit_vel','behavior','varset'});
+% clear(varset{:});

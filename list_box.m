@@ -60,6 +60,7 @@ handles.listbox2.String=varargin{1};
 guidata(hObject, handles);
 
 % UIWAIT makes list_box wait for user response (see UIRESUME)
+set(handles.figure1,'WindowStyle','normal');
 uiwait(handles.figure1);
 
 

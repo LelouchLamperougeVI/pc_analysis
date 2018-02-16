@@ -65,7 +65,7 @@ end
 %% sequences
 q=logical(ca_filt(deconv));
 q=adjacency_matrix(q,3);
-[assemblies,R]=lopes_pca(q,0,0);
+[assemblies,R]=lopes_pca(q,0,1);
 
 thres=0.05;
 idx=zeros(size(R));
@@ -83,7 +83,7 @@ e(~logical(sum(idx,2)))=0;
 
 sequences=cossart_sequences2(raw,e,assemblies);
 
-for seq=1:9
+for seq=1:8
     thres=200; %frames
     lol=e(e>0);
     lol=find(lol==seq);
@@ -95,10 +95,10 @@ for seq=1:9
     lol=lol+repmat(cumsum(max(lol')'),1,size(lol,2));
     temp=size(lol,1);
     lol=reshape(lol',1,[]);
-    plot(lol,repmat(1:size(sequences,2),1,temp),'.');
+%     plot(lol,repmat(1:size(sequences,2),1,temp),'.');
 
     sampling_rate=19.1; %fps
-    lag_window=0.2; %seconds
+    lag_window=0.5; %seconds
     e_window=round(lag_window*sampling_rate/2);
 
     stack=analysis.raw_stack;
@@ -116,7 +116,16 @@ for seq=1:9
     plot(coef);
 end
 
-
+[~,lol]=sort(mean(sequences));
+lol=sequences(:,lol);
+lol=lol+repmat(cumsum(max(lol')'),1,size(lol,2));
+colors='bkrgycmw';
+idx=e(e>0);
+hold on
+for i=1:size(lol,1)
+    c=colors(idx(i));
+    plot(lol(i,:),1:size(sequences,2),['.' c]);
+end
 
 
 

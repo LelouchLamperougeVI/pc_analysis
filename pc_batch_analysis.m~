@@ -61,11 +61,9 @@ if testFlag==1 || testFlag==3
     SI=[SI;zeros(shuffles,length(SI))];
     if parFlag
         parfor i=1:shuffles
-%             perm=ceil(rand(1)*size(deconv,1));
-%             shuffled_den=[deconv(perm:end,:);deconv(1:perm-1,:)];
+            perm=ceil(rand(1)*size(deconv,1));
+            shuffled_den=[deconv(perm:end,:);deconv(1:perm-1,:)];
             
-            perm=randi(size(deconv,1),1,1).*ones(1,size(deconv,2));
-            shuffled_den=mat_circshift(deconv,perm);
 
             [~,~,lamb1,Pi1]=getStack(bins,sd,vr_length,shuffled_den,thres,unit_pos,unit_vel,frame_ts,trials);
             m_lamb1=mean(lamb1);
@@ -77,11 +75,8 @@ if testFlag==1 || testFlag==3
         end
     else
         for i=1:shuffles
-%             perm=ceil(rand(1)*size(deconv,1));
-%             shuffled_den=[deconv(perm:end,:);deconv(1:perm-1,:)];
-            
-            perm=randi(size(deconv,1),1,1).*ones(1,size(deconv,2));
-            shuffled_den=mat_circshift(deconv,perm);
+            perm=ceil(rand(1)*size(deconv,1));
+            shuffled_den=[deconv(perm:end,:);deconv(1:perm-1,:)];
 
             [~,~,lamb1,Pi1]=getStack(bins,sd,vr_length,shuffled_den,thres,unit_pos,unit_vel,frame_ts,trials);
             m_lamb1=mean(lamb1);

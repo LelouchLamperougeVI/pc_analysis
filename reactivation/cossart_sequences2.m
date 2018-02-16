@@ -3,8 +3,8 @@ function sequences=cossart_sequences2(raw,e,assemblies)
 % e of length t with e>0 as assembly number
 
 sampling_rate=19.1; %fps
-window=2; %seconds
-lag_window=0.2; %seconds
+window=1; %seconds
+lag_window=0.5; %seconds
 w=round(window*sampling_rate/2);
 e_window=round(lag_window*sampling_rate/2);
 
