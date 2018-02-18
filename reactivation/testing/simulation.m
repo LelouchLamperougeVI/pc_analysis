@@ -62,6 +62,29 @@ parfor i=1:length(neuAssembly)
   A(i,:)=temp;
 end
 
+%% accuracy as a function of background firing rate and missing members
+
+m=8000;
+n=150;
+numAssemblies=1;
+neuAssembly=50;
+R=0.01:0.01:0.5;
+probability=0.05;
+miss=0:25;
+
+A=zeros(length(R),length(miss));
+    assemblies=zeros(numAssemblies,n);
+    assemblies(1,1:neuAssembly)=1;
+parfor i=1:length(R)
+  temp=zeros(1,length(probability));
+  for j=1:length(miss)
+    q=bin_poisson_sim(m,n,'R',R(i),'prob',probability,'assemblies',assemblies,'miss',miss(j));
+    a=bin_pca(q);
+    temp(j)=a.numAssembliesNeurons/neuAssembly;
+  end
+  A(i,:)=temp;
+end
+
 %% sequences
 q=logical(ca_filt(deconv));
 q=adjacency_matrix(q,3);

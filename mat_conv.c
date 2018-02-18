@@ -32,9 +32,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     a_size = mxGetM(prhs[0]);
     k_size = mxGetM(prhs[1]);
 
-    if(a_size<k_size){
-        mexErrMsgTxt("Kernel is longer than signal");
-    }
+    // if(a_size<k_size){
+    //     mexErrMsgTxt("Kernel is longer than signal");
+    // }
     if(n != mxGetN(prhs[1])){
         mexErrMsgTxt("Kernel and signal must have the same number of columns");
     }
@@ -57,6 +57,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         data[i].a_size = a_size;
         data[i].start = i*tasksPerThread;
         data[i].stop = (i+1)*tasksPerThread;
+        data[i].sub = 0;
     }
     data[NUMTHREADS - 1].stop = n;
 
