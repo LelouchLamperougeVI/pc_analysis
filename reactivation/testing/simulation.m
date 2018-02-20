@@ -86,20 +86,52 @@ parfor i=1:length(R)
 end
 
 %% sequences
+run_epochs=noRun(behavior.speed_raw);
+run_epochs=behavior.speed_raw>run_epochs;
+jitter=4;
+run_epochs=logical(conv(run_epochs,ones(1,jitter),'same'));
+deconv(run_epochs,:)=[];
+ratio_model(run_epochs,:)=[];
+
+smooth=3;
 q=logical(ca_filt(deconv));
-q=adjacency_matrix(q,3);
+q=adjacency_matrix(q,smooth);
+% q=bin_q(q,10);
 [assemblies,R]=lopes_pca(q,0,1);
 
-thres=0.05;
-idx=zeros(size(R));
-n=0;
-for i=1:size(R,2)
-    while(sum(R(:,i)>n)/size(R,1)>thres)
-        n=n+0.1;
-    end
-    idx(:,i)=R(:,i)>n;
-end
+perc=95; %percentile
+idx=prctile(R,perc);
+idx=R>=idx;
 idx=get_head(idx);
+% idx=get_middle(idx);
+
+interp_size=10;
+t=1:1/interp_size:size(q,1);
+interp_ts=zeros(length(t),size(q,2));
+for i=1:size(q,2)
+    interp_ts(:,i)=interp1(1:size(q,1),ratio_model(:,i),t,'pchip');
+end
+interp_ts=detrend(interp_ts);
+interp_ts=zscore(interp_ts);
+
+sequence_mat=zeros(size(interp_ts));
+e=logical(sum(idx,2));
+e=get_head(e);
+e=find(e);
+idx=adjacency_matrix(idx,smooth);
+idx=logical(idx);
+for i=1:length(e)
+    assembly_cells=idx(e(i),:);
+    assembly_cells=unique(cell2mat(assemblies(assembly_cells)));
+    
+    [sequence,no_spike]=get_sequence(assembly_cells,interp_ts,e(i),t,smooth*2);
+    
+    sequence(no_spike)=[];
+    assembly_cells(no_spike)=[];
+    sequence_mat(sequence,assembly_cells)=1;
+end
+
+%%
 R(~idx)=0;
 [~,e]=max(R');
 e(~logical(sum(idx,2)))=0;

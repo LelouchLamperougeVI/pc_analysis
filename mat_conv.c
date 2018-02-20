@@ -11,7 +11,7 @@
 #include "pthread.h"
 #include "convolve.h"
 
-#define NUMTHREADS 7
+#define NUMTHREADS 4
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
@@ -46,10 +46,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     pthread_t thread[NUMTHREADS];
     int tasksPerThread = (n + NUMTHREADS - 1) / NUMTHREADS;
 
-    mxArray *padded;
+    double *padded[NUMTHREADS];
     for(i=0; i<NUMTHREADS; i++){
-        padded = mxCreateDoubleMatrix(1, (a_size + 2 * (k_size - 1)), mxREAL);
-        data[i].padded_pt = mxGetPr(padded);
+        padded[i] = mxCalloc(a_size + 2 * (k_size - 1), sizeof(double));
+        // padded[i] = mxCreateDoubleMatrix(1, (a_size + 2 * (k_size - 1)), mxREAL);
+        data[i].padded_pt = padded[i];
         data[i].kernel = kernel;
         data[i].A = A;
         data[i].conv = conv;
@@ -67,6 +68,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
     for(i=0; i<NUMTHREADS; i++){
         pthread_join(thread[i], NULL);
+    }
+
+
+    for(i=0; i<NUMTHREADS; i++){
+      mxFree(padded[i]);
     }
 
     return;
