@@ -25,7 +25,8 @@ if plotFlag(1)
                 figure;
             end
             subplot(5,5,count);
-            imagesc(log(analysis.psth{k}));
+%             imagesc(log(analysis.psth{k}));
+            imagesc((analysis.psth{k}));
             set(gca,'xtick',0:bins/4:bins);
             set(gca,'xticklabel',strsplit(num2str(-analysis.vr_length:analysis.vr_length/4:0)));
             title(['n = ' num2str(k)]);

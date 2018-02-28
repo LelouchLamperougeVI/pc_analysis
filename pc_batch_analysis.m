@@ -48,15 +48,17 @@ stack=stack./repmat(max(stack),bins,1);
 [~,ordered]=sort(idx);
 stack=stack(:,ordered)';
 
-lamb=raw_stack;
-m_lamb=mean(lamb);
-Pi=Pi./sum(Pi,2);
-Pi=Pi';
-
-SI_series=Pi.*lamb./m_lamb.*log2(lamb./m_lamb);
-SI=sum(SI_series);
+%SI test
+% lamb=raw_stack;
+% m_lamb=mean(lamb);
+% Pi=Pi./sum(Pi,2);
+% Pi=Pi';
+% 
+% SI_series=Pi.*lamb./m_lamb.*log2(lamb./m_lamb);
+% SI=sum(SI_series);
 
 %SI test
+SI=get_si(raw_psth);
 if testFlag==1 || testFlag==3
     SI=[SI;zeros(shuffles,length(SI))];
     if parFlag
@@ -64,45 +66,59 @@ if testFlag==1 || testFlag==3
 %             perm=ceil(rand(1)*size(deconv,1));
 %             shuffled_den=[deconv(perm:end,:);deconv(1:perm-1,:)];
             
-            perm=randi(size(deconv,1),1,1).*ones(1,size(deconv,2));
-            shuffled_den=mat_circshift(deconv,perm);
+%             perm=randi(size(deconv,1),1,1).*ones(1,size(deconv,2));
+%             shuffled_den=mat_circshift(deconv,perm);
 
-            [~,~,lamb1,Pi1]=getStack(bins,sd,vr_length,shuffled_den,thres,unit_pos,unit_vel,frame_ts,trials);
-            m_lamb1=mean(lamb1);
-            Pi1=Pi1./sum(Pi1,2);
-            Pi1=Pi1';
+%             [~,~,lamb1,Pi1]=getStack(bins,sd,vr_length,shuffled_den,thres,unit_pos,unit_vel,frame_ts,trials);
+%             m_lamb1=mean(lamb1);
+%             Pi1=Pi1./sum(Pi1,2);
+%             Pi1=Pi1';
 
-            temp=Pi1.*lamb1./m_lamb1.*log2(lamb1./m_lamb1);
-            SI(i+1,:)=sum(temp);
+%             temp=Pi1.*lamb1./m_lamb1.*log2(lamb1./m_lamb1);
+%             SI(i+1,:)=sum(temp);
+
+            perm=randperm(numel(raw_psth(:,:,1)));
+            perm=reshape(perm,size(raw_psth,1),size(raw_psth,2));
+            perm=repmat(perm,1,1,size(raw_psth,3));
+            perm=perm+reshape(0:numel(raw_psth(:,:,1)):numel(raw_psth)-1,1,1,[]);
+            temp=raw_psth(perm);
+            SI(i+1,:)=get_si(temp);
         end
     else
         for i=1:shuffles
 %             perm=ceil(rand(1)*size(deconv,1));
 %             shuffled_den=[deconv(perm:end,:);deconv(1:perm-1,:)];
-            
-            perm=randi(size(deconv,1),1,1).*ones(1,size(deconv,2));
-            shuffled_den=mat_circshift(deconv,perm);
-
-            [~,~,lamb1,Pi1]=getStack(bins,sd,vr_length,shuffled_den,thres,unit_pos,unit_vel,frame_ts,trials);
-            m_lamb1=mean(lamb1);
-            Pi1=Pi1./sum(Pi1,2);
-            Pi1=Pi1';
-
-            temp=Pi1.*lamb1./m_lamb1.*log2(lamb1./m_lamb1);
-            SI(i+1,:)=sum(temp);
+%             
+%             perm=randi(size(deconv,1),1,1).*ones(1,size(deconv,2));
+%             shuffled_den=mat_circshift(deconv,perm);
+% 
+%             [~,~,lamb1,Pi1]=getStack(bins,sd,vr_length,shuffled_den,thres,unit_pos,unit_vel,frame_ts,trials);
+%             m_lamb1=mean(lamb1);
+%             Pi1=Pi1./sum(Pi1,2);
+%             Pi1=Pi1';
+% 
+%             temp=Pi1.*lamb1./m_lamb1.*log2(lamb1./m_lamb1);
+%             SI(i+1,:)=sum(temp);
+            perm=randperm(numel(raw_psth(:,:,1)));
+            perm=reshape(perm,size(raw_psth,1),size(raw_psth,2));
+            perm=repmat(perm,1,1,size(raw_psth,3));
+            perm=perm+reshape(0:numel(raw_psth(:,:,1)):numel(raw_psth)-1,1,1,[]);
+            temp=raw_psth(perm);
+            SI(i+1,:)=get_si(temp);
         end
     end
 
     pval=1-sum(SI(1,:)>SI(2:end,:))./shuffles;
-    pc_list=find(pval<0.05);
+    pc_list=find(pval<0.001);
 end
-SI=sum(SI_series);
+% SI=sum(SI_series);
 SI=SI(1,pc_list);
 %
 
 %sparsity
-sparsity=sum(Pi.*lamb).^2./sum(Pi.*lamb.^2);
-sparsity=sparsity(1,pc_list);
+% sparsity=sum(Pi.*lamb).^2./sum(Pi.*lamb.^2);
+% sparsity=sparsity(1,pc_list);
+sparsity=[];
 
 
 %PC width
