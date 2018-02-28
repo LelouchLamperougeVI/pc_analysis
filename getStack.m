@@ -43,9 +43,9 @@ for i=1:length(trials)-1
 %         temp=mean(signal(edges(count1):edges(count1+1),:),1);
         temp=sum(signal(edges(count1):edges(count1+1),:),1);
         raw_psth(i,j,:)=temp./occupancy_series(count1);
-        if any(isinf(raw_psth(i,j,:)))
-            error(['fatal error: 0 occupancy in trial' num2str(i)]);
-        end
+%         if any(isinf(raw_psth(i,j,:)))
+%             error(['fatal error: 0 occupancy in trial ' num2str(i)]);
+%         end
 
         vel_stack(i,j)=mean(vel(edges(count1):edges(count1+1)));
 
@@ -54,6 +54,7 @@ for i=1:length(trials)-1
     end
     count1=count1+1;
 end
+raw_psth(isnan(raw_psth) | isinf(raw_psth))=0;
 
 psth=arrayfun(@(x) fast_smooth(raw_psth(:,:,x),sd,2),1:length(list),'uniformoutput',false);
 
