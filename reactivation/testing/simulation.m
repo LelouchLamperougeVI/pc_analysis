@@ -88,12 +88,12 @@ end
 %% sequences
 run_epochs=noRun(behavior.speed_raw);
 run_epochs=behavior.speed_raw>run_epochs;
-jitter=4;
+jitter=100;
 run_epochs=logical(conv(run_epochs,ones(1,jitter),'same'));
 deconv(run_epochs,:)=[];
 ratio_model(run_epochs,:)=[];
 
-smooth=3;
+smooth=2;
 q=logical(ca_filt(deconv));
 q=adjacency_matrix(q,smooth);
 % q=bin_q(q,10);

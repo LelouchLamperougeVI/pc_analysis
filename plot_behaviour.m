@@ -4,7 +4,7 @@ if nargin==2
 end
 h=figure;
 ax1=subplot(4,1,1:2);
-imagesc(fast_smooth(deconv,sig)');
+imagesc(zscore(fast_smooth(deconv,sig))');
 ylabel('neuron no.');
 ax2=subplot(4,1,3);
 plot(behavior.unit_pos);
