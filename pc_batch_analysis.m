@@ -7,7 +7,8 @@ function analysis=pc_batch_analysis(varargin)
 % 
 %   'test',
 %       'si' (default) SI shuffle test
-%       'gmm' new method based on GMM! more rigorous than SI
+%       'ricker' new method that convolves tuning curve with a series of
+%               ricker wavelets
 %       'mixed' two tests combined
 %
 %   'shuffles', 1000 (default)
@@ -77,8 +78,45 @@ if testFlag==1 || testFlag==3
 
     pval=1-sum(SI(1,:)>SI(2:end,:))./shuffles;
     pc_list=find(pval<sig);
+    SI=SI(1,pc_list);
 end
-SI=SI(1,pc_list);
+
+
+%PC width
+width=cell(1,size(raw_stack,2));
+for i=1:size(raw_stack,2)
+    [pc_width,pc_loc,pval]=ricker_test(raw_stack(:,i));
+    idx=pval'<sig & pc_width<bins;
+    width{i}=[pc_width(idx);pc_loc(idx)];
+end
+if testFlag==2 || testFlag==3
+    pc_list2=arrayfun(@(x) isempty(width{x}),1:size(raw_stack,2));
+    pc_list2=find(~pc_list2);
+    if exist('pc_list','var')
+        pc_list=intersect(pc_list,pc_list2);
+    else
+        pc_list=pc_list2;
+    end
+end
+% baseline_thres=range(raw_stack).*.2+min(raw_stack);
+% width_series=raw_stack>baseline_thres;
+% width_series=width_series(:,pc_list);
+% 
+% for i=1:size(width_series,2)
+%     temp=width_series(:,i)';
+%     start=strfind(temp,[0 1]);
+%     ending=strfind(temp,[1 0]);
+%     if temp(1)==1
+%         start=[1 start];
+%     end
+%     if temp(end)==1
+%         ending=[ending length(temp)];
+%     end
+%     temp=ending-start;
+%     width(i)=max(temp);
+% end
+% width=width.*vr_length./bins;
+
 
 %sparsity
 Pi=Pi./sum(Pi);
@@ -86,27 +124,6 @@ sparsity=sum(Pi.*mean(raw_psth,1),2).^2./sum(Pi.*mean(raw_psth,1).^2);
 sparsity=reshape(sparsity,1,[]);
 sparsity=sparsity(pc_list);
 
-
-%PC width
-baseline_thres=range(raw_stack).*.2+min(raw_stack);
-width_series=raw_stack>baseline_thres;
-width_series=width_series(:,pc_list);
-
-for i=1:size(width_series,2)
-    temp=width_series(:,i)';
-    start=strfind(temp,[0 1]);
-    ending=strfind(temp,[1 0]);
-    if temp(1)==1
-        start=[1 start];
-    end
-    if temp(end)==1
-        ending=[ending length(temp)];
-    end
-    temp=ending-start;
-    width(i)=max(temp);
-end
-width=width.*vr_length./bins;
-%
 
 
 if maskFlag
@@ -138,7 +155,7 @@ while(idx<length(inputs))
             switch inputs{idx}
                 case 'si'
                     testFlag=1;
-                case 'gmm'
+                case 'ricker'
                     testFlag=2;
                 case 'mixed'
                     testFlag=3;
