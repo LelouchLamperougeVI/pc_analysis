@@ -39,6 +39,13 @@ ts=C(find(c_index==2)-1,:);
 ts=charArray2double(ts');
 
 frame_ts=C(find(c_index==3)-1,:);
+flag=C(find(c_index==3)+2,:);
+if strcmp(flag(1,1),'1')
+    frame_ts(1,:)=[];
+end
+if strcmp(flag(end,1),'1')
+    frame_ts(end)=[];
+end
 frame_ts=charArray2double(frame_ts');
 frame_ts=frame_ts(1:2:end);
 
@@ -107,9 +114,13 @@ behavior.trial=bsxfun(@ge,trials',ts);
 behavior.trial=sum(behavior.trial);
 behavior.trial=abs(behavior.trial-max(behavior.trial))+1;
 % for my code
+if mod(length(frame_ts),10)
+    error('Uneven frame_ts. Direct complaint to HaoRan');
+end
 behavior.frame_ts=frame_ts;
 behavior.trials=trials;
 behavior.trials_ts=trials_ts;
 behavior.unit_pos=unit_pos;
 behavior.unit_vel=unit_vel;
+
 
