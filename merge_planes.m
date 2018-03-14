@@ -3,6 +3,11 @@ function [analysis,numRejected]=merge_planes(analysis1,analysis2,plotFlag)
 if nargin<3
     plotFlag=0;
 end
+if size(analysis1.deconv,2)<size(analysis2.deconv,2)
+    temp=analysis1;
+    analysis1=analysis2;
+    analysis2=temp;
+end
 
 dist_thres=30; %pixels
 sp_thres=.6;
