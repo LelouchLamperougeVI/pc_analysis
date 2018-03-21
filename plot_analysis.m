@@ -1,9 +1,10 @@
 function plot_analysis(analysis,plotFlag)
+% [PSTHs    stack/cMatrix   SI/pc_width]
 
-bins=50;
+bins=length(analysis.Pi);
 
 if nargin==1
-    plotFlag=[1 1];
+    plotFlag=[1 1 1];
 end
 
 if plotFlag(1)
@@ -40,14 +41,11 @@ if plotFlag(1)
 end
 
 if plotFlag(2)
-    stack=analysis.raw_stack(:,analysis.pc_list);
-
-    stack=(stack-repmat(min(stack),bins,1));
-    stack=stack./repmat(max(stack),bins,1);
-
+    stack=analysis.stack(:,analysis.pc_list);
     [~,idx]=max(stack);
     [~,ordered]=sort(idx);
     stack=stack(:,ordered)';
+
     figure;
     imagesc(stack);
     set(gca,'xtick',0:bins/5:bins);
@@ -70,4 +68,29 @@ if plotFlag(2)
     c=colorbar; c.Label.String='corr. coef.';
     colormap jet
     axis square
+end
+
+if plotFlag(3)
+    pc_width=vertcat(analysis.width{:});
+    pc_width=pc_width.*analysis.vr_length./length(analysis.Pi);
+    
+    figure;
+    subplot(1,3,1);
+    [f,x]=ecdf(analysis.SI);
+    plot(x,f);
+    xlabel('SI (bits)')
+    ylabel('cumm. prob.')
+    title('Spatial Information');
+    subplot(1,3,2);
+    [f,x]=ecdf(analysis.sparsity);
+    plot(x,f);
+    xlabel('sparsity')
+    ylabel('cumm. prob.')
+    title('Sparsity');
+    subplot(1,3,3);
+    [f,x]=ecdf(pc_width(:,1));
+    plot(x,f);
+    xlabel('place fields width (cm)')
+    ylabel('cumm. prob.')
+    title('Place Fields Width');
 end

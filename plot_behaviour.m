@@ -1,6 +1,7 @@
 function h = plot_behaviour(behavior,deconv,analysis)
 
 sig=5;
+bins=length(analysis.Pi);
 
 h=figure;
 ax1=subplot(4,1,1:2);
@@ -13,7 +14,7 @@ if exist('analysis','var')
 
     [~,idx]=max(stack);
     [~,ordered]=sort(idx);
-    imagesc(deconv(:,ordered));
+    imagesc(deconv(ordered(end:-1:1),:));
 else
     imagesc(deconv);
 end

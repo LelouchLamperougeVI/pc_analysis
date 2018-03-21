@@ -1,4 +1,4 @@
-function [psth,raw_psth,raw_count,raw_stack,Pi,vel_stack]=getStack(bins,sd,vr_length,deconv,vel_thres,unit_pos,unit_vel,frame_ts,trials)
+function [psth,raw_psth,raw_count,raw_stack,stack,Pi,vel_stack]=getStack(bins,sd,vr_length,deconv,vel_thres,unit_pos,unit_vel,frame_ts,trials)
 
 sd=sd/vr_length*bins;
 list=1:size(deconv,2);
@@ -61,8 +61,12 @@ raw_psth(isnan(raw_psth) | isinf(raw_psth))=0;
 
 psth=arrayfun(@(x) fast_smooth(raw_psth(:,:,x),sd,2),1:length(list),'uniformoutput',false);
 
-stack=arrayfun(@(x) mean(raw_psth(:,:,x)),1:length(list),'uniformoutput',false);
+raw_stack=arrayfun(@(x) mean(raw_psth(:,:,x)),1:length(list),'uniformoutput',false);
+raw_stack=cell2mat(raw_stack);
+raw_stack=reshape(raw_stack,bins,size(deconv,2));
+
+stack=arrayfun(@(x) mean(fast_smooth(raw_psth(:,:,x),sd,2)),1:length(list),'uniformoutput',false);
 stack=cell2mat(stack);
 stack=reshape(stack,bins,size(deconv,2));
-stack=fast_smooth(stack,sd);
-raw_stack=stack;
+stack=(stack-min(stack));
+stack=stack./max(stack);

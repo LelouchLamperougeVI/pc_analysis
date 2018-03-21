@@ -1,11 +1,15 @@
-function [pc_width,pc_loc,pval]=ricker_test(signal,plotFlag)
+function [pc_width,pc_loc,M]=ricker_test(signal,sig,plotFlag)
 % Unsupervised test for place cells by convolving tuning curve with a 
 % series of Ricker wavelets of different sigma values.
 % Can simultaneously test for significance, place fields width and place
 % fields centres.
+% This is essentially a continuous wavelet transform technique
 
-if nargin<2
+if ~exist('plotFlag','var')
     plotFlag=0;
+end
+if ~exist('sig','var')
+    sig=3; %mad threshold; 4 mads correspond rouphly to 6 sd
 end
 
 if size(signal,1)~=1
@@ -13,37 +17,50 @@ if size(signal,1)~=1
 end
 
 bins=length(signal);
-
 signal=repmat(signal,1,3);
-% signal=zscore(signal);
-M=zeros(bins);
 
+M=zeros(bins,bins*3);
 for n=1:bins
     sd=n/2;
-%     alpha=(n-1)/2/sd;
-%     kernel=gausswin(n,alpha);
-    kernel=ricker_wave(-bins:bins,sd);
-%     kernel=zscore(kernel);
-    
-    temp=conv(signal,kernel,'same');
-    M(n,:)=temp(bins+1:2*bins);
+    kernel=ricker_wave(-1.5*bins:1.5*bins,sd);
+    M(n,:)=1/sqrt(sd).*conv(signal,kernel,'same');
 end
-
 idx=imregionalmax(M);
+
+idx([1 50],:)=false;
+
+idx=median(median(M))+sig*mad(reshape(M,1,[]),1)<M & idx;
+% idx=median(M,2)+sig*mad(M',1)'<M & idx;
+idx(:,[1:bins 2*bins+1:3*bins])=[];
+M(:,[1:bins 2*bins+1:3*bins])=[];
+
 [pc_width,pc_loc]=find(idx);
-maxi=M(idx);
-dist=reshape(M,1,[]);
-pval=zeros(1,length(maxi));
-for i=1:length(maxi)
-    pval(i)=1-sum(maxi(i)>dist)/length(dist);
-end
+% maxi=M(idx);
+% dist=reshape(M,1,[]);
+% pval=zeros(1,length(maxi));
+% for i=1:length(maxi)
+%     pval(i)=1-sum(maxi(i)>dist)/length(dist);
+% end
 
 if plotFlag
     figure;
-    subplot(2,1,1);
+    subplot(2,2,1);
     imagesc(M);
     hold on;
-    plot(pc_loc(pval<0.05),pc_width(pval<0.05),'r*');
-    subplot(2,1,2);
+    plot(pc_loc,pc_width,'r*');
+    ylabel('2*sd');
+    subplot(2,2,3);
     plot(signal(bins+1:2*bins));
+    xlabel('Location');
+    
+    subplot(2,2,[2 4]);
+    [u,~]=meshgrid(0:2*pi/bins:2*pi,1:size(M,1));
+    idx=max(max(M))-min(min(M));
+    x=cos(u).*idx+[M M(:,1)].*cos(u);
+    y=sin(u).*idx+[M M(:,1)].*sin(u);
+    [~,z]=meshgrid(1:size(M,2)+1,1:size(M,1));
+    surf(x,y,z,sqrt(x.^2+y.^2));
+    axis square
 end
+
+pc_width=2.*pc_width;

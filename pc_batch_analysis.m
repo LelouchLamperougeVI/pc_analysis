@@ -22,6 +22,7 @@ function analysis=pc_batch_analysis(varargin)
 %
 %   'sd', 4 (default)
 %       smoothing kernel s.d. in cm
+%
 %   'par', true (default)
 %       use parallel processing to speed up
 
@@ -40,15 +41,7 @@ sr=1/mean(diff(frame_ts));
 
 thres=noRun(unit_vel);
 
-[psth,raw_psth,raw_count,raw_stack,Pi,vel_stack]=getStack(bins,sd,vr_length,deconv,thres,unit_pos,unit_vel,frame_ts,trials);
-
-stack=raw_stack;
-stack=(stack-repmat(min(stack),bins,1));
-stack=stack./repmat(max(stack),bins,1);
-
-[~,idx]=max(stack);
-[~,ordered]=sort(idx);
-stack=stack(:,ordered)';
+[psth,raw_psth,raw_count,raw_stack,stack,Pi,vel_stack]=getStack(bins,sd,vr_length,deconv,thres,unit_pos,unit_vel,frame_ts,trials);
 
 %SI test
 SI=get_si(raw_count,raw_psth,Pi);
@@ -85,9 +78,8 @@ end
 %PC width
 width=cell(1,size(raw_stack,2));
 for i=1:size(raw_stack,2)
-    [pc_width,pc_loc,pval]=ricker_test(raw_stack(:,i));
-    idx=pval'<sig & pc_width<bins;
-    width{i}=[pc_width(idx);pc_loc(idx)];
+    [pc_width,pc_loc]=ricker_test(stack(:,i));
+    width{i}=[pc_width pc_loc];
 end
 if testFlag==2 || testFlag==3
     pc_list2=arrayfun(@(x) isempty(width{x}),1:size(raw_stack,2));
@@ -96,6 +88,7 @@ if testFlag==2 || testFlag==3
         pc_list=intersect(pc_list,pc_list2);
     else
         pc_list=pc_list2;
+        pval=[];
     end
 end
 % baseline_thres=range(raw_stack).*.2+min(raw_stack);
@@ -123,7 +116,6 @@ Pi=Pi./sum(Pi);
 sparsity=sum(Pi.*mean(raw_psth,1),2).^2./sum(Pi.*mean(raw_psth,1).^2);
 sparsity=reshape(sparsity,1,[]);
 sparsity=sparsity(pc_list);
-
 
 
 if maskFlag
