@@ -24,7 +24,11 @@ function analysis=pc_batch_analysis(varargin)
 %       smoothing kernel s.d. in cm
 %
 %   'par', true (default)
-%       use parallel processing to speed up
+%       use parallel processing to speed up (can benefit very long
+%       recordings)
+%
+%   'pic', false (default)
+%       test for alternative hypothesis of "path integrator cells"
 
 behavior=varargin{1};
 deconv=varargin{2};
