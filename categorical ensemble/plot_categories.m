@@ -14,5 +14,5 @@ linkaxes([ax1 ax2],'x');
 
 idx=find(behavior.object_frame);
 for i=1:length(behavior.object_ts)
-    text(idx(i),i/length(idx),behavior.object_type(i,:));
+    text(idx(i),1-i/length(idx),behavior.object_type(i,:));
 end
