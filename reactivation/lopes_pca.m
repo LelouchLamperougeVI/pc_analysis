@@ -131,4 +131,7 @@ if plotFlag
     ax2=subplot(2,1,2);
     plot(R);
     linkaxes([ax1,ax2],'x');
+    labels=cell(1,size(R,2));
+    for i=1:size(R,2); labels{i}=['Ensemble ' num2str(i)]; end
+    legend(labels);
 end

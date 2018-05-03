@@ -7,5 +7,6 @@ if nargin<2
 end
 [signal,fs]=abfload([path fn]);
 signal=signal(:,ch);
-fs=fs/1000000; %sec
-fs=1/fs; %hz
+fs=1e+6/fs;
+% fs=fs/1000000; %sec
+% fs=1/fs; %hz

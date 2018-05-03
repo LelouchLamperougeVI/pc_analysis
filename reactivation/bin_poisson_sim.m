@@ -23,7 +23,7 @@ function [q,e]=bin_poisson_sim(varargin)
   q=rand(m,n);
   q=bsxfun(@lt,q,R);
   e=zeros(m,size(assemblies,1));
-  if ~isempty(assemblies) & ~isempty(prob)
+  if ~isempty(assemblies) && ~isempty(prob)
     assemblies=logical(assemblies);
 
     for i=1:size(assemblies,1)
@@ -67,7 +67,7 @@ function [assemblies,R,prob,miss]=parse_input(inputs)
   end
 
   if isempty(R)
-      error('miss spiking probability input');
+      error('missing spiking probability input');
   end
 
   if length(prob)==1

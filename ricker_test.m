@@ -27,7 +27,7 @@ for n=1:bins
 end
 idx=imregionalmax(M);
 
-idx([1 50],:)=false;
+idx([1 bins],:)=false;
 
 idx=median(median(M))+sig*mad(reshape(M,1,[]),1)<M & idx;
 % idx=median(M,2)+sig*mad(M',1)'<M & idx;

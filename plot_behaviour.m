@@ -18,6 +18,7 @@ if exist('analysis','var')
 else
     imagesc(deconv);
 end
+colormap hot;
 ylabel('neuron no.');
 ax2=subplot(4,1,3);
 plot(behavior.unit_pos);

@@ -8,11 +8,11 @@ fs=fs(1,:);
 
 numPlanes=0;
 for i=1:length(fs)
-    numPlanes=numPlanes+double(~isempty(strfind(fs{i},'Plane')));
+    numPlanes=numPlanes+double(~isempty(strfind(fs{i},'plane')));
 end
 
 for i=1:numPlanes
-    cd([pwd '\Plane' num2str(i)]);
+    cd([pwd '\plane' num2str(i)]);
     load('deconv.mat');
     load('timecourses.mat');
     load('mean_img.mat');

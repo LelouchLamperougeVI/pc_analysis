@@ -1,8 +1,12 @@
-function analysis=cat_analysis(behavior,deconv)
+function analysis=cat_analysis(behavior,deconv,bins)
 
-bins=50;
+if nargin<3
+    bins=50;
+end
 
-signal=ca_filt(deconv);
+% signal=ca_filt(deconv); 
+signal=deconv;
+
 idx=find(behavior.object_frame);
 
 stack=zeros(length(idx)-1,bins,size(signal,2));

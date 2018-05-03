@@ -17,7 +17,7 @@ frame_ts=cell(1,length(index));
 for i=1:length(index)-1
     idx=c_index == 2;
     idx([1:index(i)-1 index(i+1)+1:end])=false;
-    if strcmp(C(find(idx,1)+4),'1')
+    if strcmp(C(find(idx,1)+4),'0')
         idx(find(idx,1))=false;
     end
     idx=find(idx)-1;
