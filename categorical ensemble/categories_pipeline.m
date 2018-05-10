@@ -10,6 +10,9 @@ plot_categories(behavior,deconv);
 analysis=cat_analysis(behavior,deconv);
 plot_cat_analysis(analysis);
 
+interval=mean(diff(behavior.object_ts));
+t=(1:50).*interval./50;
+
 %% Filter out left firing rate component
 signal=ca_filt(deconv);
 
