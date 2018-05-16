@@ -1,10 +1,17 @@
-function plot_analysis(analysis,plotFlag)
+function plot_analysis(analysis,plotFlag,allFlag)
 % [PSTHs    stack/cMatrix   SI/pc_width]
+if nargin<2
+    plotFlag=[1 1 1];
+end
+if nargin<3
+    allFlag=false;
+end
 
 bins=length(analysis.Pi);
-
-if nargin==1
-    plotFlag=[1 1 1];
+if allFlag
+    pc_list=1:length(analysis.psth);
+else
+    pc_list=analysis.pc_list;
 end
 
 if plotFlag(1)
@@ -15,7 +22,7 @@ if plotFlag(1)
 
     [~,idx]=max(stack);
     [~,ordered]=sort(idx);
-    ordered=ordered(any(analysis.pc_list'==ordered));
+    ordered=ordered(any(pc_list'==ordered));
     
     figure;
     count=1;
@@ -41,7 +48,7 @@ if plotFlag(1)
 end
 
 if plotFlag(2)
-    stack=analysis.stack(:,analysis.pc_list);
+    stack=analysis.stack(:,pc_list);
     [~,idx]=max(stack);
     [~,ordered]=sort(idx);
     stack=stack(:,ordered)';
