@@ -1,22 +1,28 @@
 function [assemblies,Z]=cluster_mi(varargin)
-% assemblies membership assignment using hierarchical clustering of
+% assemblies membership assignment using agglomerative clustering of
 % MI distance metric
 % Inputs:
-%   'sig':      significance threshold (default 5%)
-%   'prune':    prune small ensembles; minimum # members
+%   'sig':          significance threshold (default 5%)
+%   'prune':        prune small ensembles; minimum # members
+%   'shuffle':      number of shuffles (default 500)
+%   'precision':    number of bins for FR (default 5; not required for binary matrix)
+%   'plotFlag':     plot relevant figures
 
 deconv=varargin{1};
+[sig,prune,shuffle,precision,plotFlag]=parse_input(varargin);
 if islogical(deconv)
     deconv=double(deconv);
 end
-[sig,prune,plotFlag]=parse_input(varargin);
 
-[I,D]=get_mi(deconv);
-shuffled_d=mat_circshift(deconv,randi(size(deconv,1),1,size(deconv,2)));
+[I,D]=get_mi(deconv,precision);
 
-[~,cutoff]=get_mi(shuffled_d);
-cutoff=triu(cutoff,1);
-cutoff=cutoff(~~cutoff);
+cutoff=[];
+for i=1:shuffle
+    shuffled_d=mat_circshift(deconv,randi(size(deconv,1),1,size(deconv,2)));
+    [~,shuffled_d]=get_mi(shuffled_d,precision);
+    shuffled_d=triu(shuffled_d,1);
+    cutoff=[cutoff;shuffled_d(~~shuffled_d)];
+end
 cutoff=prctile(cutoff,sig);
 
 D=squareform(D);
@@ -48,25 +54,31 @@ if plotFlag
     [~,order]=sort(clusters);
     dendrogram(Z,0,'colorthreshold',cutoff,'reorder',order);
     axis square
+    ylabel('d')
     ax2=subplot(2,2,4);
     imagesc(I(order,order));
     axis square
+    xlabel('neuron no.')
+    ylabel('neuron no.')
     ax3=subplot(2,2,3);
     dendrogram(Z,0,'colorthreshold',cutoff,'reorder',order(end:-1:1),'orientation','left');
     axis square
+    xlabel('d')
     linkaxes([ax1,ax2],'x');
     linkaxes([ax2,ax3],'y');
     
-    figure;
-    imagesc(deconv(:,cell2mat(assemblies))');
-    colormap gray
+%     figure;
+%     imagesc(deconv(:,cell2mat(assemblies))');
+%     colormap gray
 end
 
 
-function [sig,prune,plotFlag]=parse_input(inputs)
+function [sig,prune,shuffle,precision,plotFlag]=parse_input(inputs)
+precision=5;
 plotFlag=false;
 sig=5;
 prune=0;
+shuffle=500;
 
 idx=2;
 while(idx<length(inputs))
@@ -77,6 +89,12 @@ while(idx<length(inputs))
         case 'prune'
             idx=idx+1;
             prune=inputs{idx};
+        case 'shuffle'
+            idx=idx+1;
+            shuffle=inputs{idx};
+        case 'precision'
+            idx=idx+1;
+            precision=inputs{idx};
         case 'plotflag'
             idx=idx+1;
             plotFlag=inputs{idx};

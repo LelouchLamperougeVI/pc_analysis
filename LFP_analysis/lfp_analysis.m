@@ -91,7 +91,7 @@ analysis.theta=theta;
 analysis.theta_rms=theta_rms;
 analysis.rms_t=rms_t;
 
-if plotFlag
+if plotFlag(1)
     figure;
     ax1=subplot(9, 1, 1:3);
     fo=90;
@@ -178,7 +178,7 @@ analysis.frame_sample=frame_sample;
 analysis.rem_rms=rem_rms;
 analysis.nrem_rms=nrem_rms;
 
-if plotFlag
+if plotFlag(2)
     figure;
     ax1=subplot(2,1,1);
     t = (1:nblock).*(win/60);
@@ -215,7 +215,7 @@ idx=find(swr_events);
 idx([true ; diff(idx)>(r_lag/fs*1000)])=[];
 swr_events(idx)=false;
 
-if plotFlag
+if plotFlag(3)
     figure
     ax1=subplot(4,1,1:2);
     pcolor(frame_ts./60,1:size(deconv,2),fast_smooth(deconv,10)');
@@ -246,7 +246,7 @@ analysis.swr_events=swr_events;
 analysis.ripple_frames=ripple_frames;
 analysis.rta=rta;
 
-if plotFlag
+if plotFlag(4)
     figure;
     hold on
     plot(lfp);
