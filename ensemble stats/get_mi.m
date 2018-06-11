@@ -34,7 +34,7 @@ else
     deconv(isnan(deconv))=min(min(deconv))-1;
     
     p=zeros(precision+1,size(deconv,2));
-    p_joint=zeros(size(deconv,2),size(deconv,2),precision+1);
+    p_joint=zeros(size(deconv,2),size(deconv,2),(precision+1)^2);
     count=1;
     for i=1:precision+1
         temp1=deconv>=edges(i) & deconv<edges(i+1);
