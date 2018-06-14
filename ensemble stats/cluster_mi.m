@@ -1,4 +1,4 @@
-function [assemblies,Z]=cluster_mi(varargin)
+function [assemblies,Z,D,varargout]=cluster_mi(varargin)
 % assemblies membership assignment using agglomerative clustering of
 % MI distance metric
 % Inputs:
@@ -18,13 +18,15 @@ end
 
 if strcmpi(method,'mi')
     [I,D]=get_mi(deconv,precision);
+    Dm=D;
 else
-    [I,D]=tdmi(deconv,precision,max_delay);
-    D=min(D,[],3);
+    [I,D,varargout{1}]=tdmi(deconv,precision,max_delay);
+    Dm=min(D,[],3);
     I=max(I,[],3);
 end
 
 cutoff=[];
+f=waitbar(0,'permutation testing...');
 for i=1:shuffle
     shuffled_d=mat_circshift(deconv,randi(size(deconv,1),1,size(deconv,2)));
 %     if strcmpi(method,'mi')
@@ -35,20 +37,22 @@ for i=1:shuffle
 %     end
     shuffled_d=triu(shuffled_d,1);
     cutoff=[cutoff;shuffled_d(~~shuffled_d)];
+    waitbar(i/shuffle,f);
 end
+close(f);
 cutoff=prctile(cutoff,sig);
 
-D=squareform(D);
-Z=linkage(D,'average');
+Dm=squareform(Dm);
+Z=linkage(Dm,'average');
 clusters=cluster(Z,'criterion','distance','cutoff',cutoff);
-D=squareform(D);
+Dm=squareform(Dm);
 
 idx=1:length(clusters);
 % assemblies=cell(1,max(clusters));
 count=1;
 for i=1:max(clusters)
     assemblies{count}=idx(clusters==i);
-    temp=D(assemblies{count},assemblies{count});
+    temp=Dm(assemblies{count},assemblies{count});
     temp=triu(temp,1);
     temp=temp(~~temp);
     if mean(temp)<cutoff && length(assemblies{count})>=prune
@@ -115,7 +119,7 @@ while(idx<length(inputs))
             method=inputs{idx};
         case 'max_delay'
             idx=idx+1;
-            method=inputs{idx};
+            max_delay=inputs{idx};
         case 'plotflag'
             idx=idx+1;
             plotFlag=inputs{idx};

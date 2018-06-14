@@ -15,8 +15,24 @@ lags=-max_delay:max_delay;
 D=zeros(size(deconv,2),size(deconv,2),2*max_delay+1);
 I=zeros(size(deconv,2),size(deconv,2),2*max_delay+1);
 
-parfor i=1:length(lags)
+dq=parallel.pool.DataQueue;
+f=waitbar(0,'detecting ''em ensembles...');
+afterEach(dq,@updateBar);
+N=length(lags);
+p=1;
+
+parfor i=1:N
     [I(:,:,i),D(:,:,i)]=get_tdmi(deconv,edges,precision,lags(i));
+    send(dq,i);
+end
+
+close(f);
+
+    function updateBar(~)
+        waitbar(p/N, f);
+        p=p+1;
+    end
+
 end
 
 
@@ -56,3 +72,5 @@ D=1-I./H_joint;
 
 I(diag(true(1,length(H1))))=0;
 D(diag(true(1,length(H1))))=0;
+
+end
