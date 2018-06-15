@@ -25,7 +25,7 @@ parfor i=1:size(deconv,2)
     for j=1:size(deconv,2)
         x=deconv(:,i);
         y=deconv(:,j);
-        tmp(j)=embed_dimensions(x,y,edges,order);
+        tmp(j)=embed_dimensions_sparse(x,y,edges,order);
     end
     te(i,:)=tmp;
     send(dq,i);
