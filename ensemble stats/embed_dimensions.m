@@ -8,6 +8,7 @@ for i=1:order
     dims(:,i*2+1)=x(order+1-i:end-i);
 end
 dims=discretize(dims,edges); %can't believe I didn't discover this shit sooner
+% dims=single(dims);
 
 p_joint=accumarray(dims,1)./size(dims,1);
 

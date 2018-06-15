@@ -10,6 +10,8 @@ edges=[-inf min(deconv(:)):range(deconv(:))/precision:max(deconv(:))];
 edges(end)=inf;
 deconv(isnan(deconv))=min(min(deconv))-1;
 
+deconv=single(deconv);
+
 te=zeros(size(deconv,2));
 
 dq=parallel.pool.DataQueue;
