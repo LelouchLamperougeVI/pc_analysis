@@ -17,18 +17,18 @@ te=zeros(size(deconv,2));
 dq=parallel.pool.DataQueue;
 f=waitbar(0,'performing high-dimensional transfer entropy...');
 afterEach(dq,@updateBar);
-N=size(deconv,2);
+N=size(deconv,2)^2;
 p=1;
 
-parfor i=1:size(deconv,2)
+for i=1:size(deconv,2)
     tmp=zeros(1,size(deconv,2));
-    for j=1:size(deconv,2)
-        x=deconv(:,i);
+    x=deconv(:,i);
+    parfor j=1:size(deconv,2)
         y=deconv(:,j);
         tmp(j)=embed_dimensions_sparse(x,y,edges,order);
+        send(dq,i);
     end
     te(i,:)=tmp;
-    send(dq,i);
 end
 
 close(f);
