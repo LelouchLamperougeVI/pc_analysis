@@ -6,8 +6,8 @@ deconv=log(deconv);
 deconv(isinf(deconv))=nan;
 deconv=(deconv-mean(deconv,'omitnan'))./std(deconv,'omitnan');
 
-edges=[-inf min(deconv(:)):range(deconv(:))/precision:max(deconv(:))];
-edges(end)=inf;
+edges=[-1e6 min(deconv(:)):range(deconv(:))/precision:max(deconv(:))];
+edges(end)=1e6;
 deconv(isnan(deconv))=min(min(deconv))-1;
 
 deconv=single(deconv);
@@ -25,7 +25,7 @@ for i=1:size(deconv,2)
     x=deconv(:,i);
     parfor j=1:size(deconv,2)
         y=deconv(:,j);
-        tmp(j)=embed_dimensions_sparse(x,y,edges,order);
+        tmp(j)=embed_dimensions(x,y,edges,order);
         send(dq,i);
     end
     te(i,:)=tmp;
