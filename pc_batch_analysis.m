@@ -55,33 +55,19 @@ if testFlag==1 || testFlag==3
     SI=[SI;zeros(shuffles,length(SI))];
     if parFlag
         parfor i=1:shuffles
-%             temp=mat_circshift(signal,randi(size(signal,1),1,size(signal,2)));
             temp=signal(randperm(size(signal,1)),:);
             temp=mat2cell(temp,sizes,size(temp,2));
-%             perm=randperm(numel(raw_count(:,:,1)));
-%             perm=reshape(perm,size(raw_count,1),size(raw_count,2));
-%             perm=repmat(perm,1,1,size(raw_count,3));
-%             perm=perm+reshape(0:numel(raw_count(:,:,1)):numel(raw_count)-1,1,1,[]);
-%             temp=raw_count(perm);
-%             temp1=raw_psth(perm);
-%             perm=randperm(length(raw_count));
             SI(i+1,:)=get_si(temp,edges,Pi);
         end
     else
         for i=1:shuffles
-%             perm=randperm(numel(raw_count(:,:,1)));
-%             perm=reshape(perm,size(raw_count,1),size(raw_count,2));
-%             perm=repmat(perm,1,1,size(raw_count,3));
-%             perm=perm+reshape(0:numel(raw_count(:,:,1)):numel(raw_count)-1,1,1,[]);
-%             temp=raw_count(perm);
-%             temp1=raw_psth(perm);
-            perm=randperm(length(raw_count));
-            SI(i+1,:)=get_si(raw_count(perm),edges,Pi);
+            temp=signal(randperm(size(signal,1)),:);
+            temp=mat2cell(temp,sizes,size(temp,2));
+            SI(i+1,:)=get_si(temp,edges,Pi);
         end
     end
 
     pval=1-sum(SI(1,:)>SI(2:end,:))./shuffles;
-%     pval=sum(SI(1,:)>SI(2:end,:))./shuffles;
     pc_list=find(pval<sig);
     SI=SI(1,pc_list);
 end
