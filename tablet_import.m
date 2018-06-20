@@ -115,7 +115,7 @@ behavior.trial=sum(behavior.trial);
 behavior.trial=abs(behavior.trial-max(behavior.trial))+1;
 % for my code
 if mod(length(frame_ts),10)
-    error('Uneven frame_ts. Direct complaint to HaoRan');
+    warning('Uneven frame_ts. Direct complaint to HaoRan');
 end
 behavior.frame_ts=frame_ts;
 behavior.trials=trials;
