@@ -47,10 +47,13 @@ if plotFlag(1)
     end
 end
 
-if plotFlag(2)
-    stack=analysis.stack(:,pc_list);
+if plotFlag(2) 
+    stack=analysis.raw_stack;
+    stack=stack-min(stack);
+    stack=stack./max(stack);
     [~,idx]=max(stack);
     [~,ordered]=sort(idx);
+    ordered=ordered(any(pc_list'==ordered));
     stack=stack(:,ordered)';
 
     figure;
