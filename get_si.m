@@ -36,7 +36,7 @@ lambda_m=sum(lambda,2);
 % Pi=sum(lambda,1);
 
 SI=lambda.*log2(lambda./lambda_m./Pi);
-SI(isnan(SI))=0;
+SI(isnan(SI) | isinf(SI))=0;
 
 % SI(1,:,:)=[];
 

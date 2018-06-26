@@ -62,7 +62,7 @@ for i=1:length(trials)-1
     count1=count1+1;
 end
 % [~,edges]=histcounts(signal(:),'binmethod','fd'); %using Freedman-Diaconis's rule to determine optimal # of bins
-nbins=floor(mean(fd_bins(signal_log)));
+nbins=floor(mean(fd_bins(signal_log))); %using Freedman-Diaconis's rule to determine optimal # of bins
 edges=linspace(min(signal_log(:)),max(signal_log(:)),nbins);
 raw_psth(isnan(raw_psth) | isinf(raw_psth))=0;
 % Pi=Pi./sum(Pi);

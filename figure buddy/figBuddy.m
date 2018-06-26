@@ -55,15 +55,18 @@ function figBuddy_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for figBuddy
 set(hObject,'WindowStyle','normal');
 
-if isempty(varargin)
-    error('undefined figure');
-    return;
-end
+handles.directory='C:\Users\adam.neumann\Documents\GitHub\pc_analysis\figure buddy\presets\';
+fn=dir([handles.directory '*.mat']);
+fn=struct2cell(fn);
+list=fn(1,:);
+handles.list=strrep(list,'.mat','');
+handles.fn=arrayfun(@(x) [fn{2,x} '\' fn{1,x}],1:size(fn,2),'uniformoutput',false);
+
 handles.hfig=varargin{1};
-disp(handles.hfig.Position);
+set(handles.hfig,'WindowStyle','normal');
+handles.listbox.String=handles.list;
 
 handles.output = hObject;
-% handles.listbox.String=lol;
 
 % Update handles structure
 guidata(hObject, handles);
@@ -91,6 +94,8 @@ function listbox_Callback(hObject, eventdata, handles)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns listbox contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from listbox
+handles.save_name.String=handles.list{hObject.Value};
+guidata(hObject, handles);
 
 
 % --- Executes during object creation, after setting all properties.
@@ -134,6 +139,9 @@ function load_button_Callback(hObject, eventdata, handles)
 % hObject    handle to load_button (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+idx=handles.listbox.Value;
+load(handles.fn{idx});
+set(handles.hfig,'Position',pos);
 
 
 % --- Executes on button press in save_button.
@@ -141,3 +149,16 @@ function save_button_Callback(hObject, eventdata, handles)
 % hObject    handle to save_button (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+pos=get(handles.hfig,'Position');
+save([handles.directory handles.save_name.String],'pos');
+new=cellfun(@(x) strcmp(handles.save_name.String,x), handles.list);
+if ~any(new)
+    handles.list{end+1}=handles.save_name.String;
+    handles.fn{end+1}=[handles.directory handles.save_name.String '.mat'];
+    handles.listbox.String=handles.list;
+end
+guidata(hObject, handles);
+
+
+function update_presets(handles)
+
