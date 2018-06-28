@@ -1,5 +1,5 @@
-function [pc_width,pc_loc,M]=ricker_test(signal,sig,plotFlag)
-% Unsupervised test for place cells by convolving tuning curve with a 
+function [pc_width,pc_loc,M]=ricker_test(signal,psth,frac_trials,sig,plotFlag)
+% Unsupervised test for place cells by convolving tuning curve with a
 % series of Ricker wavelets of different sigma values.
 % Can simultaneously test for significance, place fields width and place
 % fields centres.
@@ -35,12 +35,6 @@ idx(:,[1:bins 2*bins+1:3*bins])=[];
 M(:,[1:bins 2*bins+1:3*bins])=[];
 
 [pc_width,pc_loc]=find(idx);
-% maxi=M(idx);
-% dist=reshape(M,1,[]);
-% pval=zeros(1,length(maxi));
-% for i=1:length(maxi)
-%     pval(i)=1-sum(maxi(i)>dist)/length(dist);
-% end
 
 if plotFlag
     figure;
@@ -64,3 +58,26 @@ if plotFlag
 end
 
 pc_width=2.*pc_width;
+
+idx=pc_width>(bins*.8);
+pc_loc(idx)=[];
+pc_width(idx)=[];
+
+if isempty(pc_width)
+    return;
+end
+
+for i=1:length(pc_width)
+    frac=floor(pc_width(i)/2)-pc_loc(i):floor(pc_width(i)/2)+pc_loc(i);
+    frac=mod(frac-1,bins)+1; %circular wrap around indexing thinggy
+    frac=psth(:,frac);
+    frac=sum(any(frac>0,2))/size(psth,1);
+    if frac<frac_trials
+        pc_loc(i)=0;
+        pc_width(i)=0;
+    end
+end
+
+idx=pc_loc==0;
+pc_loc(idx)=[];
+pc_width(idx)=[];

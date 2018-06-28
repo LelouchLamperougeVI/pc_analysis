@@ -59,10 +59,13 @@ else
     f60_env=1;
 end
 
+rms_t=round(linspace(1,length(lfp),length(lfp)/floor(precision*fs)));
+
 [a,b,c,d]=butter(2,[1.5 4]/fs*2,'bandpass');
 [sos,g]=ss2sos(a,b,c,d);
 delta=filtfilt(sos,g,lfp)./f60_env;
-delta_rms=sqrt(mean(reshape(delta,floor(precision*fs),[]).^2));
+delta_rms=arrayfun(@(x) sqrt(mean(delta(rms_t(x:x+1)).^2)),1:length(rms_t)-1);
+% delta_rms=sqrt(mean(reshape(delta,floor(precision*fs),[]).^2));
 outliers=isoutlier(delta_rms,'quartiles');
 outliers(1)=0;
 delta_rms(outliers)=delta_rms(find(outliers)-1);
@@ -70,7 +73,8 @@ delta_rms(outliers)=delta_rms(find(outliers)-1);
 [a,b,c,d]=butter(2,[5 14]/fs*2,'bandpass');
 [sos,g]=ss2sos(a,b,c,d);
 theta=filtfilt(sos,g,lfp)./f60_env;
-theta_rms=sqrt(mean(reshape(theta,floor(precision*fs),[]).^2));
+theta_rms=arrayfun(@(x) sqrt(mean(theta(rms_t(x:x+1)).^2)),1:length(rms_t)-1);
+% theta_rms=sqrt(mean(reshape(theta,floor(precision*fs),[]).^2));
 outliers=isoutlier(theta_rms,'quartiles');
 outliers(1)=0;
 theta_rms(outliers)=theta_rms(find(outliers)-1);

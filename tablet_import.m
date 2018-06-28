@@ -1,7 +1,7 @@
 function behavior=tablet_import
 % Import positional data from tablet tracker
 
-[fn,path]=uigetfile('*');
+[fn,path]=uigetfile('*.csv');
 cd(path);
 
 fid=fopen(fn);

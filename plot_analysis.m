@@ -48,9 +48,7 @@ if plotFlag(1)
 end
 
 if plotFlag(2) 
-    stack=analysis.raw_stack;
-    stack=stack-min(stack);
-    stack=stack./max(stack);
+    stack=analysis.stack;
     [~,idx]=max(stack);
     [~,ordered]=sort(idx);
     ordered=ordered(any(pc_list'==ordered));
@@ -62,7 +60,11 @@ if plotFlag(2)
     set(gca,'xticklabel',strsplit(num2str(-analysis.vr_length:analysis.vr_length/5:0)));
     xlabel('position (cm)');
     ylabel('ordered neuron no.');
-    colormap jet;
+%     colormap jet; 
+    red=[ones(64,1) linspace(1,0,64)' linspace(1,0,64)'];
+    blue=red(:,[2 3 1]);
+    black=[linspace(1,0,64)' linspace(1,0,64)' linspace(1,0,64)'];
+    colormap(black); %red
     c=colorbar; c.Label.String='Norm. Mean dF/F';
 
     qMatrix=corr(stack);
@@ -76,7 +78,8 @@ if plotFlag(2)
     set(gca,'yticklabel',strsplit(num2str(-analysis.vr_length:analysis.vr_length/5:0)));
     ylabel('position (cm)');
     c=colorbar; c.Label.String='corr. coef.';
-    colormap jet
+%     colormap jet
+    colormap(red);
     axis square
 end
 
