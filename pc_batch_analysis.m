@@ -48,7 +48,7 @@ sr=1/mean(diff(frame_ts));
 
 thres=noRun(unit_vel);
 
-[psth,raw_psth,raw_count,edges,raw_stack,raw_stack_norm,stack,Pi,vel_stack]=getStack(bins,sd,vr_length,deconv,thres,unit_pos,unit_vel,frame_ts,trials);
+[psth,raw_psth,raw_count,edges,raw_stack,stack,Pi,vel_stack]=getStack(bins,sd,vr_length,deconv,thres,unit_pos,unit_vel,frame_ts,trials);
 
 %SI test
 signal=cell2mat(raw_count');
@@ -104,9 +104,9 @@ sparsity=sparsity(pc_list);
 if maskFlag
     maskNeurons=varargin{maskFlag+1};
     mimg=varargin{maskFlag+2};
-    analysis=v2struct(vr_length,sr,psth,raw_psth,raw_stack,raw_stack_norm,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,behavior,maskNeurons,mimg);
+    analysis=v2struct(vr_length,sr,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,behavior,maskNeurons,mimg);
 else
-    analysis=v2struct(vr_length,sr,psth,raw_psth,raw_stack,raw_stack_norm,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,behavior);
+    analysis=v2struct(vr_length,sr,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,behavior);
 end
 
 

@@ -48,10 +48,17 @@ if plotFlag(1)
 end
 
 if plotFlag(2) 
-    stack=analysis.stack;
+%     stack=analysis.stack(:,pc_list);
+
+    sd=4.5/analysis.vr_length*bins;
+    stack=analysis.raw_psth(:,:,pc_list);
+    stack=squeeze(mean(stack));
+    stack=fast_smooth(stack,sd);
+    stack=(stack-min(stack))./range(stack);
+    
     [~,idx]=max(stack);
     [~,ordered]=sort(idx);
-    ordered=ordered(any(pc_list'==ordered));
+%     ordered=ordered(any(pc_list'==ordered));
     stack=stack(:,ordered)';
 
     figure;
@@ -91,9 +98,9 @@ if plotFlag(3)
     subplot(1,3,1);
     [f,x]=ecdf(analysis.SI);
     plot(x,f);
-    xlabel('SI (bits)')
+    xlabel('proficiency')
     ylabel('cumm. prob.')
-    title('Spatial Information');
+    title('Uncertainty Coefficient');
     subplot(1,3,2);
     [f,x]=ecdf(analysis.sparsity);
     plot(x,f);

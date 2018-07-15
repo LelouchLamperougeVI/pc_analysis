@@ -26,3 +26,9 @@ SI(isnan(SI) | isinf(SI))=0;
 
 SI=sum(sum(SI,2),1);
 SI=reshape(SI,1,[]);
+
+H_x=lambda_m.*log2(lambda_m);
+H_x(isinf(H_x) | isnan(H_x))=0;
+H_x=-sum(H_x);
+H_x=shiftdim(H_x,1);
+SI=SI./H_x;
