@@ -237,9 +237,12 @@ ripple_frames=knnsearch(frame_ts,swr_events);
 
 rta_win=floor(ca_fs*rta_win/2);
 rta=zeros(rta_win*2+1,length(ripple_frames));
+rta_spk=zeros(rta_win*2+1,length(ripple_frames));
 for i=1:size(rta,2)
     temp=deconv(ripple_frames(i)-rta_win:ripple_frames(i)+rta_win,:);
     rta(:,i)=sum(temp,2)./ca_fs;
+    
+    rta_spk(:,i)=sum(temp>0,2)./ca_fs;
 end
 
 outliers=isoutlier(sum(rta));
@@ -269,6 +272,11 @@ if plotFlag(4)
     
     figure
     shadedErrorBar(t,rta',{@mean,@std})
+    xlabel('time from ripple (ms)')
+    ylabel('MUA (dF/F)')
+    
+    figure
+    shadedErrorBar(t,rta_spk',{@mean,@std})
     xlabel('time from ripple (ms)')
     ylabel('MUA (spk/s)')
 end
