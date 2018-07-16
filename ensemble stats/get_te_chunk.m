@@ -28,7 +28,7 @@ end
 chunked=discretize(chunked,edges);
 l=size(chunked,1);
 s=size(deconv,2);
-parfor i=1:s
+for i=1:s
     te(i,:)=arrayfun(@(x) embed_dimensions_gpu(i,x,s,l,order,chunked), 1:s);
     send(dq,i);
 end

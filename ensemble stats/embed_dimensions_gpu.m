@@ -2,7 +2,14 @@ function te=embed_dimensions_gpu(x,y,s,l,order,chunked)
 % x -> y embedding
 
 idx=[y+s.*(0:order) x+s.*(1:order)];
-p_joint=accumarray(chunked(:,idx),1)./l;
+chunked=chunked(:,idx);
+
+% idx=sum(chunked,2)==(2*order+1);
+% idx=conv(idx,ones(1,order+1),'same');
+% idx=idx==(order+1);
+% chunked(idx,:)=[];
+
+p_joint=accumarray(chunked,1)./l;
 
 p_cond_xy=sum(p_joint);
 p_cond_xy=p_joint./p_cond_xy;
