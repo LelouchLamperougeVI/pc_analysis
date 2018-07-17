@@ -6,6 +6,8 @@
 
    Tested with MATLAB 2018a, and compiled using CUDA 9.0 and MSVC++ 2015
 
+   Code is provided "as-is", but feel free to direct complaints to author though the latter reserves the right to ignore them
+
    Written by HaoRan Chang,
    Polaris Brain Dynamics Research Group,
    Canadian Centre for Behavioural Neuroscience,
@@ -23,7 +25,7 @@
 #define BLOCK_SIZE 1024
 
 __global__
-void tMatch(double const * const x, bool * const sorted, double * const results, int const * n, int const m){
+void oddevenSort(double const * const x, bool * const sorted, double * const results, int const * n, int const m, int last){
         int const tot_i = blockIdx.x * blockDim.x + threadIdx.x;
         int const block_i = blockDim.x;
         int const thread_i = threadIdx.x;
@@ -31,10 +33,16 @@ void tMatch(double const * const x, bool * const sorted, double * const results,
         double buff;
         bool all_sort = true;
 
-        __shared__ double temp[100];
+        int m_i = 0;
+        for(i = 0; i < thread_i; i++)
+                m_i += n[i];
+
+        bool last_thread = last==thread_i;
+
+        __shared__ double temp[1000];
 
         for(i = 0; i < n[thread_i]; i++)
-                temp[thread_i * n[thread_i] + i] = x[blockIdx.x * m + thread_i * (n[thread_i] - n[thread_i]%2) + i];
+                temp[m_i + i] = x[blockIdx.x * m + m_i + i];
 
         __syncthreads();
 
@@ -42,31 +50,33 @@ void tMatch(double const * const x, bool * const sorted, double * const results,
                 all_sort = false;
                 sorted[tot_i] = false;
                 for(i = 0; i < n[thread_i] - (n[thread_i] % 2); i+=2) {
-                        if(temp[thread_i * n[thread_i] + i] > temp[thread_i * n[thread_i] + i + 2]) {
-                                buff = temp[thread_i * n[thread_i] + i];
-                                temp[thread_i * n[thread_i] + i] = temp[thread_i * n[thread_i] + i + 2];
-                                temp[thread_i * n[thread_i] + i + 2] = buff;
+                        if(temp[m_i + i] > temp[m_i + i + 1]) {
+                                buff = temp[m_i + i];
+                                temp[m_i + i] = temp[m_i + i + 1];
+                                temp[m_i + i + 1] = buff;
 
-                                sorted[tot_i] = false;
+                                sorted[tot_i] = true;
                         }
                 }
-                for(i = 1; i < n[thread_i]; i+=2) {
-                        if(temp[thread_i * n[thread_i] + i] > temp[thread_i * n[thread_i] + i + 2]) {
-                                buff = temp[thread_i * n[thread_i] + i];
-                                temp[thread_i * n[thread_i] + i] = temp[thread_i * n[thread_i] + i + 2];
-                                temp[thread_i * n[thread_i] + i + 2] = buff;
+                __syncthreads();
 
-                                sorted[tot_i] = false;
+                for(i = 1; i < n[thread_i] - last_thread; i+=2) {
+                        if(temp[m_i + i] > temp[m_i + i + 1]) {
+                                buff = temp[m_i + i];
+                                temp[m_i + i] = temp[m_i + i + 1];
+                                temp[m_i + i + 1] = buff;
+
+                                sorted[tot_i] = true;
                         }
                 }
                 __syncthreads();
 
                 for(i = 0; i < block_i; i++)
-                        all_sort = all_sort + sorted[blockIdx.x * blockDim.x + i];
+                        all_sort += sorted[blockIdx.x * blockDim.x + i];
         }
 
         for(i = 0; i < n[thread_i]; i++)
-                results[blockIdx.x * m + thread_i * (n[thread_i] - n[thread_i]%2) + i] = temp[thread_i * n[thread_i] + i];
+                results[blockIdx.x * m + m_i + i] = temp[m_i + i];
 }
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
@@ -81,7 +91,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         mxArray *el_pr;
         mwSize const *dims;
         mwSize dimensions[2];
-        int i;
+        int i, last;
         int const *el_per_thread_gpu;
 
         mxInitGPU();
@@ -99,14 +109,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
                 el_per_thread[i/2 % BLOCK_SIZE] += 2;
         if(m/BLOCK_SIZE > 0) {
                 el_per_thread[BLOCK_SIZE - 1] += m%2;
+                last = BLOCK_SIZE - 1;
         }else{
                 el_per_thread[m/2 - 1] += m%2;
+                last = m/2 - 1;
         }
         el_gpu_pr = mxGPUCreateFromMxArray(el_pr);
         el_per_thread_gpu = (int const *) mxGPUGetDataReadOnly(el_gpu_pr);
-
-        for(i=0; i<BLOCK_SIZE; i++)
-                mexPrintf("%d ", el_per_thread[i]);
 
         res = mxGPUCreateGPUArray(mxGPUGetNumberOfDimensions(x_pr), dims,
                                   mxGPUGetClassID(x_pr), mxGPUGetComplexity(x_pr),
@@ -121,7 +130,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         results = (double *) (mxGPUGetData(res));
         sorted = (bool *) (mxGPUGetData(sort));
 
-        tMatch<<<n, BLOCK_SIZE>>>(x, sorted, results, el_per_thread_gpu, m);
+        oddevenSort<<<n, BLOCK_SIZE>>>(x, sorted, results, el_per_thread_gpu, m, last);
 
         plhs[0] = mxGPUCreateMxArrayOnGPU(res);
 
