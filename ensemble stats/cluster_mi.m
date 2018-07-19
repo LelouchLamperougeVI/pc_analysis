@@ -96,7 +96,7 @@ plotFlag=false;
 sig=5;
 prune=0;
 shuffle=500;
-method=1;
+method='mi';
 max_delay=5;
 
 idx=2;
