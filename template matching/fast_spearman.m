@@ -10,7 +10,10 @@ x_len=size(x,2);
 A=[x y];
 
 if gpuFlag
-    [~,ranks]=oddeven(A);
+    A=(A-min(A))./range(A).*(2^16-2);
+    A=uint16(A);
+    [~,~,ranks]=oddeven(A);
+    ranks=double(gather(ranks));
 else
     [sorted,idx]=sort(A,'descend');
 
@@ -23,10 +26,6 @@ end
 
 x=ranks(:,1:x_len);
 y=ranks(:,x_len+1:end);
-
-% n=size(A,1);
-% rho=arrayfun(@(i) 1 - 6.*sum((x-y(:,i)).^2)./(n*(n^2-1)), 1:size(y,2), 'uniformoutput',false);
-% rho=cell2mat(rho');
 
 rho=corr(x,y);
 

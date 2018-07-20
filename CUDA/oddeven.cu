@@ -1,8 +1,9 @@
 /**
    Odd-even sort algortihm implemented on CUDA for compilation using mexcuda on MATLAB
-   Returns matrix with sorted rows and the corresponding ranks
+   Returns matrix with sorted rows and the corresponding indices and ranks
    Usage:
-   [sorted, ranks] = oddeven(A);
+   [sorted, idx, ranks] = oddeven(A);
+ *** Input must be converted to 16-bit unsigned integer!
 
    Tested with MATLAB 2018a, TITAN X, GTX 770, and compiled using CUDA 9.0 and MSVC++ 2015
    Must use with a GPU with compute capability 2.0 and above
@@ -15,7 +16,7 @@
    University of Lethbridge, AB, Canada
 
    Version history:
-    2018-07-18: precision of input array reduced to 16-bit integer;
+    2018-07-18: precision of input array reduced to 16-bit unsigned integer;
                 can have 24k elements per block/column;
                 ergo input matrix from MATLAB must be of type int16;
  */
@@ -28,7 +29,7 @@
 #define true 1
 #define false 0
 
-#define short int16_T
+#define short uint16_T
 
 #define MAX_BLOCK_SIZE 1024
 
@@ -145,6 +146,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         mxInitGPU();
 
         x_pr = mxGPUCreateFromMxArray(prhs[0]);
+        if(mxGPUGetClassID(x_pr) != mxUINT16_CLASS)
+                mexErrMsgTxt("Input must be of type unint16");
         x = (short const *) (mxGPUGetDataReadOnly(x_pr));
 
         dims = mxGPUGetDimensions(x_pr);
@@ -168,7 +171,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         el_per_thread_gpu = (int const *) mxGPUGetDataReadOnly(el_gpu_pr);
 
         res = mxGPUCreateGPUArray(mxGPUGetNumberOfDimensions(x_pr), dims,
-                                  mxINT16_CLASS, mxGPUGetComplexity(x_pr),
+                                  mxUINT16_CLASS, mxGPUGetComplexity(x_pr),
                                   MX_GPU_DO_NOT_INITIALIZE);
 
         ranks_pr = mxGPUCreateGPUArray(mxGPUGetNumberOfDimensions(x_pr), dims,
@@ -176,7 +179,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
                                        MX_GPU_DO_NOT_INITIALIZE);
 
         idx_pr = mxGPUCreateGPUArray(mxGPUGetNumberOfDimensions(x_pr), dims,
-                                     mxINT16_CLASS, mxGPUGetComplexity(x_pr),
+                                     mxUINT16_CLASS, mxGPUGetComplexity(x_pr),
                                      MX_GPU_DO_NOT_INITIALIZE);
         idx = (short *) mxGPUGetData(idx_pr);
 
