@@ -26,7 +26,8 @@ C=NaN(size(deconv,1)-floor(size(template,1)/min(cf_range))+1,length(cf_range));
 for i=cf_range
     t=compress(template,i);
     temp=template_match(t,deconv);
-    C(i:end-i,i)=temp;
+    idx=floor((size(C,1)-length(temp))/2);
+    C(idx:idx+length(temp),i)=temp;
 end
 
 analysis.C=C;

@@ -18,7 +18,7 @@
    Version history:
     2018-07-18: precision of input array reduced to 16-bit unsigned integer;
                 can have 24k elements per block/column;
-                ergo input matrix from MATLAB must be of type int16;
+                ergo input matrix from MATLAB must be of type uint16;
  */
 
 #include "mex.h"
@@ -32,6 +32,7 @@
 #define short uint16_T
 
 #define MAX_BLOCK_SIZE 1024
+#define MAX_SHARED 48000
 
 __global__
 void populateIdx(short * const idx, int const m){
@@ -45,7 +46,7 @@ void populateIdx(short * const idx, int const m){
 __global__
 void oddevenSort(short const * const x, bool * const sorted, short * const results, short * const idx, int const * n, int const m, int last){
         int const tot_i = blockIdx.x * blockDim.x + threadIdx.x;
-        int const block_i = blockDim.x;
+        int const block_i = blockIdx.x;
         int const thread_i = threadIdx.x;
         int i;
         short buff;
@@ -60,7 +61,7 @@ void oddevenSort(short const * const x, bool * const sorted, short * const resul
         extern __shared__ short temp[];
 
         for(i = 0; i < n[thread_i]; i++)
-                temp[m_i + i] = x[blockIdx.x * m + m_i + i];
+                temp[m_i + i] = x[block_i * m + m_i + i];
 
         __syncthreads();
 
@@ -74,9 +75,9 @@ void oddevenSort(short const * const x, bool * const sorted, short * const resul
                                 temp[m_i + i] = temp[m_i + i + 1];
                                 temp[m_i + i + 1] = buff;
 
-                                buff = idx[blockIdx.x*m + m_i + i];
-                                idx[blockIdx.x*m + m_i + i] = idx[blockIdx.x*m + m_i + i + 1];
-                                idx[blockIdx.x*m + m_i + i + 1] = buff;
+                                buff = idx[block_i*m + m_i + i];
+                                idx[block_i*m + m_i + i] = idx[block_i*m + m_i + i + 1];
+                                idx[block_i*m + m_i + i + 1] = buff;
 
                                 sorted[tot_i] = true;
                         }
@@ -89,21 +90,21 @@ void oddevenSort(short const * const x, bool * const sorted, short * const resul
                                 temp[m_i + i] = temp[m_i + i + 1];
                                 temp[m_i + i + 1] = buff;
 
-                                buff = idx[blockIdx.x*m + m_i + i];
-                                idx[blockIdx.x*m + m_i + i] = idx[blockIdx.x*m + m_i + i + 1];
-                                idx[blockIdx.x*m + m_i + i + 1] = buff;
+                                buff = idx[block_i*m + m_i + i];
+                                idx[block_i*m + m_i + i] = idx[block_i*m + m_i + i + 1];
+                                idx[block_i*m + m_i + i + 1] = buff;
 
                                 sorted[tot_i] = true;
                         }
                 }
                 __syncthreads();
 
-                for(i = 0; i < block_i; i++)
-                        all_sort += sorted[blockIdx.x * blockDim.x + i];
+                for(i = 0; i < blockDim.x; i++)
+                        all_sort += sorted[block_i * blockDim.x + i];
         }
 
         for(i = 0; i < n[thread_i]; i++)
-                results[blockIdx.x * m + m_i + i] = temp[m_i + i];
+                results[block_i * m + m_i + i] = temp[m_i + i];
 }
 
 __global__
@@ -115,7 +116,7 @@ void getRanks(short * const results, short * const idx, float * const ranks, int
         do {
                 i = (int) count;
                 buff = (int) count;
-                while(results[block_i*m - buff - 1] == results[block_i*m - buff - 2])
+                while(results[block_i*m - buff - 1] == results[block_i*m - buff - 2] && buff < (m-1))
                         buff++;
                 do {
                         ranks[(block_i-1)*m + idx[block_i*m - i - 1]] = (buff - count) / 2.0f + count + 1.0f;
@@ -150,9 +151,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
                 mexErrMsgTxt("Input must be of type unint16");
         x = (short const *) (mxGPUGetDataReadOnly(x_pr));
 
+        if(nlhs < 3)
+                mexWarnMsgTxt("The whole point of this function is to get ranks in an efficient way. You sure you don't want to assign ranks to an output?");
+
         dims = mxGPUGetDimensions(x_pr);
         int const m = dims[0];
         int const n = dims[1];
+
+        // bool share = m <= MAX_SHARED/2;
+        // if(!share)
+        //         mexWarnMsgTxt("The input array is too big to allow shared memory. Using slower global memory scheme.");
 
         el_pr = mxCreateNumericMatrix(MAX_BLOCK_SIZE, 1, mxINT32_CLASS, mxREAL);
         int *el_per_thread = (int *) mxGetData(el_pr);

@@ -18,9 +18,11 @@ else
     [sorted,idx]=sort(A,'descend');
 
     ranks=zeros(size(A));
+    spmd, mpiprofile('on'); end
     parfor i=1:size(A,2)
         ranks(:,i)=getRanks(sorted(:,i));
     end
+    spmd, mpiprofile('viewer'); end
     ranks(idx+(0:size(A,2)-1).*size(A,1))=ranks;
 end
 
@@ -31,7 +33,7 @@ rho=corr(x,y);
 
 
 function ranks=getRanks(vect)
-[~,idx]=unique(vect,'stable');
+idx=[1; find(diff(vect)~=0)+1];
 
 ranks=zeros(length(vect),1);
 for i=1:length(idx)-1

@@ -12,4 +12,5 @@ match=reshape(temp,size(template,1)*size(match,1),size(match,2)-size(template,1)
 template=template';
 template=template(:);
 
-C=corr(match,template,'type','Spearman');
+% C=corr(match,template,'type','Spearman');
+C=fast_spearman(match,template,false);
