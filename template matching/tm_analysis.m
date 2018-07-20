@@ -27,7 +27,7 @@ for i=cf_range
     t=compress(template,i);
     temp=template_match(t,deconv);
     idx=floor((size(C,1)-length(temp))/2);
-    C(idx:idx+length(temp),i)=temp;
+    C(idx+1:idx+length(temp),i)=temp;
 end
 
 analysis.C=C;
