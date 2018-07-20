@@ -33,6 +33,15 @@
 #define MAX_BLOCK_SIZE 1024
 
 __global__
+void populateIdx(short * const idx, int const m){
+        int block_i = blockIdx.x;
+        int i;
+
+        for(i = 0; i < m; i++)
+                idx[block_i*m + i] = i;
+}
+
+__global__
 void oddevenSort(short const * const x, bool * const sorted, short * const results, short * const idx, int const * n, int const m, int last){
         int const tot_i = blockIdx.x * blockDim.x + threadIdx.x;
         int const block_i = blockDim.x;
@@ -98,7 +107,7 @@ void oddevenSort(short const * const x, bool * const sorted, short * const resul
 
 __global__
 void getRanks(short * const results, short * const idx, float * const ranks, int const m){
-        int block_i = blockIdx.x;
+        int block_i = blockIdx.x + 1;
 
         int i, buff;
         float count = 0.0f;
@@ -108,11 +117,11 @@ void getRanks(short * const results, short * const idx, float * const ranks, int
                 while(results[block_i*m - buff - 1] == results[block_i*m - buff - 2])
                         buff++;
                 do {
-                        ranks[idx[block_i*m - i - 1]] = (buff - count) / 2.0f + count;
+                        ranks[(block_i-1)*m + idx[block_i*m - i - 1]] = (buff - count) / 2.0f + count + 1.0f;
                         i++;
                 } while(i <= buff);
                 count = buff + 1.0f;
-        } while(i <= m);
+        } while(count < m);
 }
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
@@ -128,7 +137,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         mxArray *el_pr;
         mwSize const *dims;
         mwSize dimensions[2];
-        int i, j, last;
+        int i, last;
         int const *el_per_thread_gpu;
 
         int BLOCK_SIZE;
@@ -169,13 +178,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         idx_pr = mxGPUCreateGPUArray(mxGPUGetNumberOfDimensions(x_pr), dims,
                                      mxINT16_CLASS, mxGPUGetComplexity(x_pr),
                                      MX_GPU_DO_NOT_INITIALIZE);
+        idx = (short *) mxGPUGetData(idx_pr);
 
-        idx = (short *) (mxGPUGetData(idx_pr));
-
-        for(i = 0; i < n; i++) {
-                for(j = 0; j < m; j++)
-                        idx[i*m + j] = j;
-        }
+        populateIdx<<<n, 1>>>(idx, m);
 
         dimensions[0] = BLOCK_SIZE;
         dimensions[1] = n;
@@ -192,7 +197,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         getRanks<<<n, 1>>>(results, idx, ranks, m);
 
         plhs[0] = mxGPUCreateMxArrayOnGPU(res);
-        plhs[1] = mxGPUCreateMxArrayOnGPU(ranks_pr);
+        plhs[1] = mxGPUCreateMxArrayOnGPU(idx_pr);
+        plhs[2] = mxGPUCreateMxArrayOnGPU(ranks_pr);
 
         mxGPUDestroyGPUArray(x_pr);
         mxGPUDestroyGPUArray(res);
