@@ -1,4 +1,5 @@
-/** Descending fractional ranking
+/** Fractional ranking algortihm
+   ranks = get_ranks(sorted_matrix)
  */
 
 #include "mex.h"
@@ -32,10 +33,11 @@ void getRanks(struct threadData *data){
                 do {
                         k = (int) count;
                         buff = (int) count;
-                        while(A[(block_i + i)*m - buff - 1] == A[(block_i + i)*m - buff - 2] && buff < (m - 1))
+                        while(A[(block_i + i + 1)*m - buff - 1] == A[(block_i + i + 1)*m - buff - 2] && buff < (m - 1)) {
                                 buff++;
+                        }
                         do {
-                                ranks[(block_i + i)*m - k - 1] = (buff - count) / 2.0 + count + 1.0;
+                                ranks[(block_i + i + 1)*m - k - 1] = (buff - count) / 2.0 + count + 1.0;
                                 k++;
                         } while(k <= buff);
                         count = buff + 1.0;
@@ -67,9 +69,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
         for(i = 0; i < n; i++)
                 tasksPerThread[i % NUMTHREADS]++;
-
-        for(i = 0; i < NUMTHREADS; i++)
-                mexPrintf("%d ", tasksPerThread[i]);
 
         for(i = 0; i < NUMTHREADS; i++) {
                 data[i].A = A;
