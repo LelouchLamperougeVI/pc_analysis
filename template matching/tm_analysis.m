@@ -22,13 +22,18 @@ end
 template=get_template(analysis);
 deconv=noRun_deconv(behavior,deconv);
 
-C=NaN(size(deconv,1)-floor(size(template,1)/min(cf_range))+1,length(cf_range));
+count=0;
+f=waitbar(count,'Template matching...');
+C=NaN(size(deconv,1)-floor(size(template,1)/max(cf_range))+1,length(cf_range));
 for i=cf_range
     t=compress(template,i);
     temp=template_match(t,deconv);
     idx=floor((size(C,1)-length(temp))/2);
     C(idx+1:idx+length(temp),i)=temp;
+    count=count+1;
+    waitbar(count/length(cf_range),f);
 end
+close(f);
 
 analysis.C=C;
 
