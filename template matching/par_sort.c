@@ -1,5 +1,5 @@
 /** A parallel quicksort implementation
-   [sorted, idx] = par_sort(unsorted_matrix)
+   [sorted, idx, ranks] = par_sort(unsorted_matrix)
  */
 
 #include "mex.h"
