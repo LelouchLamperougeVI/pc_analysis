@@ -12,14 +12,8 @@ if gpuFlag
     [~,~,ranks]=oddeven(A);
     ranks=double(gather(ranks));
 else
-    [sorted,idx]=par_sort(x);
-    ranks=get_ranks(sorted);
-    idx=idx+(0:size(x,2)-1).*size(x,1);
-    x(idx)=ranks;
-    [sorted,idx]=par_sort(y);
-    ranks=get_ranks(sorted);
-    idx=idx+(0:size(y,2)-1).*size(y,1);
-    y(idx)=ranks;
+    [~,~,x]=par_sort(x);
+    [~,~,y]=par_sort(y);
 end
 
 rho=corr(x,y);

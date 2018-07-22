@@ -5,59 +5,35 @@
 #include "mex.h"
 #include "matrix.h"
 #include "pthread.h"
-#include "qsort.h" //an inline version of qsort() found here: http://www.corpit.ru/mjt/qsort/qsort.h
+#include "ranks.h"
+#include "sort.h"
 
 #define NUMTHREADS 7
 
-struct sortStruct {
-        double *value;
-        double idx;
-};
-
-struct threadData {
+struct indexData {
         int m, t_idx;
         int *numTasks;
-        double *A, *sorted, *idx;
+        double *idx, *ranks;
 };
 
-static inline int cmpfunc(void const *a, void const *b){
-        struct sortStruct *a1 = (struct sortStruct *) a;
-        struct sortStruct *b1 = (struct sortStruct *) b;
-        if((double)*(*a1).value < (double)*(*b1).value)
-                // return -1;
-                return 1;
-        // else if((double)*(*a1).value > (double)*(*b1).value)
-        //         return 1;
-        else
-                return 0;
-}
-
-void quicksort(struct threadData *data){
+void indexRanks(struct indexData *data){
         int m = data->m;
-        int t_idx = data->t_idx;
         int *numTasks = data->numTasks;
+        int t_idx = data->t_idx;
         double *idx = data->idx;
-        double *A = data->A;
-        double *sorted = data->sorted;
-        int i, j, block_i;
+        double *ranks = data->ranks;
 
-        struct sortStruct sort[m];
-
-        block_i = 0;
+        int i, j;
+        double buff[m];
+        int block_i = 0;
         for(i = 0; i < t_idx; i++)
                 block_i += numTasks[i];
 
         for(i = 0; i < numTasks[t_idx]; i++) {
                 for(j = 0; j < m; j++) {
-                        sort[j].value = &A[(block_i + i)*m + j];
-                        sort[j].idx = j + 1;
+                        buff[(int) idx[(block_i+i)*m + j] - 1] = ranks[(block_i+i)*m + j];
                 }
-                // qsort(sort, m, sizeof(struct sortStruct), cmpfunc);
-                QSORT(struct sortStruct*, sort, m, cmpfunc);
-                for(j = 0; j < m; j++) {
-                        sorted[(block_i + i)*m + j] = *sort[j].value;
-                        idx[(block_i + i)*m + j] = sort[j].idx;
-                }
+                memcpy(ranks + (block_i+i)*m, buff, m * sizeof(double));
         }
 }
 
@@ -66,10 +42,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
                 mexErrMsgTxt("Too many inputs");
         if(nrhs < 1)
                 mexErrMsgTxt("No input given");
-        if(nlhs > 2)
+        if(nlhs > 3)
                 mexErrMsgTxt("Too many outputs assigned");
 
-        double *A, *sorted, *idx;
+        double *A, *sorted, *idx, *ranks;
         int i, m, n;
         int tasksPerThread[NUMTHREADS] = { 0 };
 
@@ -81,8 +57,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         sorted = mxGetPr(plhs[0]);
         plhs[1] = mxCreateDoubleMatrix(m, n, mxREAL);
         idx = mxGetPr(plhs[1]);
+        plhs[2] = mxCreateDoubleMatrix(m, n, mxREAL);
+        ranks = mxGetPr(plhs[2]);
 
-        struct threadData data[NUMTHREADS];
+        struct sortData data[NUMTHREADS];
         pthread_t thread[NUMTHREADS];
 
         for(i = 0; i < n; i++)
@@ -102,6 +80,45 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
         for(i = 0; i < NUMTHREADS; i++)
                 pthread_join(thread[i], NULL);
+
+
+        //ranks
+        struct ranksData rData[NUMTHREADS];
+        pthread_t rThread[NUMTHREADS];
+
+        for(i = 0; i < NUMTHREADS; i++) {
+                rData[i].A = sorted;
+                rData[i].ranks = ranks;
+                rData[i].m = m;
+                rData[i].numTasks = tasksPerThread;
+                rData[i].idx = i;
+        }
+
+        for(i = 0; i < NUMTHREADS; i++)
+                pthread_create(&rThread[i], NULL, getRanks, &rData[i]);
+
+        for(i = 0; i < NUMTHREADS; i++)
+                pthread_join(rThread[i], NULL);
+
+        //sort ranks
+        struct indexData iData[NUMTHREADS];
+        pthread_t iThread[NUMTHREADS];
+
+        for(i = 0; i < NUMTHREADS; i++) {
+                iData[i].idx = idx;
+                iData[i].ranks = ranks;
+                iData[i].m = m;
+                iData[i].numTasks = tasksPerThread;
+                iData[i].t_idx = i;
+        }
+
+        for(i = 0; i < NUMTHREADS; i++)
+                pthread_create(&iThread[i], NULL, indexRanks, &iData[i]);
+
+        for(i = 0; i < NUMTHREADS; i++)
+                pthread_join(iThread[i], NULL);
+
+        // indexRanks(ranks, idx, m, n);
 
         return;
 }
