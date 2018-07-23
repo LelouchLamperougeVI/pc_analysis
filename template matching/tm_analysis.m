@@ -24,7 +24,7 @@ elseif length(cf_range)<2
 end
 
 template=get_template(analysis);
-% deconv=noRun_deconv(behavior,deconv);
+deconv=noRun_deconv(behavior,deconv);
 
 count=0;
 f=waitbar(count,'Template matching...');
