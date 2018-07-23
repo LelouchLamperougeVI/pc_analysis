@@ -1,4 +1,4 @@
-function C=template_match(template,match)
+function [C,pval]=template_match(template,match,shuffles)
 
 s=1:size(template,1);
 idx=[];
@@ -12,5 +12,4 @@ match=reshape(temp,size(template,1)*size(match,1),size(match,2)-size(template,1)
 template=template';
 template=template(:);
 
-% C=corr(match,template,'type','Spearman');
-C=fast_spearman(match,template,false);
+[C,pval]=fast_spearman(match,template,shuffles,false);

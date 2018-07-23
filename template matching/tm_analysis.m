@@ -1,4 +1,4 @@
-function analysis=tm_analysis(analysis,behavior,deconv,cf_range)
+function [analysis,deconv]=tm_analysis(analysis,behavior,deconv,cf_range)
 % Template matching analysis
 % Generates template from behavior and deconv included in analysis output
 % from pc_batch_analysis
@@ -9,9 +9,13 @@ function analysis=tm_analysis(analysis,behavior,deconv,cf_range)
 %   'deconv':   pre/post-task deconv
 %   'cf_range': range of compression factors to test (default - [1 20])
 %               can also be vector with values of desired CF's to be tested
+%   'shuffles': number of identity shuffles (default - 1,000)
 
 if nargin<4
     cf_range=[1 20];
+end
+if nargin<5
+    shuffles=10;
 end
 if length(cf_range)==2
     cf_range=cf_range(1):cf_range(2);
@@ -24,18 +28,22 @@ deconv=noRun_deconv(behavior,deconv);
 
 count=0;
 f=waitbar(count,'Template matching...');
-C=NaN(size(deconv,1)-floor(size(template,1)/max(cf_range))+1,length(cf_range));
-for i=cf_range
+C=NaN(size(deconv,1),length(cf_range));
+pval=C;
+for i=cf_range(end:-1:1)
     t=compress(template,i);
-    temp=template_match(t,deconv);
+    [temp,p]=template_match(t,deconv,shuffles);
     idx=floor((size(C,1)-length(temp))/2);
     C(idx+1:idx+length(temp),i)=temp;
+    pval(idx+1:idx+length(temp),i)=p;
     count=count+1;
     waitbar(count/length(cf_range),f);
 end
 close(f);
 
+analysis.template=t;
 analysis.C=C;
+analysis.C_pval=pval;
 
 
 
