@@ -1,4 +1,4 @@
-function plot_tm(analysis,deconv)
+function plot_tm(analysis,deconv,cf)
 black=[linspace(1,0,64)' linspace(1,0,64)' linspace(1,0,64)'];
 
 order=analysis.stack;
@@ -30,3 +30,15 @@ hold on
 plot(x,y,'r*');
 
 linkaxes([ax1 ax2 ax3], 'x');
+
+if nargin>2
+    C=analysis.C_pval(:,cf)>.95;
+    idx=size(analysis.template,1)/cf;
+    idx=conv(C,ones(idx*2+1,1),'same')>0;
+    
+    figure;
+    deconv(~idx,:)=max(deconv(:));
+    imagesc(deconv(:,order)');
+    colormap(black);
+    title(['"Packets" significant at CF = ' num2str(cf)]);
+end
