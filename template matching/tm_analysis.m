@@ -15,7 +15,7 @@ if nargin<4
     cf_range=[1 20];
 end
 if nargin<5
-    shuffles=10;
+    shuffles=100;
 end
 if length(cf_range)==2
     cf_range=cf_range(1):cf_range(2);

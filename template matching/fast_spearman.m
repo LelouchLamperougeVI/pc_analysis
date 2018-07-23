@@ -1,11 +1,11 @@
-function [rho,pval]=fast_spearman(x,y,shuffles,gpuFlag)
+function [rho,pval]=fast_spearman(x,y,n,shuffles,gpuFlag)
 % A little bit faster than corr(x,y,'type','spearman')
 % Expect significant performance increase with GPU
 
-if nargin<3
+if nargin<4
     shuffles=0;
 end
-if nargin<4
+if nargin<5
     gpuFlag=false;
 end
 
@@ -21,8 +21,10 @@ end
 
 rho=zeros(size(x,2),shuffles+1);
 rho(:,1)=corr(x,y);
-for i=1:shuffles
-    rho(:,i+1)=corr(x(randperm(size(x,1)),:),y);
+parfor i=1:shuffles
+    perm=repmat(randperm(n)',1,size(x,1)/n);
+    perm=perm+(0:size(x,1)/n-1).*n;
+    rho(:,i+1)=corr(x(perm(:),:),y);
 end
 pval=sum(rho(:,1)>rho(:,2:end),2)./shuffles;
 rho=rho(:,1);
