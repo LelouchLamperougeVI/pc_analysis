@@ -40,5 +40,5 @@ if nargin>2
     deconv(~idx,:)=max(deconv(:));
     imagesc(deconv(:,order)');
     colormap(black);
-    title(['"Packets" significant at CF = ' num2str(cf)]);
+    title(['Significant epochs at CF = ' num2str(cf)]);
 end
