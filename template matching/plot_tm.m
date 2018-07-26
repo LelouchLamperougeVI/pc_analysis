@@ -32,7 +32,7 @@ plot(x,y,'r*');
 linkaxes([ax1 ax2 ax3], 'x');
 
 if nargin>2
-    C=analysis.C_pval(:,cf)>.95;
+    C=analysis.C_pval(:,cf)>.99;
     idx=size(analysis.template,1)/cf;
     idx=conv(C,ones(round(idx*2)+1,1),'same')>0;
     

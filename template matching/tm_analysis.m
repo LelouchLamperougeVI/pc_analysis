@@ -62,6 +62,10 @@ try
 catch
     unit_vel=behavior.speed_raw;
 end
-thres=noRun(unit_vel);
-thres=abs(unit_vel)<thres;
-deconv=deconv(thres,:);
+try
+    thres=noRun(unit_vel);
+    thres=abs(unit_vel)<thres;
+    deconv=deconv(thres,:);
+catch
+    return;
+end
