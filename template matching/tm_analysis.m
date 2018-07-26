@@ -1,4 +1,4 @@
-function [analysis,deconv]=tm_analysis(analysis,behavior,deconv,cf_range)
+function [analysis,deconv]=tm_analysis(analysis,behavior,deconv,cf_range,shuffles)
 % Template matching analysis
 % Generates template from behavior and deconv included in analysis output
 % from pc_batch_analysis
@@ -25,6 +25,9 @@ end
 
 template=get_template(analysis);
 deconv=noRun_deconv(behavior,deconv);
+
+%reversed replay
+% template=template(end:-1:1,:);
 
 count=0;
 f=waitbar(count,'Template matching...');
