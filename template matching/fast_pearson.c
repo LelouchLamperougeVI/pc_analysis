@@ -39,19 +39,19 @@ void corrcoef(struct ccData *data){
         double *Y = data->Y;
         double *cc = data->cc;
 
-        double top = 0.0, left = 0.0, right = 0.0;
+        double top, left, right;
 
         int i, j;
         int block_i = 0;
         for(i = 0; i < idx; i++)
                 block_i += numTasks[i];
 
-        for(i = 0; i < numTasks[block_i]; i++){
-                getMean(X + (block_i+i)*m, mu_x + block_i+i, m);
-                subMean(X + (block_i+i)*m, mu_x + block_i+i, m);
+        for(i = 0; i < numTasks[idx]; i++){
+                top = 0.0; left = 0.0; right = 0.0;
+                getMean(X + ((block_i+i)*m), mu_x + block_i+i, m);
                 for(j = 0; j < m; j++){
-                        top += X[(block_i+i)*m + j] * Y[j];
-                        left += X[(block_i+i)*m + j] * X[(block_i+i)*m + j];
+                        top += (X[(block_i+i)*m + j] - mu_x[block_i+i]) * Y[j];
+                        left += (X[(block_i+i)*m + j] - mu_x[block_i+i]) * (X[(block_i+i)*m + j] - mu_x[block_i+i]);
                         right += Y[j] * Y[j];
                 }
                 cc[block_i+i] = top / sqrt(left * right);
