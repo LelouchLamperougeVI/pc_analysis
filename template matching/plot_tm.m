@@ -37,6 +37,7 @@ if nargin>2
     idx=conv(C,ones(round(idx*2)+1,1),'same')>0;
     
     figure;
+    deconv=zscore(fast_smooth(deconv,2));
     deconv(~idx,:)=max(deconv(:));
     imagesc(deconv(:,order)');
     colormap(black);
