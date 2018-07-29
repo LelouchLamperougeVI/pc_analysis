@@ -7,6 +7,6 @@ struct ranksData {
         double *A, *ranks;
 };
 
-void getRanks(struct ranksData *data);
+void *getRanks(void *arg);
 
 #endif

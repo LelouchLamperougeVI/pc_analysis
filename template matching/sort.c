@@ -1,4 +1,5 @@
 #include "sort.h"
+#include "stdlib.h"
 
 int cmpfunc(void const *a, void const *b){
         struct sortStruct *a1 = (struct sortStruct *) a;
@@ -11,7 +12,8 @@ int cmpfunc(void const *a, void const *b){
                 return 0;
 }
 
-void quicksort(struct sortData *data){
+void *quicksort(void *arg){
+        struct sortData *data = (struct sortData *) arg;
         int m = data->m;
         int t_idx = data->t_idx;
         int *numTasks = data->numTasks;

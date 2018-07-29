@@ -1,5 +1,7 @@
 /** A parallel quicksort implementation
    [sorted, idx, ranks] = par_sort(unsorted_matrix)
+
+   Note: this cpp version uses sort() instead of qsort() in C which is a bit faster
  */
 
 #include "mex.h"
@@ -9,7 +11,7 @@
 #include "sort.h"
 #include "string.h"
 
-#define NUMTHREADS 7
+#define NUMTHREADS 33
 
 struct indexData {
         int m, t_idx;

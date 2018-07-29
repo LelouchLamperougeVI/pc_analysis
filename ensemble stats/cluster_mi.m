@@ -2,7 +2,8 @@ function [assemblies,Z,D,varargout]=cluster_mi(varargin)
 % assemblies membership assignment using agglomerative clustering of
 % MI distance metric
 % Inputs:
-%   'method':       time-delayed MI ('tdmi') or simply MI ('mi' - default)
+%   'method':       linear correlation ('pearson'), time-delayed MI ('tdmi') or simply MI ('mi' - default)
+%                   or k-nn estimator of MI ('knn')
 %   'sig':          significance threshold (default 5%)
 %   'prune':        prune small ensembles; minimum # members
 %   'shuffle':      number of shuffles (default 500)
@@ -19,6 +20,13 @@ end
 if strcmpi(method,'mi')
     [I,D]=get_mi(deconv,precision);
     Dm=D;
+elseif strcmpi(method,'knn')
+    [I,D]=get_mi_knn(deconv);
+    Dm=D;
+elseif strcmpi(method,'pearson')
+    I=corr(deconv);
+    D=1-abs(I);
+    Dm=D;
 else
     [I,D,varargout{1}]=tdmi(deconv,precision,max_delay);
     Dm=min(D,[],3);
@@ -29,12 +37,17 @@ cutoff=[];
 f=waitbar(0,'permutation testing...');
 for i=1:shuffle
     shuffled_d=mat_circshift(deconv,randi(size(deconv,1),1,size(deconv,2)));
-%     if strcmpi(method,'mi')
+    if strcmpi(method,'mi')
         [~,shuffled_d]=get_mi(shuffled_d,precision);
-%     else
-%         [~,shuffled_d]=tdmi(shuffled_d,precision,max_delay);
-%         shuffled_d=min(shuffled_d,[],3);
-%     end
+    elseif strcmpi(method,'knn')
+        [~,shuffled_d]=get_mi_knn(shuffled_d);
+    elseif strcmpi(method,'pearson')
+        shuffled_d=corr(shuffled_d);
+        shuffled_d=1-abs(shuffled_d);
+    else
+        [~,shuffled_d]=tdmi(shuffled_d,precision,max_delay);
+        shuffled_d=min(shuffled_d,[],3);
+    end
     shuffled_d=triu(shuffled_d,1);
     cutoff=[cutoff;shuffled_d(~~shuffled_d)];
     waitbar(i/shuffle,f);

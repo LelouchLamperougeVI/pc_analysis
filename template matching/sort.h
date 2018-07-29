@@ -12,8 +12,6 @@ struct sortData {
         double *A, *sorted, *idx;
 };
 
-int cmpfunc(void const *a, void const *b);
-
-void quicksort(struct sortData *data);
+void *quicksort(void *arg);
 
 #endif

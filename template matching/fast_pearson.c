@@ -8,12 +8,12 @@
 #include "math.h"
 #include "pthread.h"
 
-#define NUMTHREADS 7
+#define NUMTHREADS 128
 
 struct ccData {
         int m, idx;
         int *numTasks;
-        double *mu_x, *mu_y, *X, *Y, *cc;
+        double *X, *Y, *cc;
 };
 
 void getMean(double *X, double *mean, int m){
@@ -29,12 +29,11 @@ void subMean(double *X, double *mean, int m){
               X[i] -= *mean;
 }
 
-void corrcoef(struct ccData *data){
+void *corrcoef(void *arg){
+        struct ccData *data = (struct ccData *) arg;
         int m = data->m;
         int *numTasks = data->numTasks;
         int idx = data->idx;
-        double *mu_x = data->mu_x;
-        double *mu_y = data->mu_y;
         double *X = data->X;
         double *Y = data->Y;
         double *cc = data->cc;
@@ -48,10 +47,10 @@ void corrcoef(struct ccData *data){
 
         for(i = 0; i < numTasks[idx]; i++){
                 top = 0.0; left = 0.0; right = 0.0;
-                getMean(X + ((block_i+i)*m), mu_x + block_i+i, m);
+                getMean(X + ((block_i+i)*m), cc + block_i+i, m);
                 for(j = 0; j < m; j++){
-                        top += (X[(block_i+i)*m + j] - mu_x[block_i+i]) * Y[j];
-                        left += (X[(block_i+i)*m + j] - mu_x[block_i+i]) * (X[(block_i+i)*m + j] - mu_x[block_i+i]);
+                        top += (X[(block_i+i)*m + j] - cc[block_i+i]) * Y[j];
+                        left += (X[(block_i+i)*m + j] - cc[block_i+i]) * (X[(block_i+i)*m + j] - cc[block_i+i]);
                         right += Y[j] * Y[j];
                 }
                 cc[block_i+i] = top / sqrt(left * right);
@@ -66,8 +65,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         if(nlhs > 1)
                 mexErrMsgTxt("Too many outputs assigned");
 
-        double *mu_x, *mu_y, *X, *Y, *cc;
-        mxArray *mu_x_pr, *mu_y_pr;
+        double *X, *Y, *cc;
         int i, m, n;
         int tasksPerThread[NUMTHREADS] = { 0 };
 
@@ -78,13 +76,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
         plhs[0] = mxCreateDoubleMatrix(n, 1, mxREAL);
         cc = mxGetPr(plhs[0]);
-        mu_x_pr = mxCreateDoubleMatrix(n, 1, mxREAL);
-        mu_x = mxGetPr(mu_x_pr);
-        mu_y_pr = mxCreateDoubleScalar(0.0);
-        mu_y = mxGetPr(mu_y_pr);
 
-        getMean(Y, mu_y, m);
-        subMean(Y, mu_y, m);
+        getMean(Y, cc+n-1, m);
+        subMean(Y, cc+n-1, m);
 
         struct ccData data[NUMTHREADS];
         pthread_t thread[NUMTHREADS];
@@ -95,8 +89,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         for(i = 0; i < NUMTHREADS; i++) {
                 data[i].X = X;
                 data[i].Y = Y;
-                data[i].mu_x = mu_x;
-                data[i].mu_y = mu_y;
                 data[i].cc = cc;
                 data[i].m = m;
                 data[i].numTasks = tasksPerThread;
@@ -109,7 +101,5 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         for(i = 0; i < NUMTHREADS; i++)
                 pthread_join(thread[i], NULL);
 
-        mxDestroyArray(mu_x_pr);
-        mxDestroyArray(mu_y_pr);
         return;
 }

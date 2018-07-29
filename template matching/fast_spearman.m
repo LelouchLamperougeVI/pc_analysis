@@ -21,10 +21,10 @@ end
 
 rho=zeros(size(x,2),shuffles+1);
 rho(:,1)=corr(x,y);
-parfor i=1:shuffles
+for i=1:shuffles
     perm=repmat(randperm(n)',1,size(x,1)/n);
     perm=perm+(0:size(x,1)/n-1).*n;
-    rho(:,i+1)=corr(x(perm(:),:),y);
+    rho(:,i+1)=fast_pearson(x(perm(:),:),y);
 end
 pval=sum(rho(:,1)>rho(:,2:end),2)./shuffles;
 rho=rho(:,1);
