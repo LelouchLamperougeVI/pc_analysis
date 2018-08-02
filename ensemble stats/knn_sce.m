@@ -20,9 +20,10 @@ for i=1:length(assemblies)
         loss(j)=(size(A,2)-1)*psi(length(loss)-i)-mean(loss(j:end));
     end
     
-    [c,e]=histcounts(loss,'binmethod','fd');
-    [~,thres]=max(c);
-    thres=e(thres+1);
+%     [c,e]=histcounts(loss,'binmethod','fd');
+%     [~,thres]=max(c);
+%     thres=e(thres+1);
+thres=prctile(loss,95);
     loss=loss<thres;
     idx(loss)=[];
     
