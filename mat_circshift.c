@@ -13,7 +13,8 @@
 #define NUMTHREADS 7
 
 struct threadData{
-    int start, stop, m;
+    int idx, m;
+    int *numTasks;
     double *A, *shifted, *index;
 };
 
@@ -27,17 +28,22 @@ void shiftCol(double *A, double *shifted, int col, int m, int shift){
     }
 }
 
-void *shifter(struct threadData *data){
-    int start = data->start;
-    int stop = data->stop;
+void *shifter(void *arg){
+    struct threadData *data = (struct threadData *) arg;
     int m = data->m;
     double *A = data->A;
     double *index = data->index;
     double *shifted = data->shifted;
-
+    int *numTasks = data->numTasks;
+    int idx = data->idx;
     int i;
-    for(i=start; i<stop; i++){
-        shiftCol(A, shifted, i, m, (int) index[i]);
+
+    int block_i = 0;
+    for(i = 0; i < idx; i++)
+            block_i += numTasks[i];
+
+    for(i = 0; i < numTasks[idx]; i++){
+        shiftCol(A, shifted, block_i+i, m, (int) index[block_i+i]);
     }
 }
 
@@ -52,7 +58,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     }
 
     double *A, *index, *shifted;
-    int n, m;
+    int i, n, m;
+    int tasksPerThread[NUMTHREADS] = { 0 };
 
     A = mxGetPr(prhs[0]);
     index = mxGetPr(prhs[1]);
@@ -71,18 +78,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
     struct threadData data[NUMTHREADS];
     pthread_t thread[NUMTHREADS];
-    int tasksPerThread = (n + NUMTHREADS - 1) / NUMTHREADS;
 
-    int i;
+    for(i = 0; i < n; i++)
+            tasksPerThread[i % NUMTHREADS]++;
+
     for(i=0; i<NUMTHREADS; i++){
         data[i].A = A;
         data[i].shifted = shifted;
         data[i].index = index;
         data[i].m = m;
-        data[i].start = i*tasksPerThread;
-        data[i].stop = (i+1)*tasksPerThread;
+        data[i].numTasks = tasksPerThread;
+        data[i].idx = i;
     }
-    data[NUMTHREADS - 1].stop = n;
 
     for(i=0; i<NUMTHREADS; i++){
         pthread_create(&thread[i], NULL, shifter, &data[i]);
