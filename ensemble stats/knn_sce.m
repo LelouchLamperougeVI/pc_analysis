@@ -1,31 +1,45 @@
-function sce=knn_sce(assemblies,deconv,k)
+function sce=knn_sce(deconv,i,j)
 
-if nargin<3
-    k=1;
-end
+k=1; %hard limit for now...
 
-sce=zeros(size(deconv,1),length(assemblies));
-for i=1:length(assemblies)
-    A=deconv(:,assemblies{i});
+deconv=ca_filt(deconv);
+deconv=log(deconv);
+deconv(isinf(deconv))=nan;
+deconv=(deconv-mean(deconv,'omitnan'))./std(deconv,'omitnan');
+
+overlap=false(size(deconv,1),1);
+% figure;
+% hold on
+sce=false(size(deconv,1),1);
+pre=-1;I=0;
+while(I>pre)
+    pre=I;
+    
+    sce(overlap)=true;
+    B=deconv(~sce,:);
+    A=B(:,[i j]);
+    
+    term=sum(sum(isnan(A)).*log(sum(isnan(A))./size(B,1)))-sum(all(isnan(A),2))*log(sum(all(isnan(A),2))/size(B,1));
+    
+    A=A(all(~isnan(A),2),:); %continuous-continuous space
+    
     d=knnsearch(A,A,'k',k+1);
-    d=d(:,end);
-    d=A(d,:); %each row's nn
+    d=d(:,end); % k th neighbor index
+    d=A(d,:); %each row's k-nn
     dist=abs(d-A);
-    d=abs(permute(A,[3 2 1])-A);
-    n=sum(d<=dist,3)-1;
     
-    loss=sum(psi(n),2);
-    [loss,idx]=sort(loss,'descend');
-    for j=1:length(loss)
-        loss(j)=(size(A,2)-1)*psi(length(loss)-i)-mean(loss(j:end));
-    end
+    d=abs(B(:,[i j])-permute(A,[3 2 1]));
+    n=sum(d<permute(max(dist,[],2),[2 3 1]),1);
+    overlap=sum(d<permute(max(dist,[],2),[2 3 1]),3);
+    overlap=overlap==max(overlap(~isnan(B(:,[i j])))) & ~isnan(B(:,[i j]));
+    overlap=xor(overlap(:,1),overlap(:,2));
     
-%     [c,e]=histcounts(loss,'binmethod','fd');
-%     [~,thres]=max(c);
-%     thres=e(thres+1);
-thres=prctile(loss,95);
-    loss=loss<thres;
-    idx(loss)=[];
+%     overlap=find(overlap,randi(sum(overlap)));
     
-    sce(idx,i)=1;
+    n=permute(n,[3 2 1]);
+    n=n./size(B,1).*size(A,1);
+    k_xyz=mean(sum(psi(n+1),2));
+    
+    I=(psi(k)-k_xyz+psi(size(A,1)))*(size(A,1)/size(B,1))-term/size(B,1);
+%     plot(g,I,'o');
 end
