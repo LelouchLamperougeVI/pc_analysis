@@ -1,4 +1,4 @@
-function sce=knn_sce(deconv,assemblies)
+function [sce,cost]=knn_sce(deconv,assemblies)
 
 k=1; %hard limit for now...
 
@@ -14,18 +14,17 @@ for a=1:length(assemblies)
     dec(isinf(dec))=nan;
     dec=(dec-mean(dec,'omitnan'))./std(dec,'omitnan');
     
-    % figure;
-    % hold on
+    %     figure;
     sce{a}=false(size(dec,1),size(dec,2),size(dec,2));
     for i=1:size(dec,2)
         for j=i+1:size(dec,2)
             %         sce=false(size(deconv,1),1);
-            pre=-1;I=0;
-            %         count=1;
+            pre=[];I=[];
+            count=1;
             converge=false;
             overlap=false(size(dec,1),1);
-            while(I>=pre && ~converge)
-                pre=I;
+            while(~converge)
+                pre=[pre I];
                 
                 idx=find(~sce{a}(:,i,j));
                 
@@ -37,7 +36,7 @@ for a=1:length(assemblies)
                 
                 A=A(all(~isnan(A),2),:); %continuous-continuous space
                 if isempty(A)
-                    warning('Empty differential joint entropy space detected. Cannot converge.');
+                    warning('Empty differential joint entropy space detected. Cannot converge current sample.');
                     break
                 end
                 
@@ -67,14 +66,22 @@ for a=1:length(assemblies)
                 k_xyz=mean(sum(psi(n+1),2));
                 
                 I=(psi(k)-k_xyz+psi(size(A,1)))*(size(A,1)/size(B,1))-term/size(B,1);
-                %             plot(count,I,'o'); count=count+1;
+                
+                if length(pre)>1
+                    converge=converge || I>=median(diff(pre));
+                end
+                
+                %                 plot(count,I,'o'); count=count+1;
+                %                 hold on
                 
                 %     plot(sce.*(10+count*2)); count=count+1;
             end
             sce{a}(:,j,i)=sce{a}(:,i,j);
+            %             hold off
         end
     end
+    sce{a}=sce{a}.*~isnan(dec);
     sce{a}=sum(sce{a},3);
-    sce{a}=sce{a}>prctile(sce{a},80);
-%     sce{a}=~sce{a};
+    sce{a}=sce{a}>=arrayfun(@(x) prctile(sce{a}(sce{a}(:,x)>0,x),50),1:size(sce{a},2));
+    sce{a}=~sce{a};
 end
