@@ -10,14 +10,19 @@ if islogical(deconv)
 else
     imagesc(fast_smooth(deconv(:,ordered),5)');
 end
-colormap gray
+% colormap gray
+colormap(get_colour('black'));
 hold on
 
 l=cell(1,length(assemblies));
 for i=1:length(assemblies)
     temp=deconv;
-    temp(~sce(:,i),:)=0;
     temp(:,setxor(assemblies{i},1:size(deconv,2)))=0;
+    if iscell(sce)
+        temp(:,assemblies{i})=temp(:,assemblies{i}).*sce{i};
+    else
+        temp(~sce(:,i),:)=0;
+    end
     temp=temp(:,ordered);
     [x,y]=find(temp);
     plot(x,y,'.');

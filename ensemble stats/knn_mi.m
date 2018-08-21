@@ -40,7 +40,7 @@ for i=1:size(deconv,2)
             
             k_xy=mean(psi(n+1));
             
-%             n=(n+1)./size(deconv,1).*size(A,1);
+            n=(n+1)./size(deconv,1).*size(A,1);
             k_xyz=mean(sum(psi(n+1),2));
             
             H_xy=n_xy./size(deconv,1).*(-k_xy+psi(n_xy)+mean(dist)./n_xy)-n_xy0./size(deconv,1).*log(n_xy0./size(deconv,1));
