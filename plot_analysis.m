@@ -56,6 +56,11 @@ if plotFlag(2)
     stack=fast_smooth(stack,sd);
     stack=(stack-min(stack))./range(stack);
     
+    stack=arrayfun(@(x) mean(fast_smooth(analysis.raw_psth(:,:,x),sd,2)),pc_list,'uniformoutput',false);
+    stack=cell2mat(stack);
+    stack=reshape(stack,bins,length(pc_list));
+    stack=(stack-min(stack))./range(stack);
+    
     [~,idx]=max(stack);
     [~,ordered]=sort(idx);
 %     ordered=ordered(any(pc_list'==ordered));

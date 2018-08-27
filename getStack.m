@@ -44,14 +44,11 @@ signal_log(isinf(signal_log))=nan;
 signal_log=(signal_log-mean(signal_log,'omitnan'))./std(signal_log,'omitnan');
 
 raw_stack=zeros(bins,size(deconv,2));
-% raw_stack_norm=raw_stack;
 for i=1:length(idx)-1
     temp=pos>idx(i) & pos<=idx(i+1) & ft >= trials(1) & ft <= trials(end);
     raw_stack(i,:)=mean(signal(temp,:));
-%     raw_stack_norm(i,:)=mean(signal(temp,:))./sum(temp); %normalize by occupancy
 end
 raw_stack(isnan(raw_stack))=0;
-% raw_stack_norm(isnan(raw_stack_norm))=0;
 
 count1=1;
 for i=1:length(trials)-1
@@ -84,8 +81,7 @@ psth=arrayfun(@(x) fast_smooth(raw_psth(:,:,x),sd,2),list,'uniformoutput',false)
 % stack=arrayfun(@(x) mean(fast_smooth(raw_psth(:,:,x),sd,2)),list,'uniformoutput',false);
 % stack=cell2mat(stack);
 % stack=reshape(stack,bins,size(deconv,2));
+
 stack=fast_smooth(raw_stack,sd);
-% stack=fast_smooth(raw_stack_norm,sd);
-% stack=raw_stack;
 stack=(stack-min(stack));
 stack=stack./max(stack);
