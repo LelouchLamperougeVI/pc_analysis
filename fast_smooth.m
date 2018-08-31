@@ -29,18 +29,19 @@ end
 
 dataSize=size(data,1);
 kernelSize=ceil(10*sig);
+kernelSize=kernelSize-~mod(kernelSize,2); %avoid even kernel sizes
 alpha=(kernelSize-1)/sig/2;
 kernel=gausswin(kernelSize,alpha);
 kernel=kernel./sum(kernel);
 
-taper=zeros(kernelSize*2,1);
-data=[data;repmat(taper,1,size(data,2))];
-data=reshape(data,size(data,1)*size(data,2),1);
+taper=zeros(kernelSize,1);
+data=[repmat(taper,1,size(data,2));data;repmat(taper,1,size(data,2))];
+data=data(:);
 
-smoothed=conv(kernel,data);
-smoothed=smoothed(floor(kernelSize/2)+1:end-ceil(kernelSize/2)+1);
+smoothed=conv(data,kernel,'same');
 smoothed=reshape(smoothed,dataSize+kernelSize*2,[]);
-smoothed(end-kernelSize*2+1:end,:)=[];
+smoothed=smoothed./conv([zeros(kernelSize,1); ones(dataSize,1); zeros(kernelSize,1)],kernel,'same'); %account for edge data underestimation
+smoothed([1:kernelSize end-kernelSize+1:end],:)=[];
 
 switch dim
     case 1
