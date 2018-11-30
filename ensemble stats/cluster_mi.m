@@ -1,4 +1,4 @@
-function [assemblies,Z,D,varargout]=cluster_mi(varargin)
+function [assemblies,Z,D,cutoff,varargout]=cluster_mi(varargin)
 % assemblies membership assignment using agglomerative clustering of
 % MI distance metric
 % Inputs:
@@ -10,15 +10,16 @@ function [assemblies,Z,D,varargout]=cluster_mi(varargin)
 %   'precision':    number of bins for FR (default 5; not required for binary matrix)
 %   'max_delay':    maximum delay between ensemble events (for tdmi only)(default 5)
 %   'plotFlag':     plot relevant figures
+%   'nofilt':       if true, do not normalize deconv
 
 deconv=varargin{1};
-[method,max_delay,sig,prune,shuffle,precision,plotFlag]=parse_input(varargin);
-if islogical(deconv)
-    deconv=double(deconv);
-end
+[method,max_delay,sig,prune,shuffle,precision,plotFlag,nofilt]=parse_input(varargin);
+% if islogical(deconv)
+%     deconv=double(deconv);
+% end
 
 if strcmpi(method,'mi')
-    [I,D]=get_mi(deconv,precision);
+    [I,D]=get_mi(deconv,precision,nofilt);
     Dm=D;
 elseif strcmpi(method,'knn')
     [I,D]=get_mi_knn(deconv);
@@ -36,7 +37,12 @@ end
 cutoff=[];
 f=waitbar(0,'permutation testing...');
 for i=1:shuffle
-    shuffled_d=mat_circshift(deconv,randi(size(deconv,1),1,size(deconv,2)));
+    if islogical(deconv)
+        shuffled_d=mat_circshift(double(deconv),randi(size(deconv,1),1,size(deconv,2)));
+        shuffled_d=logical(shuffled_d);
+    else
+        shuffled_d=mat_circshift(deconv,randi(size(deconv,1),1,size(deconv,2)));
+    end
     if strcmpi(method,'mi')
         [~,shuffled_d]=get_mi(shuffled_d,precision);
     elseif strcmpi(method,'knn')
@@ -56,7 +62,8 @@ close(f);
 cutoff=prctile(cutoff,sig);
 
 Dm=squareform(Dm);
-Z=linkage(Dm,'average');
+% Z=linkage(Dm,'average');
+Z=linkage(Dm,'weighted');
 clusters=cluster(Z,'criterion','distance','cutoff',cutoff);
 Dm=squareform(Dm);
 
@@ -103,7 +110,7 @@ if plotFlag
 end
 
 
-function [method,max_delay,sig,prune,shuffle,precision,plotFlag]=parse_input(inputs)
+function [method,max_delay,sig,prune,shuffle,precision,plotFlag,nofilt]=parse_input(inputs)
 precision=5;
 plotFlag=false;
 sig=5;
@@ -111,6 +118,7 @@ prune=0;
 shuffle=500;
 method='mi';
 max_delay=5;
+nofilt=false;
 
 idx=2;
 while(idx<length(inputs))
@@ -136,6 +144,9 @@ while(idx<length(inputs))
         case 'plotflag'
             idx=idx+1;
             plotFlag=inputs{idx};
+        case 'nofilt'
+            idx=idx+1;
+            nofilt=inputs{idx};
         otherwise
     end
     idx=idx+1;

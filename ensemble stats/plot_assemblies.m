@@ -8,6 +8,7 @@ h=figure;
 if islogical(deconv)
     imagesc(deconv(:,ordered)');
 else
+%     deconv=ca_filt(deconv);
     imagesc(fast_smooth(deconv(:,ordered),5)');
 end
 % colormap gray

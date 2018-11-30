@@ -1,4 +1,4 @@
-function [psth,raw_psth,raw_count,edges,raw_stack,stack,Pi,vel_stack]=getStack(bins,sd,vr_length,deconv,vel_thres,unit_pos,unit_vel,frame_ts,trials)
+function [psth,raw_psth,raw_count,edges,raw_stack,mu_fr,p_occ,stack,Pi,vel_stack]=getStack(bins,sd,vr_length,deconv,vel_thres,unit_pos,unit_vel,frame_ts,trials)
 % looking back at my old code from a year ago, it's such a sloppy
 % inneficient POS...
 
@@ -44,11 +44,16 @@ signal_log(isinf(signal_log))=nan;
 signal_log=(signal_log-mean(signal_log,'omitnan'))./std(signal_log,'omitnan');
 
 raw_stack=zeros(bins,size(deconv,2));
+p_occ=zeros(bins,1);
 for i=1:length(idx)-1
     temp=pos>idx(i) & pos<=idx(i+1) & ft >= trials(1) & ft <= trials(end);
     raw_stack(i,:)=mean(signal(temp,:));
+    p_occ(i)=sum(temp);
 end
 raw_stack(isnan(raw_stack))=0;
+
+temp=ft >= trials(1) & ft <= trials(end);
+mu_fr=mean(signal(temp,:));
 
 count1=1;
 for i=1:length(trials)-1

@@ -1,4 +1,4 @@
-function [I,D]=get_mi(deconv,precision)
+function [I,D]=get_mi(deconv,precision,nofilt)
 % returns MI and distance dissimilarity matrices
 % D = 1 - I(x;y) / H(x,y)
 %
@@ -8,6 +8,10 @@ function [I,D]=get_mi(deconv,precision)
 % if ~islogical(deconv)
 %     deconv=logical(deconv);
 % end
+if nargin<3
+    nofilt=false;
+end
+
 if islogical(deconv)
     p=sum(deconv)./size(deconv,1);
     H=-(p.*log2(p)+(1-p).*log2(1-p));
@@ -24,10 +28,14 @@ else
         error('precision required for Q-matrix type input');
     end
     
-    deconv=ca_filt(deconv);
-    deconv=log(deconv);
-    deconv(isinf(deconv))=nan;
-    deconv=(deconv-mean(deconv,'omitnan'))./std(deconv,'omitnan');
+    if ~nofilt
+%         deconv=ca_filt(deconv);
+        deconv=log(deconv);
+        deconv(isinf(deconv))=nan;
+%         deconv(deconv==0)=nan;
+        deconv=(deconv-mean(deconv,'omitnan'))./std(deconv,'omitnan');
+    end
+%     deconv=avg_smooth(deconv,11);
     
     edges=[-inf min(deconv(:)):range(deconv(:))/precision:max(deconv(:))];
     edges(end)=inf;
@@ -53,6 +61,7 @@ H_joint=-sum(p_joint.*log2(p_joint),3,'omitnan');
 I=-H_joint+H+H';
 I(isnan(I))=0;
 D=1-I./H_joint;
+D(isnan(D))=1;
 
 I(diag(true(1,length(H))))=0;
 D(diag(true(1,length(H))))=0;

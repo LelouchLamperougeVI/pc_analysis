@@ -188,3 +188,85 @@ end
 
 
 
+%% New simulations for MI method
+m=12000;n=200;
+ass=zeros(3,n);
+ass(1,1:50)=1;
+ass(2,41:60)=1;
+ass(3,58:62)=1;
+
+jitter=4;
+
+q=bin_poisson_sim(m,n,'R',.05,'assemblies',ass,'prob',.05,'miss',[10 4 1],'jitter',jitter);
+
+figure;
+subplot(1,2,1);
+imagesc(corr(q));
+axis square
+title('Pearson Corr');
+
+subplot(1,2,2);
+imagesc(get_mi(q));
+axis square
+title('Mutual Info');
+
+%%
+m=12000;n=200;
+ass=zeros(3,n);
+ass(1,1:50)=1;
+ass(2,41:60)=1;
+ass(3,58:62)=1;
+
+true_ass=1:62;
+
+precision=5;
+
+it=10; %iterations per sd
+sd=0:10;
+
+acc=zeros(it,length(sd),2);
+detected_size=acc;
+e_size=acc;
+
+for s=sd
+    for i=1:it
+        q=bin_poisson_sim(m,n,'R',.05,'assemblies',ass,'prob',.05,'miss',[10 4 1],'jitter',s);
+        assemblies=cluster_mi(q,'prune',4,'plotFlag',false,'shuffle',10,'sig',5,'precision',precision);
+        e_size(i,s+1,2)=length(assemblies);
+        assemblies=unique(cell2mat(assemblies));
+        detected_size(i,s+1,2)=length(assemblies)/length(true_ass);
+        acc(i,s+1,2)=1 - length(setxor(true_ass,assemblies))/(length(true_ass)+length(assemblies));
+        assemblies=lopes_pca(q,0,false);
+        e_size(i,s+1,1)=length(assemblies);
+        assemblies=unique(cell2mat(assemblies));
+        detected_size(i,s+1,1)=length(assemblies)/length(true_ass);
+        acc(i,s+1,1)=1 - length(setxor(true_ass,assemblies))/(length(true_ass)+length(assemblies));
+    end
+end
+
+%%
+m=12000;n=200;
+precision=5;
+it=10; %iterations per sd
+s=2:10;
+acc=zeros(it,length(s),2);
+detected_size=acc;
+
+for j=s
+    e_size=j^2;
+    ass=zeros(1,n);
+    ass(1:e_size)=1;
+    
+    true_ass=1:e_size;
+    for i=1:it
+        q=bin_poisson_sim(m,n,'R',.05,'assemblies',ass,'prob',.05,'miss',round(.2*e_size),'jitter',1);
+        assemblies=cluster_mi(q,'prune',4,'plotFlag',false,'shuffle',10,'sig',5,'precision',precision);
+        assemblies=unique(cell2mat(assemblies));
+        detected_size(i,j-1,2)=length(assemblies)/length(true_ass);
+        acc(i,j-1,2)=1 - length(setxor(true_ass,assemblies))/(length(true_ass)+length(assemblies));
+        assemblies=lopes_pca(q,1,false);
+        assemblies=unique(cell2mat(assemblies));
+        detected_size(i,j-1,1)=length(assemblies)/length(true_ass);
+        acc(i,j-1,1)=1 - length(setxor(true_ass,assemblies))/(length(true_ass)+length(assemblies));
+    end
+end

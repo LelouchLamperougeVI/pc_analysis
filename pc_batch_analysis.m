@@ -48,26 +48,57 @@ sr=1/mean(diff(frame_ts));
 
 thres=noRun(unit_vel);
 
-[psth,raw_psth,raw_count,edges,raw_stack,stack,Pi,vel_stack]=getStack(bins,sd,vr_length,deconv,thres,unit_pos,unit_vel,frame_ts,trials);
+[psth,raw_psth,raw_count,edges,raw_stack,mu_fr,p_occ,stack,Pi,vel_stack]=getStack(bins,sd,vr_length,deconv,thres,unit_pos,unit_vel,frame_ts,trials);
 
 %SI test
-signal=cell2mat(raw_count');
-sizes=cellfun(@(x) size(x,1),raw_count);
-SI=get_si(raw_count,edges,Pi);
+% signal=cell2mat(raw_count');
+% sizes=cellfun(@(x) size(x,1),raw_count);
+% SI=get_si(raw_count,edges,Pi);
+% if testFlag==1 || testFlag==3
+%     SI=[SI;zeros(shuffles,length(SI))];
+%     if parFlag
+%         parfor i=1:shuffles
+%             temp=signal(randperm(size(signal,1)),:);
+%             temp=mat2cell(temp,sizes,size(temp,2));
+%             SI(i+1,:)=get_si(temp,edges,Pi);
+%         end
+%     else
+%         for i=1:shuffles
+%             temp=signal(randperm(size(signal,1)),:);
+%             temp=mat2cell(temp,sizes,size(temp,2));
+%             SI(i+1,:)=get_si(temp,edges,Pi);
+%         end
+%     end
+% 
+%     pval=1-sum(SI(1,:)>SI(2:end,:))./shuffles;
+%     pc_list=find(pval<sig);
+%     SI=SI(1,pc_list);
+% end
+SI=get_si_skaggs(raw_stack,mu_fr,p_occ);
 if testFlag==1 || testFlag==3
     SI=[SI;zeros(shuffles,length(SI))];
+    h=waitbar(0,'permutation testing that shit...');
+    count=1;
     if parFlag
+        dq=parallel.pool.DataQueue;
+        afterEach(dq,@updateBar);
         parfor i=1:shuffles
-            temp=signal(randperm(size(signal,1)),:);
-            temp=mat2cell(temp,sizes,size(temp,2));
-            SI(i+1,:)=get_si(temp,edges,Pi);
+            temp=randperm(size(deconv,1),size(deconv,2));
+            temp=mat_circshift(deconv,temp);
+            [~,~,~,~,shuff_stack,shuff_mu,shuff_pi]=getStack(bins,sd,vr_length,temp,thres,unit_pos,unit_vel,frame_ts,trials);
+            SI(i+1,:)=get_si_skaggs(shuff_stack,shuff_mu,shuff_pi);
+            send(dq,i);
         end
+        close(h);
     else
         for i=1:shuffles
-            temp=signal(randperm(size(signal,1)),:);
-            temp=mat2cell(temp,sizes,size(temp,2));
-            SI(i+1,:)=get_si(temp,edges,Pi);
+            temp=randperm(size(deconv,1),size(deconv,2));
+            temp=mat_circshift(deconv,temp);
+            [~,~,~,~,shuff_stack,shuff_mu,shuff_pi]=getStack(bins,sd,vr_length,temp,thres,unit_pos,unit_vel,frame_ts,trials);
+            SI(i+1,:)=get_si_skaggs(shuff_stack,shuff_mu,shuff_pi);
+            updateBar;
         end
+        close(h);
     end
 
     pval=1-sum(SI(1,:)>SI(2:end,:))./shuffles;
@@ -107,6 +138,12 @@ if maskFlag
     analysis=v2struct(vr_length,sr,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,behavior,maskNeurons,mimg);
 else
     analysis=v2struct(vr_length,sr,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,behavior);
+end
+
+    function updateBar(~)
+        waitbar(count/shuffles,h);
+        count=count+1;
+    end
 end
 
 
@@ -161,6 +198,4 @@ while(idx<length(inputs))
     end
     idx=idx+1;
 end
-
-
-
+end

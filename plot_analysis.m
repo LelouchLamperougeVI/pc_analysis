@@ -48,18 +48,18 @@ if plotFlag(1)
 end
 
 if plotFlag(2) 
-%     stack=analysis.stack(:,pc_list);
+    stack=analysis.stack(:,pc_list);
 
-    sd=4.5/analysis.vr_length*bins;
-    stack=analysis.raw_psth(:,:,pc_list);
-    stack=squeeze(mean(stack));
-    stack=fast_smooth(stack,sd);
-    stack=(stack-min(stack))./range(stack);
+%     sd=4.5/analysis.vr_length*bins;
+%     stack=analysis.raw_psth(:,:,pc_list);
+%     stack=squeeze(mean(stack));
+%     stack=fast_smooth(stack,sd);
+%     stack=(stack-min(stack))./range(stack);
     
-    stack=arrayfun(@(x) mean(fast_smooth(analysis.raw_psth(:,:,x),sd,2)),pc_list,'uniformoutput',false);
-    stack=cell2mat(stack);
-    stack=reshape(stack,bins,length(pc_list));
-    stack=(stack-min(stack))./range(stack);
+%     stack=arrayfun(@(x) mean(fast_smooth(analysis.raw_psth(:,:,x),sd,2)),pc_list,'uniformoutput',false);
+%     stack=cell2mat(stack);
+%     stack=reshape(stack,bins,length(pc_list));
+%     stack=(stack-min(stack))./range(stack);
     
     [~,idx]=max(stack);
     [~,ordered]=sort(idx);

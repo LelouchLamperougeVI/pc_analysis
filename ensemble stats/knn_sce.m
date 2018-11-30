@@ -14,13 +14,15 @@ for a=1:length(assemblies)
     dec(isinf(dec))=nan;
     dec=(dec-mean(dec,'omitnan'))./std(dec,'omitnan');
     
+    dec=avg_smooth(dec,5); %smooth with averaging kernel to increase local correlation
+
     %     figure;
     sce{a}=false(size(dec,1),size(dec,2),size(dec,2));
     for i=1:size(dec,2)
         for j=i+1:size(dec,2)
             %         sce=false(size(deconv,1),1);
             pre=[];I=[];
-            count=1;
+%             count=1;
             converge=false;
             overlap=false(size(dec,1),1);
             while(~converge)
@@ -36,7 +38,7 @@ for a=1:length(assemblies)
                 
                 A=A(all(~isnan(A),2),:); %continuous-continuous space
                 if isempty(A)
-                    warning('Empty differential joint entropy space detected. Cannot converge current sample.');
+                    warning('Empty differential joint entropy set detected. Cannot converge current sample.');
                     break
                 end
                 
@@ -68,10 +70,10 @@ for a=1:length(assemblies)
                 I=(psi(k)-k_xyz+psi(size(A,1)))*(size(A,1)/size(B,1))-term/size(B,1);
                 
                 if length(pre)>1
-                    converge=converge || I>=median(diff(pre));
+                    converge=converge || (I-pre(end))<median(diff(pre));
                 end
                 
-                %                 plot(count,I,'o'); count=count+1;
+%                                 plot(count,I,'o'); count=count+1;
                 %                 hold on
                 
                 %     plot(sce.*(10+count*2)); count=count+1;
@@ -82,6 +84,8 @@ for a=1:length(assemblies)
     end
     sce{a}=sce{a}.*~isnan(dec);
     sce{a}=sum(sce{a},3);
-    sce{a}=sce{a}>=arrayfun(@(x) prctile(sce{a}(sce{a}(:,x)>0,x),50),1:size(sce{a},2));
+    sce{a}=sce{a}>arrayfun(@(x) prctile(sce{a}(sce{a}(:,x)>0,x),15),1:size(sce{a},2));
     sce{a}=~sce{a};
+    
+    disp(['Ensemble (' num2str(a) '/' num2str(length(assemblies)) ') completed']);
 end
