@@ -1,15 +1,36 @@
-function [pc_width,pc_loc,M]=ricker_test(signal,psth,frac_trials,sig,plotFlag)
+function [pc_width,pc_loc,M]=ricker_test(signal,psth,frac_trials,sig,width,io_ratio,consecutive,plotFlag)
 % Unsupervised test for place cells by convolving tuning curve with a
 % series of Ricker wavelets of different sigma values.
 % Can simultaneously test for significance, place fields width and place
 % fields centres.
 % This is essentially a continuous wavelet transform technique
+% Inputs:
+%   signal:         mean fr vs pos
+%   psth:           trials x pos matrix
+%   frac_trials:    minimum fraction of trials that need to contain spike (default 1/3)
+%   sig:            mad threshold - 4 mads roughly equates to 6 SDs (default 3)
+%   width:          minimum and maximum width of place fields (default [.05 .8] of entire track)
+%   io_ratio:       ratio between fr inside vs outside of place field (default 2.5)
+%   consecutive:    whether the fraction of trials need to be in consecutive trials (default true)
+%   plotFlag:       plot pretty figures
 
 if ~exist('plotFlag','var')
     plotFlag=0;
 end
 if ~exist('sig','var')
     sig=3; %mad threshold; 4 mads correspond rouphly to 6 sd
+end
+if ~exist('width','var')
+    width=[.05 .8];
+end
+if ~exist('io_ratio','var')
+    io_ratio=2.5;
+end
+if ~exist('frac_trials','var')
+    frac_trials=1/3;
+end
+if ~exist('consecutive','var')
+    consecutive=true;
 end
 
 if size(signal,1)~=1
@@ -28,6 +49,7 @@ end
 idx=imregionalmax(M);
 
 idx([1 bins],:)=false;
+idx([1:ceil(bins*width(1)/2) floor(bins*width(2)/2):end],:)=false;
 
 idx=median(median(M))+sig*mad(reshape(M,1,[]),1)<M & idx;
 % idx=median(M,2)+sig*mad(M',1)'<M & idx;
@@ -59,19 +81,60 @@ end
 
 pc_width=2.*pc_width;
 
-idx=pc_width>(bins*.8);
-pc_loc(idx)=[];
-pc_width(idx)=[];
-
 if isempty(pc_width)
     return;
 end
 
+%remove overlapping place fields
+[pc_width,idx]=sort(pc_width,'descend');
+pc_loc=pc_loc(idx);
 for i=1:length(pc_width)
-    frac=floor(pc_width(i)/2)-pc_loc(i):floor(pc_width(i)/2)+pc_loc(i);
+    frac=pc_loc(i)-floor(pc_width(i)/2):floor(pc_width(i)/2)+pc_loc(i);
+    frac=mod(frac-1,bins)+1; %circular wrap around indexing thinggy
+    idx=ismember(pc_loc,frac);
+    idx(i)=false;
+    pc_loc(idx)=0;
+    pc_width(idx)=0;
+end
+idx=pc_loc==0;
+pc_loc(idx)=[];
+pc_width(idx)=[];
+
+% psth segments outside of place fields
+out_field=[];
+for i=1:length(pc_width)
+    frac=pc_loc(i)-floor(pc_width(i)/2):floor(pc_width(i)/2)+pc_loc(i);
+    frac=mod(frac-1,bins)+1; %circular wrap around indexing thinggy
+    out_field=[out_field frac];
+end
+out_field=setxor(1:bins, out_field);
+if size(out_field,2)<bins*width(1)
+    pc_loc=[];
+    pc_width=[];
+    return;
+end
+
+out_field=psth(:,out_field);
+for i=1:length(pc_width)
+    frac=pc_loc(i)-floor(pc_width(i)/2):floor(pc_width(i)/2)+pc_loc(i);
     frac=mod(frac-1,bins)+1; %circular wrap around indexing thinggy
     frac=psth(:,frac);
-    frac=sum(any(frac>0,2))/size(psth,1);
+%     if (mean_fr(frac) / mean_fr(out_field)) < io_ratio
+    if max(mean(frac)) / mean(mean(out_field)) < io_ratio %yes, this is not a mistake, I'm cheating here...
+%     if (sum(frac(frac>prc))/numel(frac)) / (sum(out_field(out_field>prc))/numel(out_field)) < io_ratio
+        pc_loc(i)=0;
+        pc_width(i)=0;
+        continue;
+    end
+    
+%     frac=sum(any(frac==max(psth,[],2),2))/size(frac,1);
+    frac=any(frac==max([frac out_field],[],2),2);
+    if consecutive
+        frac=fill_gaps(frac,floor(size(psth,1)*.05)); %allow 5% trials gaps, let's not be so harsh
+        frac=find(flipud(get_head(flipud(frac)))) - find(get_head(frac)) + 1;
+        frac=max(frac);
+    end
+    frac=sum(frac)/size(psth,1);
     if frac<frac_trials
         pc_loc(i)=0;
         pc_width(i)=0;

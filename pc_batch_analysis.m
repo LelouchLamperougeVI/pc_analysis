@@ -23,8 +23,20 @@ function analysis=pc_batch_analysis(varargin)
 %   'sd', 4 (default)
 %       smoothing kernel s.d. in cm
 %
+%   'mad', 3 (default)
+%       MAD threshold for Ricker test
+%
 %   'frac_trials', 1/3 (default)
 %       fraction of active trials in place fields (for Ricker test)
+%
+%   'consecutive', true (default)
+%       complementary parameter to frac_trials; whether trials need to be consecutive
+%
+%   'width', [.05 .8] (default)
+%       minimum and maximum width of place fields expressed in fraction
+%
+%   'io_ratio', 2.5 (default)
+%       minimum ratio between in-field vs out-field fr
 %
 %   'par', true (default)
 %       use parallel processing to speed up (can benefit very long
@@ -36,7 +48,7 @@ function analysis=pc_batch_analysis(varargin)
 behavior=varargin{1};
 deconv=varargin{2};
 
-[maskFlag,testFlag,parFlag,shuffles,bins,sd,sig,frac_trials]=parse_input(varargin);
+[maskFlag,testFlag,parFlag,shuffles,bins,sd,sig,frac_trials,mad,width_thres,io_ratio,consecutive]=parse_input(varargin);
 
 unit_pos=behavior.unit_pos;
 unit_vel=behavior.unit_vel;
@@ -48,33 +60,17 @@ sr=1/mean(diff(frame_ts));
 
 thres=noRun(unit_vel);
 
-[psth,raw_psth,raw_count,edges,raw_stack,mu_fr,p_occ,stack,Pi,vel_stack]=getStack(bins,sd,vr_length,deconv,thres,unit_pos,unit_vel,frame_ts,trials);
+thres=(unit_vel>thres | unit_vel<-thres) & (trials(1) < frame_ts & trials(end) > frame_ts);
+unit_vel=unit_vel(thres);
+unit_pos=unit_pos(thres);
+frame_ts=frame_ts(thres);
 
-%SI test
-% signal=cell2mat(raw_count');
-% sizes=cellfun(@(x) size(x,1),raw_count);
-% SI=get_si(raw_count,edges,Pi);
-% if testFlag==1 || testFlag==3
-%     SI=[SI;zeros(shuffles,length(SI))];
-%     if parFlag
-%         parfor i=1:shuffles
-%             temp=signal(randperm(size(signal,1)),:);
-%             temp=mat2cell(temp,sizes,size(temp,2));
-%             SI(i+1,:)=get_si(temp,edges,Pi);
-%         end
-%     else
-%         for i=1:shuffles
-%             temp=signal(randperm(size(signal,1)),:);
-%             temp=mat2cell(temp,sizes,size(temp,2));
-%             SI(i+1,:)=get_si(temp,edges,Pi);
-%         end
-%     end
-% 
-%     pval=1-sum(SI(1,:)>SI(2:end,:))./shuffles;
-%     pc_list=find(pval<sig);
-%     SI=SI(1,pc_list);
-% end
-SI=get_si_skaggs(raw_stack,mu_fr,p_occ);
+deconv=ca_filt(deconv);
+deconv=deconv(thres,:);
+
+[psth,raw_psth,raw_stack,mu_fr,Pi,stack,vel_stack]=getStack(bins,sd,vr_length,thres,deconv,unit_pos,unit_vel,frame_ts,trials);
+
+SI=get_si_skaggs(raw_stack,mu_fr,Pi);
 if testFlag==1 || testFlag==3
     SI=[SI;zeros(shuffles,length(SI))];
     h=waitbar(0,'permutation testing that shit...');
@@ -83,18 +79,20 @@ if testFlag==1 || testFlag==3
         dq=parallel.pool.DataQueue;
         afterEach(dq,@updateBar);
         parfor i=1:shuffles
-            temp=randperm(size(deconv,1),size(deconv,2));
-            temp=mat_circshift(deconv,temp);
-            [~,~,~,~,shuff_stack,shuff_mu,shuff_pi]=getStack(bins,sd,vr_length,temp,thres,unit_pos,unit_vel,frame_ts,trials);
+%             temp=randperm(size(deconv,1),size(deconv,2));
+%             temp=mat_circshift(deconv,temp);
+            temp=burst_shuffler(deconv);
+            [~,~,shuff_stack,shuff_mu,shuff_pi]=getStack(bins,sd,vr_length,thres,temp,unit_pos,unit_vel,frame_ts,trials);
             SI(i+1,:)=get_si_skaggs(shuff_stack,shuff_mu,shuff_pi);
             send(dq,i);
         end
         close(h);
     else
         for i=1:shuffles
-            temp=randperm(size(deconv,1),size(deconv,2));
-            temp=mat_circshift(deconv,temp);
-            [~,~,~,~,shuff_stack,shuff_mu,shuff_pi]=getStack(bins,sd,vr_length,temp,thres,unit_pos,unit_vel,frame_ts,trials);
+%             temp=randperm(size(deconv,1),size(deconv,2));
+%             temp=mat_circshift(deconv,temp);
+            temp=burst_shuffler(deconv);
+            [~,~,shuff_stack,shuff_mu,shuff_pi]=getStack(bins,sd,vr_length,thres,temp,unit_pos,unit_vel,frame_ts,trials);
             SI(i+1,:)=get_si_skaggs(shuff_stack,shuff_mu,shuff_pi);
             updateBar;
         end
@@ -103,14 +101,16 @@ if testFlag==1 || testFlag==3
 
     pval=1-sum(SI(1,:)>SI(2:end,:))./shuffles;
     pc_list=find(pval<sig);
-    SI=SI(1,pc_list);
+%     SI=SI(1,pc_list);
+    SI=SI(1,:);
 end
 
 
 %PC width
 width=cell(1,size(raw_stack,2));
 for i=1:size(raw_stack,2)
-    [pc_width,pc_loc]=ricker_test(stack(:,i),raw_psth(:,:,i),frac_trials);
+%     [pc_width,pc_loc]=ricker_test(stack(:,i),raw_psth(:,:,i),frac_trials,mad,width_thres,io_ratio);
+    [pc_width,pc_loc]=ricker_test(stack(:,i),psth{i},frac_trials,mad,width_thres,io_ratio,consecutive);
     width{i}=[pc_width pc_loc];
 end
 if testFlag==2 || testFlag==3
@@ -127,7 +127,7 @@ end
 %sparsity
 Pi=Pi./sum(Pi);
 % sparsity=sum(Pi.*(mean(raw_psth,1).^2),2)./(mean(mean(raw_psth,1),2).^2);
-sparsity=sum(Pi'.*raw_stack).^2./sum(Pi'.*raw_stack.^2);
+sparsity=sum(Pi.*raw_stack).^2./sum(Pi.*raw_stack.^2);
 % sparsity=shiftdim(sparsity,1);
 sparsity=sparsity(pc_list);
 
@@ -147,7 +147,7 @@ end
 end
 
 
-function [maskFlag,testFlag,parFlag,shuffles,bins,sd,sig,frac_trials]=parse_input(inputs)
+function [maskFlag,testFlag,parFlag,shuffles,bins,sd,sig,frac_trials,mad,width,io_ratio,consecutive]=parse_input(inputs)
 maskFlag=0;
 testFlag=1;
 parFlag=true;
@@ -156,6 +156,10 @@ sd=4;
 bins=50;
 sig=0.05;
 frac_trials=1/3;
+mad=3;
+width=[.05 .8];
+io_ratio=2.5;
+consecutive=true;
 
 idx=3;
 while(idx<length(inputs))
@@ -184,6 +188,18 @@ while(idx<length(inputs))
         case 'frac_trials'
             idx=idx+1;
             frac_trials=inputs{idx};
+        case 'mad'
+            idx=idx+1;
+            mad=inputs{idx};
+        case 'width'
+            idx=idx+1;
+            width=inputs{idx};
+        case 'io_ratio'
+            idx=idx+1;
+            io_ratio=inputs{idx};
+        case 'consecutive'
+            idx=idx+1;
+            consecutive=inputs{idx};
         case 'bins'
             idx=idx+1;
             bins=inputs{idx};
