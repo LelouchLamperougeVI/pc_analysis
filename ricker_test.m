@@ -130,7 +130,7 @@ for i=1:length(pc_width)
 %     frac=sum(any(frac==max(psth,[],2),2))/size(frac,1);
     frac=any(frac==max([frac out_field],[],2),2);
     if consecutive
-        frac=fill_gaps(frac,floor(size(psth,1)*.05)); %allow 5% trials gaps, let's not be so harsh
+        frac=fill_gaps(frac,max([floor(size(psth,1)*.05) 1])); %allow 5% trials gaps, let's not be so harsh
         frac=find(flipud(get_head(flipud(frac)))) - find(get_head(frac)) + 1;
         frac=max(frac);
     end
