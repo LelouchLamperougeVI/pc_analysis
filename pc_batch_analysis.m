@@ -68,7 +68,9 @@ frame_ts=frame_ts(thres);
 deconv=ca_filt(deconv);
 deconv=deconv(thres,:);
 
-[psth,raw_psth,raw_stack,mu_fr,Pi,stack,vel_stack]=getStack(bins,sd,vr_length,thres,deconv,unit_pos,unit_vel,frame_ts,trials);
+[psth,raw_psth,raw_stack,mu_fr,Pi,stack,vel_stack]=getStack(bins,sd,vr_length,deconv,unit_pos,unit_vel,frame_ts,trials);
+
+silent=sum(deconv)==0; %cell that don't firing during the running epochs
 
 SI=get_si_skaggs(raw_stack,mu_fr,Pi);
 if testFlag==1 || testFlag==3
@@ -82,7 +84,7 @@ if testFlag==1 || testFlag==3
 %             temp=randperm(size(deconv,1),size(deconv,2));
 %             temp=mat_circshift(deconv,temp);
             temp=burst_shuffler(deconv);
-            [~,~,shuff_stack,shuff_mu,shuff_pi]=getStack(bins,sd,vr_length,thres,temp,unit_pos,unit_vel,frame_ts,trials);
+            [~,~,shuff_stack,shuff_mu,shuff_pi]=getStack(bins,sd,vr_length,temp,unit_pos,unit_vel,frame_ts,trials);
             SI(i+1,:)=get_si_skaggs(shuff_stack,shuff_mu,shuff_pi);
             send(dq,i);
         end
@@ -92,7 +94,7 @@ if testFlag==1 || testFlag==3
 %             temp=randperm(size(deconv,1),size(deconv,2));
 %             temp=mat_circshift(deconv,temp);
             temp=burst_shuffler(deconv);
-            [~,~,shuff_stack,shuff_mu,shuff_pi]=getStack(bins,sd,vr_length,thres,temp,unit_pos,unit_vel,frame_ts,trials);
+            [~,~,shuff_stack,shuff_mu,shuff_pi]=getStack(bins,sd,vr_length,temp,unit_pos,unit_vel,frame_ts,trials);
             SI(i+1,:)=get_si_skaggs(shuff_stack,shuff_mu,shuff_pi);
             updateBar;
         end
@@ -109,6 +111,10 @@ end
 %PC width
 width=cell(1,size(raw_stack,2));
 for i=1:size(raw_stack,2)
+    if silent(i)
+        width{i}=[];
+        continue;
+    end
 %     [pc_width,pc_loc]=ricker_test(stack(:,i),raw_psth(:,:,i),frac_trials,mad,width_thres,io_ratio);
     [pc_width,pc_loc]=ricker_test(stack(:,i),psth{i},frac_trials,mad,width_thres,io_ratio,consecutive);
     width{i}=[pc_width pc_loc];
@@ -135,9 +141,9 @@ sparsity=sparsity(pc_list);
 if maskFlag
     maskNeurons=varargin{maskFlag+1};
     mimg=varargin{maskFlag+2};
-    analysis=v2struct(vr_length,sr,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,behavior,maskNeurons,mimg);
+    analysis=v2struct(vr_length,sr,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,behavior,silent,maskNeurons,mimg);
 else
-    analysis=v2struct(vr_length,sr,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,behavior);
+    analysis=v2struct(vr_length,sr,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,behavior,silent);
 end
 
     function updateBar(~)

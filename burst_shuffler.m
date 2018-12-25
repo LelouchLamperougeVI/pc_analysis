@@ -24,6 +24,9 @@ thres=fs*thres;
 
 for i=1:size(deconv,2)
     idx=find(deconv(:,i)>0);
+    if isempty(idx)
+        continue;
+    end
     ISI=diff(idx);
     single=ISI>thres;
     single=find([true;single]);

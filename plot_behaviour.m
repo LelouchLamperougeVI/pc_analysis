@@ -1,33 +1,24 @@
-function h = plot_behaviour(behavior,deconv)
+function h = plot_behaviour(analysis,deconv)
 
-sig=5;
-bins=80;
+sig=1;
 
 h=figure;
 ax1=subplot(4,1,1:2);
-if nargin<2
-    analysis=behavior;
-    bins=length(analysis.Pi);
-    behavior=analysis.behavior;
-    deconv=analysis.deconv;
-    
-    deconv=zscore(deconv);
-    deconv=zscore(fast_smooth(deconv,sig))';
-    
-    stack=analysis.raw_stack;
-    
-    stack=(stack-repmat(min(stack),bins,1));
-    stack=stack./repmat(max(stack),bins,1);
-    
-    [~,idx]=max(stack);
-    [~,ordered]=sort(idx);
-    imagesc(-deconv(ordered(end:-1:1),:),'xdata',(behavior.frame_ts-min(behavior.frame_ts))./1);
-else
-    deconv=zscore(deconv);
-    deconv=zscore(fast_smooth(deconv,sig))';
-    
-    imagesc(-deconv,'xdata',(behavior.frame_ts-min(behavior.frame_ts))./1);
-end
+
+bins=length(analysis.Pi);
+behavior=analysis.behavior;
+
+deconv=zscore(deconv);
+deconv=zscore(fast_smooth(deconv,sig))';
+
+stack=analysis.raw_stack;
+
+stack=(stack-repmat(min(stack),bins,1));
+stack=stack./repmat(max(stack),bins,1);
+
+[~,idx]=max(stack);
+[~,ordered]=sort(idx);
+imagesc(-deconv(ordered(end:-1:1),:),'xdata',(behavior.frame_ts-min(behavior.frame_ts))./1);
 colormap gray
 ylabel('neuron no.');
 ax2=subplot(4,1,3);

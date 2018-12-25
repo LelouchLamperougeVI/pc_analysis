@@ -1,11 +1,10 @@
-function [psth,raw_psth,raw_stack,mu_fr,Pi,stack,vel_stack]=getStack(bins,sd,vr_length,thres,deconv,pos,vel,ft,trials)
+function [psth,raw_psth,raw_stack,mu_fr,Pi,stack,vel_stack]=getStack(bins,sd,vr_length,deconv,pos,vel,ft,trials)
 
 % deconv=deconv(thres,:);
-deconv=log(deconv);
-deconv(isinf(deconv))=nan;
 
-% parse=@(s) s(isinf(s))=nan;
-mean_fr=@(s) exp(mean(s,'omitnan')) .* mean(~isnan(s));
+% deconv=log(deconv);
+% deconv(isinf(deconv))=nan;
+% mean_fr=@(s) exp(mean(s,'omitnan')) .* mean(~isnan(s));
 
 sd=sd/vr_length*bins;
 list=1:size(deconv,2);
@@ -22,21 +21,21 @@ Pi=zeros(bins,1);
 raw_stack=zeros(bins,length(list));
 for i=1:bins
     temp=pos_bins==i;
-%     raw_stack(i,:)=mean(deconv(temp,:));
-    raw_stack(i,:)=mean_fr(deconv(temp,:));
+    raw_stack(i,:)=mean(deconv(temp,:));
+%     raw_stack(i,:)=mean_fr(deconv(temp,:));
     Pi(i)=sum(temp);
 end
 raw_stack(isnan(raw_stack))=0;
-% mu_fr=mean(deconv);
-mu_fr=mean_fr(deconv);
+mu_fr=mean(deconv);
+% mu_fr=mean_fr(deconv);
 
 % Pi=zeros(length(trials)-1,bins);
 for i=1:length(trials)-1
     temp=trial_bins==i;
     for j=1:bins
         idx=temp & (pos_bins==j);
-%         raw_psth(i,j,:)=mean(deconv(idx,:));
-        raw_psth(i,j,:)=mean_fr(deconv(idx,:));
+        raw_psth(i,j,:)=mean(deconv(idx,:));
+%         raw_psth(i,j,:)=mean_fr(deconv(idx,:));
         vel_stack(i,j)=mean(vel(idx));
 %         Pi(i,j)=sum(idx);
     end
