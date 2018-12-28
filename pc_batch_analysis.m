@@ -56,7 +56,7 @@ frame_ts=behavior.frame_ts;
 trials=behavior.trials;
 
 vr_length=round(range(unit_pos));
-sr=1/mean(diff(frame_ts));
+fs=1/median(diff(frame_ts));
 
 thres=noRun(unit_vel);
 
@@ -75,7 +75,7 @@ silent=sum(deconv)==0; %cell that don't firing during the running epochs
 SI=get_si_skaggs(raw_stack,mu_fr,Pi);
 if testFlag==1 || testFlag==3
     SI=[SI;zeros(shuffles,length(SI))];
-    h=waitbar(0,'permutation testing that shit...');
+    h=waitbar(0,'permutation testing...');
     count=1;
     if parFlag
         dq=parallel.pool.DataQueue;
@@ -141,9 +141,9 @@ sparsity=sparsity(pc_list);
 if maskFlag
     maskNeurons=varargin{maskFlag+1};
     mimg=varargin{maskFlag+2};
-    analysis=v2struct(vr_length,sr,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,behavior,silent,maskNeurons,mimg);
+    analysis=v2struct(vr_length,fs,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,behavior,silent,maskNeurons,mimg);
 else
-    analysis=v2struct(vr_length,sr,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,behavior,silent);
+    analysis=v2struct(vr_length,fs,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,behavior,silent);
 end
 
     function updateBar(~)
