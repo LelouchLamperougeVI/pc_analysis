@@ -4,7 +4,7 @@ function analysis=pc_batch_analysis(varargin)
 % Parameters
 %   'mask', maskNeurons, mimg
 %       required for merging two planes
-% 
+%
 %   'test',
 %       'si' (default) SI shuffle test
 %       'ricker' new method that convolves tuning curve with a series of
@@ -81,8 +81,8 @@ if testFlag==1 || testFlag==3
         dq=parallel.pool.DataQueue;
         afterEach(dq,@updateBar);
         parfor i=1:shuffles
-%             temp=randperm(size(deconv,1),size(deconv,2));
-%             temp=mat_circshift(deconv,temp);
+            %             temp=randperm(size(deconv,1),size(deconv,2));
+            %             temp=mat_circshift(deconv,temp);
             temp=burst_shuffler(deconv);
             [~,~,shuff_stack,shuff_mu,shuff_pi]=getStack(bins,sd,vr_length,temp,unit_pos,unit_vel,frame_ts,trials);
             SI(i+1,:)=get_si_skaggs(shuff_stack,shuff_mu,shuff_pi);
@@ -91,8 +91,8 @@ if testFlag==1 || testFlag==3
         close(h);
     else
         for i=1:shuffles
-%             temp=randperm(size(deconv,1),size(deconv,2));
-%             temp=mat_circshift(deconv,temp);
+            %             temp=randperm(size(deconv,1),size(deconv,2));
+            %             temp=mat_circshift(deconv,temp);
             temp=burst_shuffler(deconv);
             [~,~,shuff_stack,shuff_mu,shuff_pi]=getStack(bins,sd,vr_length,temp,unit_pos,unit_vel,frame_ts,trials);
             SI(i+1,:)=get_si_skaggs(shuff_stack,shuff_mu,shuff_pi);
@@ -100,23 +100,25 @@ if testFlag==1 || testFlag==3
         end
         close(h);
     end
-
+    
     pval=1-sum(SI(1,:)>SI(2:end,:))./shuffles;
     pc_list=find(pval<sig);
-%     SI=SI(1,pc_list);
+    %     SI=SI(1,pc_list);
     SI=SI(1,:);
 end
 
 
 %PC width
 width=cell(1,size(raw_stack,2));
+rick_rejects=cell(1,size(raw_stack,2));
 for i=1:size(raw_stack,2)
     if silent(i)
         width{i}=[];
         continue;
     end
-%     [pc_width,pc_loc]=ricker_test(stack(:,i),raw_psth(:,:,i),frac_trials,mad,width_thres,io_ratio);
-    [pc_width,pc_loc]=ricker_test(stack(:,i),psth{i},frac_trials,mad,width_thres,io_ratio,consecutive);
+    %     [pc_width,pc_loc]=ricker_test(stack(:,i),raw_psth(:,:,i),frac_trials,mad,width_thres,io_ratio);
+    %     [pc_width,pc_loc,~,rick_rejects{i}]=ricker_test(stack(:,i),psth{i},frac_trials,mad,width_thres,io_ratio,consecutive);
+    [pc_width,pc_loc,~,rick_rejects{i}]=ricker_test(stack(:,i),raw_psth(:,:,i),frac_trials,mad,width_thres,io_ratio,consecutive);
     width{i}=[pc_width pc_loc];
 end
 if testFlag==2 || testFlag==3
@@ -141,9 +143,9 @@ sparsity=sparsity(pc_list);
 if maskFlag
     maskNeurons=varargin{maskFlag+1};
     mimg=varargin{maskFlag+2};
-    analysis=v2struct(vr_length,fs,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,behavior,silent,maskNeurons,mimg);
+    analysis=v2struct(vr_length,fs,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,behavior,silent,rick_rejects,maskNeurons,mimg);
 else
-    analysis=v2struct(vr_length,fs,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,behavior,silent);
+    analysis=v2struct(vr_length,fs,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,behavior,silent,rick_rejects);
 end
 
     function updateBar(~)

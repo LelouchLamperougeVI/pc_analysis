@@ -1,4 +1,4 @@
-function [pc_width,pc_loc,M]=ricker_test(signal,psth,frac_trials,sig,width,io_ratio,consecutive,plotFlag)
+function [pc_width,pc_loc,M,reject]=ricker_test(signal,psth,frac_trials,sig,width,io_ratio,consecutive,plotFlag)
 % Unsupervised test for place cells by convolving tuning curve with a
 % series of Ricker wavelets of different sigma values.
 % Can simultaneously test for significance, place fields width and place
@@ -36,6 +36,8 @@ end
 if size(signal,1)~=1
     signal=signal';
 end
+
+reject='';
 
 bins=length(signal);
 signal=repmat(signal,1,3);
@@ -83,6 +85,7 @@ end
 pc_width=2.*pc_width;
 
 if isempty(pc_width)
+    reject='empty loc_max';
     return;
 end
 
@@ -107,6 +110,7 @@ get_outfield;
 if length(out_field)<bins*width(1)
     pc_loc=[];
     pc_width=[];
+    reject='no out';
     return;
 end
 
@@ -124,6 +128,7 @@ for i=length(pc_width):-1:1
         %     if (sum(frac(frac>prc))/numel(frac)) / (sum(out_field(out_field>prc))/numel(out_field)) < io_ratio
         pc_loc(i)=nan;
         pc_width(i)=nan;
+        reject=[reject 'io_rate;'];
         continue;
     end
     
@@ -139,6 +144,7 @@ for i=length(pc_width):-1:1
     if frac<frac_trials
         pc_loc(i)=nan;
         pc_width(i)=nan;
+        reject=[reject 'frac_trials;'];
     end
 end
 
@@ -156,5 +162,9 @@ end
 idx=isnan(pc_loc);
 pc_loc(idx)=[];
 pc_width(idx)=[];
+
+if(~isempty(pc_width))
+    reject='';
+end
 
 end

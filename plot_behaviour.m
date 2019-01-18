@@ -1,6 +1,6 @@
 function h = plot_behaviour(analysis,deconv)
 
-sig=1;
+sig=3;
 
 h=figure;
 ax1=subplot(4,1,1:2);

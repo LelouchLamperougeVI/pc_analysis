@@ -5,6 +5,8 @@ pos=1;
 h=figure;
 ax1=subplot(2,1,1);
 ax2=subplot(2,1,2);
+xlabel(ax2,'frame');
+ylabel(ax2,'pixel change');
 
 showFrame;
 showTrace;

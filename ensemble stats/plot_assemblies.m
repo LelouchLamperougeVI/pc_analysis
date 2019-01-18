@@ -1,10 +1,10 @@
-function h=plot_assemblies(assemblies,sce,deconv,ordered)
+function plot_assemblies(assemblies,sce,deconv,ordered)
 if nargin<4
     ordered=cell2mat(assemblies);
     ordered=[ordered setxor(1:size(deconv,2),ordered)];
 end
 
-h=figure;
+% h=figure;
 if islogical(deconv)
     imagesc(deconv(:,ordered)');
 else

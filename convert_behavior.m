@@ -8,10 +8,13 @@ deconv(idx:end,:)=[];
 
 trials_ts=arrayfun(@(x) find(behavior.trial==x,1),1:max(behavior.trial));
 trials_ts=behavior.ts(trials_ts);
-trials_ts=arrayfun(@(x) find(frame_ts>=x,1),trials_ts);
+trials_ts(trials_ts>frame_ts(end))=[];
+% trials_ts=arrayfun(@(x) find(frame_ts>=x,1),trials_ts);
+trials_ts=knnsearch(frame_ts',trials_ts');
 trials=frame_ts(trials_ts);
 
-idx=arrayfun(@(x) find(behavior.ts>=x,1),frame_ts);
+% idx=arrayfun(@(x) find(behavior.ts>=x,1),frame_ts);
+idx=knnsearch(behavior.ts',frame_ts');
 
 unit_pos=behavior.pos_raw(idx);
 
