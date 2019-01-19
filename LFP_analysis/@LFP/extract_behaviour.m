@@ -9,7 +9,7 @@ frame_ts=find(frame_ts);
 frame_ts(1)=[];
 
 rwd=signal(:,obj.get_channel('rwd'));
-rwd=find(get_head(rwd<1))';
+rwd=find(get_head(rwd<1))'; %returns a single index of value 1 for rest trials
 
 ch_a=signal(:,obj.get_channel('chA'));
 ch_b=signal(:,obj.get_channel('chB'))';
@@ -22,6 +22,11 @@ pos_raw=dist*pi/5*.1;
 
 speed_raw=fast_smooth((pos_raw./median(diff(frame_ts)))',nSmooth);
 speed_raw=speed_raw(frame_ts);
+
+if length(rwd)<3
+    obj.behavior.speed_raw=speed_raw;
+    return
+end
 
 count=1;
 while(count<length(rwd))

@@ -25,8 +25,6 @@ switch option
         figure;
         ax1=subplot(k,1,1);
         plot(obj.t,obj.lfp);
-        hold on
-        plot(obj.swr_peaks,ones(length(obj.swr_peaks),1),'k*');
         ylabel('broad band')
         ax2=subplot(k,1,2);
         plot(obj.t,obj.delta);
@@ -40,7 +38,6 @@ switch option
         ax5=subplot(k,1,5);
         plot(obj.t,obj.swr);
         hold on
-        plot(obj.swr_peaks,ones(length(obj.swr_peaks),1),'k*');
         ylabel('SWR')
         %         if ~isempty(obj.cam.mvt)
         %             ax6=subplot(k,1,6);
