@@ -7,9 +7,10 @@ classdef LFP < handle
         ts_2p
         behavior
         ts_cam
-        cam
+        cam % irCam object
         deconv
         analysis
+        ensemble % basic_ensemble object
         delta
         theta
         gamma
@@ -38,19 +39,19 @@ classdef LFP < handle
     
     properties (GetAccess = 'private', Constant)
         nfft = 2^16;
+        default_ops = struct('down_fs',2e3,'spec_wdw',.5);
     end
     
     methods
         function obj = LFP(fn) %construct with passed abf file
             obj.update_channels();
-            if nargin > 0
-                obj.load(fn);
-                obj.two_photon_ts;
-                try
-                    obj.irCam_ts;
-                catch
-                end
+            obj.load(fn);
+            obj.two_photon_ts;
+            try
+                obj.irCam_ts;
+            catch
             end
+            obj.down_sample(obj.default_ops.down_fs);
         end
         
         function load(obj, fn) % replace current data with another abf file
@@ -83,6 +84,29 @@ classdef LFP < handle
         
         function import_behaviour(obj,behavior)
             obj.behavior=behavior;
+        end
+        
+        function perform_analysis(obj,varargin) %Run pc_batch_analysis
+            if isempty(obj.behavior)
+                error('no behavioural data currently exists');
+            end
+            if isempty(obj.deconv)
+                error('no deconv data currently exists');
+            end
+            tcs.tt=obj.ts_2p;
+            [beh,dec]=convert_behavior(obj.behavior,tcs,obj.deconv);
+            obj.analysis=pc_batch_analysis(beh,dec,varargin);
+            obj.analysis.order=get_order(obj.analysis);
+        end
+        
+        function detect_sce(obj,varargin) % construct basic_ensemble object 
+            if isempty(obj.deconv)
+                error('no deconv data available');
+            end
+            obj.ensemble = basic_ensemble(obj.deconv,obj.ts_2p,varargin);
+            if ~isempty(obj.analysis)
+                obj.ensemble.order=get_order(obj.analysis);
+            end
         end
         
         function set_channels(obj, ch) % change channels configuration from default

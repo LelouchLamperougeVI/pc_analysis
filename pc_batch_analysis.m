@@ -6,10 +6,10 @@ function analysis=pc_batch_analysis(varargin)
 %       required for merging two planes
 %
 %   'test',
-%       'si' (default) SI shuffle test
+%       'si'     SI shuffle test
 %       'ricker' new method that convolves tuning curve with a series of
-%               ricker wavelets
-%       'mixed' two tests combined
+%                ricker wavelets
+%       'mixed' (default) two tests combined
 %
 %   'shuffles', 1000 (default)
 %       number of shuffles for tests
@@ -157,7 +157,7 @@ end
 
 function [maskFlag,testFlag,parFlag,shuffles,bins,sd,sig,frac_trials,mad,width,io_ratio,consecutive]=parse_input(inputs)
 maskFlag=0;
-testFlag=1;
+testFlag=3;
 parFlag=true;
 shuffles=1000;
 sd=4;

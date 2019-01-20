@@ -8,7 +8,7 @@ if nargin < 2
     win=60;
 end
 if nargin < 3
-    range=[obj.t(1) obj.t(end)];
+    range=[0 length(obj.lfp)];
 end
 
 wdw=win*obj.fs;
@@ -16,9 +16,7 @@ nol=floor(.5*wdw);
 nfft = max([obj.nfft 2^nextpow2(wdw)]);
 f = 0:obj.fs/nfft:obj.fs/2; %estimate to Nyquist
 
-lfp=obj.lfp(obj.t>=range(1) & obj.t<=range(2));
-
-[spec,~,t]=spectrogram(lfp,wdw,nol,nfft,obj.fs);
+[spec,~,t]=spectrogram(obj.lfp,wdw,nol,nfft,obj.fs);
 spec=log(abs(spec));
 
 obj.spec.spectrum = spec;

@@ -46,7 +46,7 @@ ts=find(dist~=0);
 ts(ts<rwd(1)|ts>rwd(end))=[];
 ts=sort([ts rwd]);
 pos_raw=pos_raw(ts);
-ts=ts.*(obj.si*1e-6);
+ts=(ts-1).*(obj.si*1e-6);
 idx=find(get_head(pos_raw'<5));
 pos_norm=pos_raw;
 pos_cum=pos_raw;
