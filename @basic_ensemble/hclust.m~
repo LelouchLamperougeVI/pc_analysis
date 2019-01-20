@@ -1,0 +1,27 @@
+function hclust(obj)
+% perform agglomerative clustering over SCE and non-SCE epochs to cluster ensembles
+
+% D=sqrt(1-obj.R.^2);
+D=1-abs(obj.R);
+D=squareform(D);
+
+obj.tree=linkage(D,'average');
+
+thres=prctile(squareform(1-abs(obj.null_R)),obj.ops.e_prctile);
+
+clust=cluster(obj.tree,'cutoff',thres);
+
+idx=1:length(clust);
+% assemblies=cell(1,max(clusters));
+count=1;
+for i=1:max(clusters)
+    assemblies{count}=idx(clusters==i);
+    temp=Dm(assemblies{count},assemblies{count});
+    temp=triu(temp,1);
+    temp=temp(~~temp);
+    if mean(temp)<cutoff && length(assemblies{count})>=prune
+        count=count+1;
+    else
+        assemblies(count)=[];
+    end
+end

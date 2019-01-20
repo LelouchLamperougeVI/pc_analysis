@@ -1,16 +1,11 @@
-function plot_analysis(analysis,plotFlag,allFlag)
+function plot_analysis(analysis,plotFlag,pc_list)
 % [PSTHs    stack/cMatrix   SI/pc_width]
 if nargin<2
     plotFlag=[1 1 1];
 end
-if nargin<3
-    allFlag=false;
-end
 
 bins=length(analysis.Pi);
-if allFlag
-    pc_list=1:length(analysis.psth);
-else
+if nargin < 3
     pc_list=analysis.pc_list;
 end
 

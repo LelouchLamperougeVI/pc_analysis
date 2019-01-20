@@ -159,7 +159,7 @@ classdef LFP < handle
                     idx=[find(obj.ts_2p>heads(i),1) find(obj.ts_2p>tails(i),1)];
                     idx(1)=~(idx(1)<1)*idx(1) + 1;
                     idx(2)=~(idx(2)>length(obj.ts_2p)).*idx(2) + (idx(2)>length(obj.ts_2p))*length(obj.ts_2p);
-                    obj.deconv(idx(1):idx(2),:)=0;
+                    obj.deconv(idx(1):idx(2),:)=nan;
                 end
             end
             
@@ -168,11 +168,11 @@ classdef LFP < handle
             elseif ~isfield(obj.behavior,'unit_vel')
                 thres=noRun(obj.behavior.speed_raw);
                 thres=abs(obj.behavior.speed_raw)>thres;
-                obj.deconv(thres,:)=0;
+                obj.deconv(thres,:)=nan;
             else
                 thres=noRun(obj.behavior.unit_vel);
                 thres=abs(obj.behavior.unit_vel)>thres;
-                obj.deconv(thres,:)=0;
+                obj.deconv(thres,:)=nan;
             end
         end
         

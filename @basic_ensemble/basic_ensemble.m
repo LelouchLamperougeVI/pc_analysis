@@ -29,6 +29,10 @@ classdef basic_ensemble < handle
         SCE
         MUA
         spec
+        R
+        null_R
+        tree % agglomerative tree
+        clust % ensemble clusters
     end
     
     properties (GetAccess = 'private', SetAccess = 'private')
@@ -50,7 +54,9 @@ classdef basic_ensemble < handle
         
         detect_sce(obj,varargin);
         sce_spectrum(obj,varargin);
-        plot(obj);
+        corr(obj);
+        hclust(obj);
+        plot(obj,type);
     end
     
     methods (Access = private)

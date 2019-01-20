@@ -15,15 +15,15 @@ sig=fs*sig;
 gaps=round(fs*gaps);
 
 
-deconv=zscore(deconv);
+deconv=(deconv-mean(deconv,'omitnan'))./std(deconv,'omitnan'); %zscore
 deconv=fast_smooth(deconv,sig);
 
-mua=mean(deconv,2);
-thres=mean(mua)+thres*std(mua);
+mua=mean(deconv,2,'omitnan');
+thres=mean(mua,'omitnan')+thres*std(mua,'omitnan');
 sce=mua>thres;
 sce=fill_gaps(sce,gaps);
 
-off_thres=mean(mua)+off_thres*std(mua);
+off_thres=mean(mua,'omitnan')+off_thres*std(mua,'omitnan');
 off=mua<off_thres;
 off=off.*~sce;
 off=find(off);
