@@ -24,19 +24,16 @@ classdef basic_ensemble < handle
         lfp % object of type LFP
     end
     properties (GetAccess = 'public', SetAccess = 'private')
+        ops
         deconv
         ts
         SCE
         MUA
-        spec
+        spec = struct('spectrum',[],'f',[],'t',[],'norm',[])
         R
         null_R
         tree % agglomerative tree
         clust % ensemble clusters
-    end
-    
-    properties (GetAccess = 'private', SetAccess = 'private')
-        ops
     end
     
     methods
@@ -50,7 +47,10 @@ classdef basic_ensemble < handle
             idx=obj.SCE.dur<thres(1) | obj.SCE.dur>thres(2);
             obj.SCE.dur(idx)=[];
             obj.SCE.on(idx)=[];
+            obj.SCE.peak(idx)=[];
         end
+        
+        set_ops(obj,varargin);
         
         detect_sce(obj,varargin);
         sce_spectrum(obj,varargin);
@@ -59,7 +59,7 @@ classdef basic_ensemble < handle
         plot(obj,type);
     end
     
-    methods (Access = private)
-        set_ops(obj,inputs);
-    end
+%     methods (Access = private)
+%         set_ops(obj,inputs);
+%     end
 end

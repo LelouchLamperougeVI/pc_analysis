@@ -109,6 +109,7 @@ classdef LFP < handle
             if ~isempty(obj.analysis)
                 obj.ensemble.order=get_order(obj.analysis);
             end
+            obj.ensemble.lfp=obj;
         end
         
         function set_channels(obj, ch) % change channels configuration from default

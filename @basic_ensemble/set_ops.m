@@ -1,5 +1,5 @@
-function set_ops(obj,inputs)
-if isempty(obj.ops) || isempty(inputs)
+function set_ops(obj,varargin)
+if isempty(obj.ops) || nargin<2
     ops.sig=.05;
     ops.thres=3;
     ops.off_thres=1;
@@ -9,43 +9,46 @@ if isempty(obj.ops) || isempty(inputs)
     ops.wdw=[-.5 .5];
     ops.wdw_size=.01;
     
-    ops.e_size=5;
+    ops.e_size=10;
     ops.e_prctile=.1;
     
     obj.ops=ops;
+    if nargin<2
+        return;
+    end
 end
 
 idx=1;
-while(idx<length(inputs))
-    switch lower(inputs{idx})
+while(idx<length(varargin))
+    switch lower(varargin{idx})
         case 'sig'
             idx=idx+1;
-            obj.ops.sig=inputs{idx};
+            obj.ops.sig=varargin{idx};
         case 'thres'
             idx=idx+1;
-            obj.ops.thres=inputs{idx};
+            obj.ops.thres=varargin{idx};
         case 'gaps'
             idx=idx+1;
-            obj.ops.gaps=inputs{idx};
+            obj.ops.gaps=varargin{idx};
             
         case 'freq'
             idx=idx+1;
-            obj.ops.freq=inputs{idx};
+            obj.ops.freq=varargin{idx};
         case 'wdw'
             idx=idx+1;
-            obj.ops.wdw=inputs{idx};
+            obj.ops.wdw=varargin{idx};
         case 'wdw_size'
             idx=idx+1;
-            obj.ops.wdw_size=inputs{idx};
+            obj.ops.wdw_size=varargin{idx};
             
         case 'e_size'
             idx=idx+1;
-            obj.ops.e_size=inputs{idx};
+            obj.ops.e_size=varargin{idx};
         case 'e_prctile'
             idx=idx+1;
-            obj.ops.e_prctile=inputs{idx};
+            obj.ops.e_prctile=varargin{idx};
         otherwise
-            error(['''' inputs{idx} ''' is not a valid parameter']);
+            error(['''' varargin{idx} ''' is not a valid parameter']);
     end
     idx=idx+1;
 end

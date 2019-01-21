@@ -54,6 +54,11 @@ tails=off(idx);
 
 obj.SCE.dur=ts(tails)-ts(heads);
 obj.SCE.on=ts(heads);
-
 obj.MUA=mua;
+
+for i=1:length(obj.SCE.on)
+    idx=find(ts==obj.SCE.on(i)) : find(ts==obj.SCE.on(i)+obj.SCE.dur(i));
+    [~,pk]=max(mua(idx));
+    obj.SCE.peak(i)=ts(idx(pk));
+end
 
