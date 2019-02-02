@@ -23,9 +23,10 @@ classdef LFP < handle
         
         spec = struct('spectrum',[],'t',[],'f',[]);
         
-        %         Channels = [1 2 3 5 8 7]';
+%         Channels = [1 2 3 6 8 7]';
+        Channels = [1 2 3 4 5 6]';
         %         Channels = [1 2 3 5 8 6]';
-        Channels = [1 2 3 7 8 5]';
+%         Channels = [1 2 3 7 8 5]';
     end
     
     properties (GetAccess = 'private', SetAccess = 'private')
@@ -95,7 +96,7 @@ classdef LFP < handle
             if isempty(obj.deconv)
                 error('no deconv data currently exists');
             end
-            tcs.tt=obj.ts_2p;
+            tcs.tt=obj.ts_2p';
             [beh,dec]=convert_behavior(obj.behavior,tcs,obj.deconv);
             obj.analysis=pc_batch_analysis(beh,dec,varargin);
             obj.analysis.order=get_order(obj.analysis);

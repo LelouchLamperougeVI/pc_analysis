@@ -41,6 +41,7 @@ classdef basic_ensemble < handle
             obj.deconv=deconv;
             obj.ts=ts;
             obj.detect_sce(varargin);
+            obj.cluster;
         end
         
         function duration(obj,thres) % remove SCEs outside duration threshold (thres = [lower_lim upper_lim])
@@ -50,13 +51,18 @@ classdef basic_ensemble < handle
             obj.SCE.peak(idx)=[];
         end
         
+        function cluster(obj)
+            obj.duration(obj.ops.sce_dur);
+            obj.hclust;
+        end
+        
         set_ops(obj,varargin);
         
         detect_sce(obj,varargin);
         sce_spectrum(obj,varargin);
         corr(obj);
         hclust(obj);
-        plot(obj,type);
+        plot(obj,type,varargin);
     end
     
 %     methods (Access = private)

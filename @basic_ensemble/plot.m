@@ -1,4 +1,4 @@
-function plot(obj,type)
+function plot(obj,type,varargin)
 %Plot results from detection
 
 if ~isempty(obj.order)
@@ -115,6 +115,15 @@ switch lower(type)
             title(['clust ' num2str(count)]);
             count=count+1;
         end
+        
+    case 'pc'
+        if isempty(obj.clust)
+            error('data not clustered');
+        end
+        if nargin<3
+            error('please give cluster number');
+        end
+        plot_analysis(obj.lfp.analysis,[1 0 0],obj.clust{varargin{1}});
         
     case 'spec'
         if isempty(obj.spec)

@@ -6,6 +6,7 @@ obj.set_ops(varargin);
 obj.corr;
 
 Dm=1-abs(obj.R);
+Dm(1:length(Dm)+1:numel(Dm))=0;
 D=squareform(Dm);
 
 obj.tree=linkage(D,'average');

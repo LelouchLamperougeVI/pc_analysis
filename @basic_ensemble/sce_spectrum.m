@@ -39,14 +39,16 @@ end
 spec_peaks=spec_peaks./length(idx);
 
 rn=10;
-idx=rand(rn,1).*obj.lfp.t(end);
+% idx=rand(rn,1).*obj.lfp.t(end);
+idx=linspace(0,obj.lfp.t(end)-wdw_size,rn);
 obj.lfp.spectrum(wdw_size,wdw+idx(1));
 null=obj.lfp.spec.spectrum;
 for i=2:rn
     obj.lfp.spectrum(wdw_size,wdw+idx(i));
-    null=null+obj.lfp.spec.spectrum;
+%     null=null+obj.lfp.spec.spectrum;
+    null=[null obj.lfp.spec.spectrum];
 end
-null=null./rn;
+% null=null./rn;
 
 % obj.spec=spec;
 obj.spec.spectrum_on=spec_on(freq(1)<=obj.lfp.spec.f & freq(2)>=obj.lfp.spec.f, :);

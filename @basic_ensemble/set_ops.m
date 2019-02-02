@@ -12,6 +12,8 @@ if isempty(obj.ops) || nargin<2
     ops.e_size=10;
     ops.e_prctile=.1;
     
+    ops.sce_dur=[0 .5]; % 0 to 500 ms SCE events
+    
     obj.ops=ops;
     if nargin<2
         return;
@@ -47,6 +49,10 @@ while(idx<length(varargin))
         case 'e_prctile'
             idx=idx+1;
             obj.ops.e_prctile=varargin{idx};
+            
+        case 'sce_dur'
+            idx=idx+1;
+            obj.ops.sce_dur=varargin{idx};
         otherwise
             error(['''' varargin{idx} ''' is not a valid parameter']);
     end
