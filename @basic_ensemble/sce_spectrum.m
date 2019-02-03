@@ -54,6 +54,6 @@ end
 obj.spec.spectrum_on=spec_on(freq(1)<=obj.lfp.spec.f & freq(2)>=obj.lfp.spec.f, :);
 obj.spec.spectrum_peak=spec_peaks(freq(1)<=obj.lfp.spec.f & freq(2)>=obj.lfp.spec.f, :);
 obj.spec.f=obj.lfp.spec.f(freq(1)<=obj.lfp.spec.f & freq(2)>=obj.lfp.spec.f);
-obj.spec.t=linspace(obj.ops.wdw(1),obj.ops.wdw(2),size(obj.spec.spectrum,2));
+obj.spec.t=linspace(obj.ops.wdw(1),obj.ops.wdw(2),size(obj.spec.spectrum_on,2));
 
 obj.spec.norm=null(freq(1)<=obj.lfp.spec.f & freq(2)>=obj.lfp.spec.f, :);
