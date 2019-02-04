@@ -24,7 +24,8 @@ classdef LFP < handle
         spec = struct('spectrum',[],'t',[],'f',[]);
         
 %         Channels = [1 2 3 6 8 7]';
-        Channels = [1 2 3 4 5 6]';
+%         Channels = [1 2 3 4 5 6]';
+        Channels = [1 2 3 5 4 6]';
         %         Channels = [1 2 3 5 8 6]';
 %         Channels = [1 2 3 7 8 5]';
     end
@@ -45,6 +46,10 @@ classdef LFP < handle
     
     methods
         function obj = LFP(fn) %construct with passed abf file
+            if nargin<1
+                [fn,path]=uigetfile('*.abf');
+                fn=[path fn];
+            end
             obj.update_channels();
             obj.load(fn);
             obj.two_photon_ts;
