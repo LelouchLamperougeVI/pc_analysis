@@ -12,7 +12,7 @@ if isempty(obj.ops) || nargin<2
     ops.e_size=10;
     ops.e_prctile=.1;
     
-    ops.sce_dur=[0 .5]; % 0 to 500 ms SCE events
+    ops.sce_dur=[0 .8]; % 0 to 800 ms SCE events
     
     obj.ops=ops;
     if nargin<2

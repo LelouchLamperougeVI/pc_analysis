@@ -1,4 +1,6 @@
 classdef LFP < handle
+% All the tools for analyzing simultaneous 2p + LFP in one place
+
     properties (GetAccess = 'public', SetAccess = 'private')
         lfp %unfiltered lfp trace
         fs %sampling rate in Hz
@@ -21,13 +23,15 @@ classdef LFP < handle
         swr_on %ripple onset times
         swr_cyc %number of ripple frequency cycles
         
+        lfp_mvt %500-1k Hz band signal for movement detection
+        
         spec = struct('spectrum',[],'t',[],'f',[]);
         
 %         Channels = [1 2 3 6 8 7]';
 %         Channels = [1 2 3 4 5 6]';
-        Channels = [1 2 3 5 4 6]';
-        %         Channels = [1 2 3 5 8 6]';
-%         Channels = [1 2 3 7 8 5]';
+%         Channels = [1 2 3 5 4 6]';
+%         Channels = [1 2 3 5 8 6]';
+        Channels = [1 2 3 7 8 5]';
     end
     
     properties (GetAccess = 'private', SetAccess = 'private')
@@ -90,7 +94,7 @@ classdef LFP < handle
             obj.analysis.order=get_order(analysis);
         end
         
-        function import_behaviour(obj,behavior)
+        function import_behaviour(obj,behavior) % import Dun's behavior format (can use extract_behavior instead)
             obj.behavior=behavior;
         end
         

@@ -15,7 +15,7 @@ sig=fs*sig;
 gaps=round(fs*gaps);
 
 
-deconv=(deconv-mean(deconv,'omitnan'))./std(deconv,'omitnan'); %zscore
+% deconv=(deconv-mean(deconv,'omitnan'))./std(deconv,'omitnan'); %zscore
 deconv=fast_smooth(deconv,sig);
 
 mua=mean(deconv,2,'omitnan');

@@ -12,7 +12,8 @@ end
 switch lower(type)
     case 'sce'
         figure;
-        deconv=fast_smooth(obj.deconv(:,order),obj.ops.sig);
+        deconv=(obj.deconv - mean(obj.deconv,'omitnan'))./std(obj.deconv,'omitnan');
+        deconv=fast_smooth(deconv(:,order),obj.ops.sig);
         ax(1)=subplot(4,1,1:3);
         imagesc('xdata',obj.ts,'cdata',deconv');
         colormap(get_colour('black'));
@@ -38,7 +39,7 @@ switch lower(type)
         end
         figure;
         deconv=fast_smooth(obj.deconv(:,order),obj.ops.sig);
-        deconv=(deconv-mean(deconv,'omitnan'))./std(deconv,'omitnan');
+%         deconv=(deconv-mean(deconv,'omitnan'))./std(deconv,'omitnan');
         ax(1)=subplot(5,1,1:3);
         imagesc('xdata',obj.ts,'cdata',deconv');
 %         colormap(get_colour('black'));
@@ -107,7 +108,7 @@ switch lower(type)
             imagesc(R);
             colormap jet
             axis square
-            caxis([-.2 1]);
+            caxis([0 .6]);
             c=colorbar;
             c.Label.String='Corr. Coef.';
             xlabel(lab);
