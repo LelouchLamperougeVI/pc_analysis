@@ -48,6 +48,7 @@ ts=sort([ts rwd]);
 pos_raw=pos_raw(ts);
 ts=(ts-1).*(obj.si*1e-6);
 idx=find(get_head(pos_raw'<5));
+idx(find(pos_raw(idx(2:end)-1)-pos_raw(idx(2:end))<5)+1)=[];
 pos_norm=pos_raw;
 pos_cum=pos_raw;
 trial=zeros(size(pos_raw));

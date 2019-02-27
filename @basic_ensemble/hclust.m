@@ -29,6 +29,11 @@ end
 
 
 % assign each SCE to clusters and remove clusters without SCE
+if isempty(clust)
+    obj.clust=cell(0);
+    return
+end
+
 Sm=false(size(obj.deconv,2),length(clust));
 for i=1:length(clust)
     Sm(clust{i},i)=true;

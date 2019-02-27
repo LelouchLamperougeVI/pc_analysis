@@ -23,6 +23,11 @@ end
 [sos,g]=ss2sos(a,b,c,d);
 obj.swr=filtfilt(sos,g,obj.lfp)./obj.f60_env;
 
+% movements are characterized by increase in power in the high frequencies ranging from 500 to 1000 Hz
+[a,b,c,d]=butter(2,[500 1000]/obj.fs*2,'bandpass');
+[sos,g]=ss2sos(a,b,c,d);
+obj.lfp_mvt=filtfilt(sos,g,obj.lfp)./obj.f60_env;
+
 % amplitude envelope for SWR band and ripples detection
 env=envelope(obj.swr);
 ts=mean(env)+3*std(env);
