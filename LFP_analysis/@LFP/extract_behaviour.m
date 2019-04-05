@@ -3,13 +3,17 @@ function extract_behaviour(obj)
 signal=obj.raw;
 nSmooth = 1 / (obj.si * 1e-6);
 
-frame_ts=signal(:,1)<1;
+frame_ts=signal(:,obj.get_channel('2p'))<1;
 frame_ts=get_head(frame_ts);
 frame_ts=find(frame_ts);
 frame_ts(1)=[];
 
 rwd=signal(:,obj.get_channel('rwd'));
-rwd=find(get_head(rwd<1))'; %returns a single index of value 1 for rest trials
+if median(rwd) > 2.5
+    rwd=find(get_head(rwd<1))';
+else
+    rwd=find(get_head(rwd>1))';
+end
 
 ch_a=signal(:,obj.get_channel('chA'));
 ch_b=signal(:,obj.get_channel('chB'))';

@@ -1,4 +1,8 @@
-function h = plot_behaviour(analysis,deconv)
+function h = plot_behaviour(analysis,deconv,peaks_flag)
+
+if nargin < 3
+    peaks_flag = false;
+end
 
 sig=3;
 
@@ -8,19 +12,33 @@ ax1=subplot(4,1,1:2);
 bins=length(analysis.Pi);
 behavior=analysis.behavior;
 
-deconv=zscore(deconv);
-deconv=zscore(fast_smooth(deconv,sig))';
+run_thres = noRun(behavior.unit_vel);
+run_thres = behavior.unit_vel < run_thres;
 
-stack=analysis.raw_stack;
+deconv=zscore(fast_smooth(deconv,sig));
 
-stack=(stack-repmat(min(stack),bins,1));
-stack=stack./repmat(max(stack),bins,1);
+ordered = get_order(analysis);
+ordered = intersect(ordered, analysis.pc_list, 'stable');
 
-[~,idx]=max(stack);
-[~,ordered]=sort(idx);
-imagesc(-deconv(ordered(end:-1:1),:),'xdata',(behavior.frame_ts-min(behavior.frame_ts))./1);
-colormap gray
-ylabel('neuron no.');
+if peaks_flag
+    p_neurons = repmat(1:length(ordered), length(behavior.trials)-1);
+    p_frame = zeros(1, length(ordered) * (length(behavior.trials) - 1));
+    for i = 1:length(behavior.trials)-1
+        temp = deconv(:, ordered);
+        temp(run_thres, :) = nan;
+        temp(setxor(1:size(deconv,1), behavior.trials_ts(i):behavior.trials_ts(i+1)-1), :) = nan;
+        [~,idx] = max(temp);
+        p_frame((i-1)*length(ordered)+1 : i*length(ordered)) = idx;
+    end
+    p_frame = behavior.frame_ts(p_frame)-min(behavior.frame_ts);
+    plot(p_frame, p_neurons, 'k.', 'markersize',20);
+    ylabel('neuron no.');
+else
+    imagesc(-deconv(:, ordered(end:-1:1)),'xdata',(behavior.frame_ts-min(behavior.frame_ts))./1);
+    colormap gray
+    ylabel('neuron no.');
+end
+
 ax2=subplot(4,1,3);
 plot((behavior.frame_ts-min(behavior.frame_ts))./1,behavior.unit_pos);
 ylabel('position (cm)');

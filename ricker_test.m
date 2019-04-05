@@ -53,7 +53,8 @@ idx=imregionalmax(M);
 idx([1 bins],:)=false;
 idx([1:ceil(bins*width(1)/2) floor(bins*width(2)/2):end],:)=false;
 
-idx=median(median(M))+sig*mad(reshape(M,1,[]),1)<M & idx;
+% idx=median(median(M))+sig*mad(reshape(M,1,[]),1)<M & idx;
+idx = (median(M(1,(bins+1):(2*bins))) + sig*mad(M(1,(bins+1):(2*bins))))<M & idx;
 
 % idx=median(M,2)+sig*mad(M',1)'<M & idx;
 idx(:,[1:bins 2*bins+1:3*bins])=[];

@@ -1,6 +1,7 @@
 function set_ops(obj,varargin)
 if isempty(obj.ops) || nargin<2
-    ops.sig=.05;
+%     ops.sig=.05;
+    ops.sig=0.2;
     ops.thres=3;
     ops.off_thres=1;
     ops.gaps=.25;
@@ -9,10 +10,15 @@ if isempty(obj.ops) || nargin<2
     ops.wdw=[-.5 .5];
     ops.wdw_size=.01;
     
-    ops.e_size=10;
+    ops.e_size=5;
     ops.e_prctile=.1;
     
     ops.sce_dur=[0 .8]; % 0 to 800 ms SCE events
+    
+    ops.shuffles = 100; % number of shuffles to obtain null corr matrix
+    
+    ops.order = 'pc';
+    obj.order = obj.pc_order;
     
     obj.ops=ops;
     if nargin<2
@@ -53,6 +59,20 @@ while(idx<length(varargin))
         case 'sce_dur'
             idx=idx+1;
             obj.ops.sce_dur=varargin{idx};
+            
+        case 'order'
+            idx=idx+1;
+            switch lower(varargin{idx})
+                case 'pc'
+                    obj.ops.order='pc';
+                    obj.order = obj.pc_order;
+                case 'cluster'
+                    obj.ops.order='cluster';
+                    obj.order = obj.clust_order;
+                otherwise
+                    warning(['''' varargin{idx} ''' is not recognized as a valid input value for argument ''order''']);
+            end
+            
         otherwise
             error(['''' varargin{idx} ''' is not a valid parameter']);
     end

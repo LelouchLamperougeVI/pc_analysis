@@ -1,4 +1,19 @@
-function filter_bands(obj)
+function filter_bands(obj,filt_60)
+
+if nargin < 2
+    filt_60 = true;
+end
+
+if filt_60
+    %notch 60
+    [a,b,c,d]=butter(2,[58 62]/obj.fs*2,'stop');
+    [sos,g]=ss2sos(a,b,c,d);
+    obj.lfp=filtfilt(sos,g,obj.lfp)./obj.f60_env;
+    %harmonic
+    [a,b,c,d]=butter(2,[178 182]/obj.fs*2,'stop');
+    [sos,g]=ss2sos(a,b,c,d);
+    obj.lfp=filtfilt(sos,g,obj.lfp)./obj.f60_env;
+end
 
 %delta
 [a,b,c,d]=butter(2,[1 4]/obj.fs*2,'bandpass');
@@ -66,8 +81,8 @@ for i=1:length(heads)
     obj.swr_dur(i)=obj.t(tails(i)) - obj.t(heads(i));
 end
 
-short=obj.swr_cyc<4; %ripples containing less than 4 cycles are discarded
-obj.swr_peaks(short)=[];
-obj.swr_on(short)=[];
-obj.swr_dur(short)=[];
-obj.swr_cyc(short)=[];
+% short=obj.swr_cyc<4; %ripples containing less than 4 cycles are discarded
+% obj.swr_peaks(short)=[];
+% obj.swr_on(short)=[];
+% obj.swr_dur(short)=[];
+% obj.swr_cyc(short)=[];

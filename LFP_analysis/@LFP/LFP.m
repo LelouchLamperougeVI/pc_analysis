@@ -31,7 +31,12 @@ classdef LFP < handle
 %         Channels = [1 2 3 4 5 6]';
 %         Channels = [1 2 3 5 4 6]';
 %         Channels = [1 2 3 5 8 6]';
-        Channels = [1 2 3 7 8 5]';
+%         Channels = [1 2 3 7 8 5]';
+%         Channels = [1 2 3 5 5 5]'; %old behavior for RSC RRR
+%         Channels = [1 2 3 5 5 6]'; %old old behavior for RSC RRR
+%         Channels = [1 2 3 6 8 7]'; %new behavior for RSC RRR
+        Channels = [1 2 3 4 8 7]'; %new behavior for RSC RRR
+%         Channels = [1 3 2 6 5 5]';
     end
     
     properties (GetAccess = 'private', SetAccess = 'private')
@@ -82,11 +87,11 @@ classdef LFP < handle
         end
         
         function import_deconv(obj,deconv) % import deconv
-            if size(deconv,1)>18000
-                obj.deconv=stupid_windows_fs(deconv);
-            else
+%             if size(deconv,1)>18000
+%                 obj.deconv=stupid_windows_fs(deconv);
+%             else
                 obj.deconv=deconv;
-            end
+%             end
         end
         
         function import_analysis(obj,analysis) % import pc_analysis obtained from run trials
@@ -117,7 +122,7 @@ classdef LFP < handle
             end
             obj.ensemble = basic_ensemble(obj.deconv,obj.ts_2p,varargin);
             if ~isempty(obj.analysis)
-                obj.ensemble.order=get_order(obj.analysis);
+                obj.ensemble.pc_order=get_order(obj.analysis);
             end
             obj.ensemble.lfp=obj;
         end
@@ -167,8 +172,8 @@ classdef LFP < handle
                 tails(heads>obj.ts_2p(end))=[];heads(heads>obj.ts_2p(end))=[];
                 
                 for i=1:length(heads)
-                    idx=[find(obj.ts_2p>heads(i),1) find(obj.ts_2p>tails(i),1)];
-                    idx(1)=~(idx(1)<1)*idx(1) + 1;
+                    idx=[find(obj.ts_2p>heads(i),1) find(obj.ts_2p<tails(i),1,'last')];
+                    idx(1)=~(idx(1)<1)*idx(1) + (idx(1)<1);
                     idx(2)=~(idx(2)>length(obj.ts_2p)).*idx(2) + (idx(2)>length(obj.ts_2p))*length(obj.ts_2p);
                     obj.deconv(idx(1):idx(2),:)=nan;
                 end
@@ -200,8 +205,8 @@ classdef LFP < handle
             if min(size(obj.Channels)) > 1
                 error('Channels must be a 1D vector');
             end
-            if length(unique(obj.Channels)) < length(obj.ChannelNames) || length(obj.Channels) < length(obj.ChannelNames)
-                error(['Channels must be defined as a vector of ' num2str(length(obj.ChannelNames)) ' unique integers']);
+            if length(obj.Channels) < length(obj.ChannelNames) || length(obj.Channels) < length(obj.ChannelNames)
+                error(['Channels must be defined as a vector of ' num2str(length(obj.ChannelNames)) ' integers']);
             end
             if size(obj.Channels,2)>1
                 obj.Channels = obj.Channels';

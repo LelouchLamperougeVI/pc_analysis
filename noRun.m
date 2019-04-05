@@ -3,4 +3,8 @@ function thres=noRun(unit_vel)
 
 [c,centres]=hist((abs(unit_vel)),length(unit_vel)/2);
 [~,thres]=findpeaks(-c);
-thres=(centres(thres(1)));
+try
+    thres=(centres(thres(1)));
+catch
+    thres=inf;
+end

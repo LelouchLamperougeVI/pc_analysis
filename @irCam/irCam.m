@@ -16,10 +16,19 @@ classdef irCam < handle
     
     methods
         function obj = irCam(fn)
+            if nargin < 1
+                [fn, path] = uigetfile('*.avi');
+                fn = fullfile(path,fn);
+            end
             obj.cam=VideoReader(fn);
             obj.dims(1)=obj.cam.Height;
             obj.dims(2)=obj.cam.Width;
             obj.num_frames=obj.cam.FrameRate*obj.cam.Duration;
+            
+            obj.choose_nose;
+            obj.extract_traces;
+            obj.remove_steps;
+            obj.detect_mvt;
         end
         
         function choose_nose(obj)

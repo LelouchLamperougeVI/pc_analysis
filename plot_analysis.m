@@ -71,7 +71,8 @@ if plotFlag(2)
     red=[ones(64,1) linspace(1,0,64)' linspace(1,0,64)'];
     blue=red(:,[2 3 1]);
     black=[linspace(1,0,64)' linspace(1,0,64)' linspace(1,0,64)'];
-    colormap(black); %red
+%     colormap(black); %red
+    colormap jet;
     c=colorbar; c.Label.String='Norm. Mean dF/F';
 
     qMatrix=corr(stack);
@@ -85,8 +86,8 @@ if plotFlag(2)
     set(gca,'yticklabel',strsplit(num2str(-analysis.vr_length:analysis.vr_length/5:0)));
     ylabel('position (cm)');
     c=colorbar; c.Label.String='corr. coef.';
-%     colormap jet
-    colormap(red);
+    colormap jet
+%     colormap(red);
     axis square
 end
 

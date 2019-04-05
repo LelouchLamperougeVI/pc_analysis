@@ -10,8 +10,10 @@ Dm(1:length(Dm)+1:numel(Dm))=0;
 D=squareform(Dm);
 
 obj.tree=linkage(D,'average');
+obj.clust_order = optimalleaforder(obj.tree, D);
 
 thres=prctile(squareform(1-abs(obj.null_R)),obj.ops.e_prctile);
+obj.h_thres = thres;
 
 c=cluster(obj.tree,'cutoff',thres,'criterion','distance');
 

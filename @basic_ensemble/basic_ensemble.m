@@ -21,25 +21,34 @@ classdef basic_ensemble < handle
 
     properties (GetAccess = 'public', SetAccess = 'public')
         order
+        pc_order
         lfp % object of type LFP
     end
     properties (GetAccess = 'public', SetAccess = 'private')
         ops
         deconv
         ts
+        fs
         SCE
         MUA
+        clust_SCE
+        clust_MUA
         spec = struct('spectrum',[],'f',[],'t',[],'norm',[])
         R
         null_R
         tree % agglomerative tree
+        h_thres % threshold from clustering
         clust % ensemble clusters
+        clust_order % order neurons by ensembles
+        swr_stack
+        swr_t
     end
     
     methods
         function obj = basic_ensemble(deconv,ts,varargin)
             obj.deconv=deconv;
             obj.ts=ts;
+            obj.fs=1/median(diff(ts));
             obj.detect_sce(varargin);
             obj.cluster;
         end
@@ -52,7 +61,7 @@ classdef basic_ensemble < handle
         end
         
         function cluster(obj)
-            obj.duration(obj.ops.sce_dur);
+%             obj.duration(obj.ops.sce_dur);
             obj.hclust;
         end
         
@@ -62,10 +71,8 @@ classdef basic_ensemble < handle
         sce_spectrum(obj,varargin);
         corr(obj);
         hclust(obj);
+        [stack,all,out,t]=swr_window(obj);
         plot(obj,type,varargin);
     end
     
-%     methods (Access = private)
-%         set_ops(obj,inputs);
-%     end
 end
