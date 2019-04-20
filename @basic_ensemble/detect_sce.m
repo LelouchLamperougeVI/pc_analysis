@@ -13,9 +13,8 @@ gaps=obj.ops.gaps;
 sig=fs*sig;
 gaps=round(fs*gaps);
 
-
-deconv=(deconv-mean(deconv,'omitnan'))./std(deconv,'omitnan'); %zscore
 deconv=fast_smooth(deconv,sig);
+deconv=(deconv-mean(deconv,'omitnan'))./std(deconv,'omitnan'); %zscore
 
 for ii = 1:length(obj.clust)
     [obj.clust_SCE(ii).SCE, obj.clust_MUA(ii).MUA] = detection(obj.clust{ii});
@@ -38,6 +37,13 @@ end
         tails=get_head(sce(end:-1:1));
         tails=tails(end:-1:1);
         heads=find(heads);tails=find(tails);
+        
+        if isempty(heads) || isempty(tails)
+            SCE=[];
+            MUA=[];
+            return;
+        end
+        
         if heads(1)==1
             heads(1)=[];
             tails(1)=[];

@@ -27,8 +27,10 @@ pos_raw=dist*pi/5*.1;
 speed_raw=fast_smooth((pos_raw./median(diff(frame_ts)))',nSmooth);
 speed_raw=speed_raw(frame_ts);
 
+obj.behavior.speed_raw_noSmooth = cumsum(pos_raw);
+obj.behavior.speed_raw_noSmooth = [0 diff(obj.behavior.speed_raw_noSmooth(frame_ts))./diff(frame_ts)'];
+obj.behavior.speed_raw=speed_raw;
 if length(rwd)<3
-    obj.behavior.speed_raw=speed_raw;
     return
 end
 
@@ -72,7 +74,6 @@ behavior.ts = ts;
 behavior.pos_norm = pos_norm;
 behavior.trial = trial;
 behavior.speed = speed;
-behavior.speed_raw=speed_raw;
 behavior.pos_cum = pos_cum;
 behavior.pos_raw = pos_raw;
 

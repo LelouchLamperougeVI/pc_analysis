@@ -1,7 +1,8 @@
 function set_ops(obj,varargin)
 if isempty(obj.ops) || nargin<2
 %     ops.sig=.05;
-    ops.sig=0.2;
+%     ops.sig=0.2;
+    ops.sig=1;
     ops.thres=3;
     ops.off_thres=1;
     ops.gaps=.25;
@@ -10,8 +11,9 @@ if isempty(obj.ops) || nargin<2
     ops.wdw=[-.5 .5];
     ops.wdw_size=.01;
     
-    ops.e_size=5;
+    ops.e_size=10;
     ops.e_prctile=.1;
+    ops.clust_method = 'shuffle';
     
     ops.sce_dur=[0 .8]; % 0 to 800 ms SCE events
     
@@ -70,7 +72,18 @@ while(idx<length(varargin))
                     obj.ops.order='cluster';
                     obj.order = obj.clust_order;
                 otherwise
-                    warning(['''' varargin{idx} ''' is not recognized as a valid input value for argument ''order''']);
+                    error(['''' varargin{idx} ''' is not recognized as a valid input value for argument ''order''']);
+            end
+            
+        case 'clust_method'
+            idx=idx+1;
+            switch lower(varargin{idx})
+                case 'shuffle'
+                    obj.ops.clust_method='shuffle';
+                case 'silhouette'
+                    obj.ops.clust_method='silhouette';
+                otherwise
+                    error(['''' varargin{idx} ''' is not recognized as a valid input value for argument ''clust_method''']);
             end
             
         otherwise

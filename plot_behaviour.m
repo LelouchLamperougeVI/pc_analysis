@@ -34,7 +34,7 @@ if peaks_flag
     plot(p_frame, p_neurons, 'k.', 'markersize',20);
     ylabel('neuron no.');
 else
-    imagesc(-deconv(:, ordered(end:-1:1)),'xdata',(behavior.frame_ts-min(behavior.frame_ts))./1);
+    imagesc(-deconv(:, ordered(end:-1:1))','xdata',(behavior.frame_ts-min(behavior.frame_ts))./1);
     colormap gray
     ylabel('neuron no.');
 end

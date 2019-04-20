@@ -1,5 +1,6 @@
 function smoothed=fast_smooth(data,sig,dim)
 % Faster 1d gaussian kernel smoothing
+% Accounts for edge underestimation and NaNs
 % Usage: 
 %   data: matrix of size n x m where rows contain observations and columns
 %      contain variables (can also be vector)
@@ -34,14 +35,17 @@ alpha=(kernelSize-1)/sig/2;
 kernel=gausswin(kernelSize,alpha);
 kernel=kernel./sum(kernel);
 
+nan_idx = any(isnan(data),2);
 taper=zeros(kernelSize,1);
 data=[repmat(taper,1,size(data,2));data;repmat(taper,1,size(data,2))];
 data=data(:);
+data(isnan(data))=0;
 
 smoothed=conv(data,kernel,'same');
 smoothed=reshape(smoothed,dataSize+kernelSize*2,[]);
-smoothed=smoothed./conv([zeros(kernelSize,1); ones(dataSize,1); zeros(kernelSize,1)],kernel,'same'); %account for edge data underestimation
+smoothed=smoothed./conv([zeros(kernelSize,1); ~nan_idx; zeros(kernelSize,1)],kernel,'same'); %account for edge data underestimation
 smoothed([1:kernelSize end-kernelSize+1:end],:)=[];
+smoothed(nan_idx,:) = nan;
 
 switch dim
     case 1

@@ -81,8 +81,14 @@ for i=1:length(heads)
     obj.swr_dur(i)=obj.t(tails(i)) - obj.t(heads(i));
 end
 
-% short=obj.swr_cyc<4; %ripples containing less than 4 cycles are discarded
-% obj.swr_peaks(short)=[];
-% obj.swr_on(short)=[];
-% obj.swr_dur(short)=[];
-% obj.swr_cyc(short)=[];
+short=obj.swr_cyc < obj.default_ops.swr_cyc; %ripples containing less than n cycles are discarded
+obj.swr_peaks(short)=[];
+obj.swr_on(short)=[];
+obj.swr_dur(short)=[];
+obj.swr_cyc(short)=[];
+
+tooClose = [false; diff(obj.swr_peaks) < obj.default_ops.swr_gap];
+obj.swr_peaks(tooClose)=[];
+obj.swr_on(tooClose)=[];
+obj.swr_dur(tooClose)=[];
+obj.swr_cyc(tooClose)=[];

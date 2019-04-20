@@ -32,10 +32,10 @@ classdef LFP < handle
 %         Channels = [1 2 3 5 4 6]';
 %         Channels = [1 2 3 5 8 6]';
 %         Channels = [1 2 3 7 8 5]';
-%         Channels = [1 2 3 5 5 5]'; %old behavior for RSC RRR
+        Channels = [1 2 3 5 5 5]'; %old behavior for RSC RRR
 %         Channels = [1 2 3 5 5 6]'; %old old behavior for RSC RRR
 %         Channels = [1 2 3 6 8 7]'; %new behavior for RSC RRR
-        Channels = [1 2 3 4 8 7]'; %new behavior for RSC RRR
+%         Channels = [1 2 3 4 8 7]'; %new vr behavior for RSC RRR
 %         Channels = [1 3 2 6 5 5]';
     end
     
@@ -50,7 +50,7 @@ classdef LFP < handle
     
     properties (GetAccess = 'private', Constant)
         nfft = 2^16;
-        default_ops = struct('down_fs',2e3,'spec_wdw',.5);
+        default_ops = struct('down_fs',2e3,'spec_wdw',.5, 'swr_cyc',3, 'swr_gap', .25);
     end
     
     methods

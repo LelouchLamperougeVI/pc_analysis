@@ -137,7 +137,7 @@ switch lower(type)
         end
         clist = 'brgycm';
         figure;
-        subplot(2,2,2)
+        ax_u=subplot(2,2,2);
         h = dendrogram(obj.tree,0,'reorder',order);
         set(h, 'color', 'k');
         for i = 1:length(obj.clust)
@@ -145,7 +145,7 @@ switch lower(type)
             set(h(idx), 'color', clist(mod(i,length(clist))+1));
         end
         axis square
-        subplot(2,2,3)
+        ax_l=subplot(2,2,3);
         h = dendrogram(obj.tree,0,'reorder',order(end:-1:1),'orientation','left');
         set(h, 'color', 'k');
         for i = 1:length(obj.clust)
@@ -153,10 +153,17 @@ switch lower(type)
             set(h(idx), 'color', clist(mod(i,length(clist))+1));
         end
         axis square
-        subplot(2,2,4)
+        ax_m=subplot(2,2,4);
         imagesc(obj.R(order,order));
         colormap jet
         axis square
+        p = get(ax_m, 'Position');
+        caxis([-.5 1])
+        colorbar;
+        set(ax_m, 'Position', p);
+        
+        linkaxes([ax_u ax_m], 'x');
+        linkaxes([ax_l ax_m], 'y');
         
         
     case 'pc'
@@ -223,6 +230,27 @@ switch lower(type)
         colormap jet
         c = colorbar;
         c.Label.String = 'normalized mean dF/F';
-        title('Place Field Sorted');
+        if strcmpi(obj.ops.order,'cluster')
+            title('Cluster Sorted');
+        elseif strcmpi(obj.ops.order,'pc')
+            title('Place Field Sorted');
+        else
+        end
+        xlabel('time from SWR peak (sec)');
+        ylabel('sorted neuron no.');
+        
+    case 'silhouette'
+        if strcmp(obj.ops.clust_method, 'shuffle')
+            warning('Current clustering method set to ''shuffle'', changing method to ''silhouette''');
+            obj.set_ops('clust_method','silhouette');
+        end
+        [~,s,ticks] = obj.silhouette_cluster;
+        figure;
+        plot(1:length(s), s, 'k');
+        xticks(1:length(s));
+        xticklabels(strsplit(num2str(ticks)));
+        xlabel('number of clusters');
+        ylabel('average silhouette width');
+        
         
 end

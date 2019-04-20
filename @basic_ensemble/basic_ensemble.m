@@ -49,8 +49,8 @@ classdef basic_ensemble < handle
             obj.deconv=deconv;
             obj.ts=ts;
             obj.fs=1/median(diff(ts));
-            obj.detect_sce(varargin);
-            obj.cluster;
+%             obj.detect_sce(varargin);
+%             obj.cluster;
         end
         
         function duration(obj,thres) % remove SCEs outside duration threshold (thres = [lower_lim upper_lim])
@@ -73,6 +73,10 @@ classdef basic_ensemble < handle
         hclust(obj);
         [stack,all,out,t]=swr_window(obj);
         plot(obj,type,varargin);
+    end
+    
+    methods (Access=private)
+        [clust, s, ticks] = silhouette_cluster(obj,Z,D,e_size);
     end
     
 end

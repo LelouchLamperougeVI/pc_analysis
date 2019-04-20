@@ -3,7 +3,9 @@ function hclust(obj,varargin)
 
 % D=sqrt(1-obj.R.^2);
 obj.set_ops(varargin);
-obj.corr;
+if isempty(obj.R)
+    obj.corr;
+end
 
 Dm=1-abs(obj.R);
 Dm(1:length(Dm)+1:numel(Dm))=0;
@@ -12,10 +14,15 @@ D=squareform(Dm);
 obj.tree=linkage(D,'average');
 obj.clust_order = optimalleaforder(obj.tree, D);
 
-thres=prctile(squareform(1-abs(obj.null_R)),obj.ops.e_prctile);
+thres = linkage(squareform(1-abs(obj.null_R)), 'average');
+thres=prctile(thres(:,3),obj.ops.e_prctile);
 obj.h_thres = thres;
 
-c=cluster(obj.tree,'cutoff',thres,'criterion','distance');
+if strcmp(obj.ops.clust_method, 'silhouette')
+    c=obj.silhouette_cluster(obj.tree, Dm, obj.ops.e_size);
+else
+    c=cluster(obj.tree,'cutoff',thres,'criterion','distance');
+end
 
 count=1;
 for i=1:max(c)
@@ -40,13 +47,18 @@ Sm=false(size(obj.deconv,2),length(clust));
 for i=1:length(clust)
     Sm(clust{i},i)=true;
 end
-for i=1:length(obj.SCE.on)
-    idx=find(obj.SCE.on(i)==obj.ts):find(obj.SCE.on(i)+obj.SCE.dur(i)==obj.ts);
-    mu=obj.deconv(idx,:);
-    mu=sum(mu)'.*Sm;
-    mu=sum(mu)./cellfun(@length, clust);
-    [~,obj.SCE.clust(i)]=max(mu);
+if ~isempty(obj.SCE)
+    for i=1:length(obj.SCE.on)
+        idx=find(obj.SCE.on(i)==obj.ts):find(obj.SCE.on(i)+obj.SCE.dur(i)==obj.ts);
+        mu=obj.deconv(idx,:);
+        mu=sum(mu)'.*Sm;
+        mu=sum(mu)./cellfun(@length, clust);
+        [~,obj.SCE.clust(i)]=max(mu);
+    end
 end
 
-
 obj.clust=clust;
+
+if strcmpi(obj.ops.order,'cluster')
+    obj.set_ops('order','cluster');
+end

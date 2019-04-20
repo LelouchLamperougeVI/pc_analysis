@@ -1,7 +1,7 @@
 function [stack,all,out,t]=swr_window(obj)
 
 % wdw=3;
-wdw=1;
+wdw=2;
 wdw=floor(obj.lfp.fs_2p * wdw / 2);
 
 t=(-wdw:wdw)/obj.lfp.fs_2p;

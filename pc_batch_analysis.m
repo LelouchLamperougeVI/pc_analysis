@@ -47,6 +47,7 @@ function analysis=pc_batch_analysis(varargin)
 
 behavior=varargin{1};
 deconv=varargin{2};
+original_deconv=deconv;
 
 [maskFlag,testFlag,parFlag,shuffles,bins,sd,sig,frac_trials,mad,width_thres,io_ratio,consecutive]=parse_input(varargin);
 
@@ -137,15 +138,15 @@ Pi=Pi./sum(Pi);
 % sparsity=sum(Pi.*(mean(raw_psth,1).^2),2)./(mean(mean(raw_psth,1),2).^2);
 sparsity=sum(Pi.*raw_stack).^2./sum(Pi.*raw_stack.^2);
 % sparsity=shiftdim(sparsity,1);
-sparsity=sparsity(pc_list);
+% sparsity=sparsity(pc_list);
 
 
 if maskFlag
     maskNeurons=varargin{maskFlag+1};
     mimg=varargin{maskFlag+2};
-    analysis=v2struct(vr_length,fs,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,behavior,silent,rick_rejects,maskNeurons,mimg);
+    analysis=v2struct(vr_length,fs,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,original_deconv,behavior,silent,rick_rejects,maskNeurons,mimg);
 else
-    analysis=v2struct(vr_length,fs,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,behavior,silent,rick_rejects);
+    analysis=v2struct(vr_length,fs,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,original_deconv,behavior,silent,rick_rejects);
 end
 
     function updateBar(~)
