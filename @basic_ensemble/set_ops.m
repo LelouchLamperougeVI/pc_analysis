@@ -14,6 +14,7 @@ if isempty(obj.ops) || nargin<2
     ops.e_size=10;
     ops.e_prctile=.1;
     ops.clust_method = 'shuffle';
+    ops.clust_thres = 0.7; %threshold for cutting clusters
     
     ops.sce_dur=[0 .8]; % 0 to 800 ms SCE events
     
@@ -82,6 +83,8 @@ while(idx<length(varargin))
                     obj.ops.clust_method='shuffle';
                 case 'silhouette'
                     obj.ops.clust_method='silhouette';
+                case 'thres'
+                    obj.ops.clust_method='thres';
                 otherwise
                     error(['''' varargin{idx} ''' is not recognized as a valid input value for argument ''clust_method''']);
             end

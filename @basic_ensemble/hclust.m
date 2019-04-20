@@ -20,8 +20,10 @@ obj.h_thres = thres;
 
 if strcmp(obj.ops.clust_method, 'silhouette')
     c=obj.silhouette_cluster(obj.tree, Dm, obj.ops.e_size);
-else
+elseif strcmp(obj.ops.clust_method, 'shuffle')
     c=cluster(obj.tree,'cutoff',thres,'criterion','distance');
+elseif strcmp(obj.ops.clust_method, 'thres')
+    c=cluster(obj.tree,'cutoff',obj.ops.clust_thres,'criterion','distance');
 end
 
 count=1;
