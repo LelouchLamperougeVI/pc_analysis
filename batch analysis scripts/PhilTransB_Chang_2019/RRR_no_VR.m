@@ -40,7 +40,8 @@ for f = 1:length(list)
 %         lfp.remove_mvt;
         lfp.detect_sce;
         ass = lfp.ensemble;
-        ass.set_ops('clust_method','silhouette');
+%         ass.set_ops('clust_method','silhouette');
+        ass.set_ops('clust_method','thres');
         ass.set_ops('order','cluster');
         ass.cluster;
         ass.plot('tree');
@@ -56,7 +57,8 @@ for f = 1:length(list)
 %         lfp.remove_mvt;
         lfp.detect_sce;
         ass = lfp.ensemble;
-        ass.set_ops('clust_method','silhouette');
+%         ass.set_ops('clust_method','silhouette');
+        ass.set_ops('clust_method','thres');
         ass.set_ops('order','cluster');
         ass.cluster;
         ass.plot('tree');
@@ -152,6 +154,7 @@ session.rest1 = struct('SI_clust',[], 'SI_no_clust',[], 'sparsity_clust',[], 'sp
                         'clust_size',[], 'clust_num',[], 'clust_frac',[], 'xcoef',[], 'err',[], 'err_sem',[], 'err_all',[], 'err_sem_all',[], ...
                         'err_no_clust',[], 'err_sem_no_clust',[], 'frac_pc',[], 'frac_pc_clust',[], ...
                         'width',[], 'all_width',[], 'norm_width',[], 'stack_all',[], 'stack_clust',[], 'stack_no_clust',[], ...
+                        'stack_overlap', [], 'stack_diff', [], 'SI_overlap',[], 'SI_diff',[], 'width_diff',[], ...
                         'null_err',[]);
 session.rest2 = session.rest1;
 
@@ -182,13 +185,13 @@ for f = 1:length(list)
             r1_clust = ass.clust;
             session(count).rest1.xcoef = arrayfun(@(x) max(xcorr(belt_idx, mean(analysis.stack(:,ass.clust{x}),2), 'coeff')), 1:length(ass.clust));
             
-            null_err = zeros(length(ass.clust),50,shuffles);
-            parfor ii = 1:shuffles
-                sample = arrayfun(@(x) randperm(length(analysis.psth), x), cellfun(@length, ass.clust), 'uniformoutput',false);
-                [~,~,temp] = bayes_infer(analysis, .05, sample);
-                null_err(:, :, ii) = temp(2:end,:);
-            end
-            session(count).rest1.null_err = null_err;
+%             null_err = zeros(length(ass.clust),50,shuffles);
+%             parfor ii = 1:shuffles
+%                 sample = arrayfun(@(x) randperm(length(analysis.psth), x), cellfun(@length, ass.clust), 'uniformoutput',false);
+%                 [~,~,temp] = bayes_infer(analysis, .05, sample);
+%                 null_err(:, :, ii) = temp(2:end,:);
+%             end
+%             session(count).rest1.null_err = null_err;
             
             [~,~,session(count).rest1.err,session(count).rest1.err_sem]=bayes_infer(analysis,.05,r1_clust);
             [~,~,session(count).rest1.err_all,session(count).rest1.err_sem_all]=bayes_infer(analysis,.05,{cell2mat(r1_clust)});
@@ -221,13 +224,13 @@ for f = 1:length(list)
             r2_clust = ass.clust;
             session(count).rest2.xcoef = arrayfun(@(x) max(xcorr(belt_idx, mean(analysis.stack(:,ass.clust{x}),2), 'coeff')), 1:length(ass.clust));
             
-            null_err = zeros(length(ass.clust),50,shuffles);
-            parfor ii = 1:shuffles
-                sample = arrayfun(@(x) randperm(length(analysis.psth), x), cellfun(@length, ass.clust), 'uniformoutput',false);
-                [~,~,temp] = bayes_infer(analysis, .05, sample);
-                null_err(:, :, ii) = temp(2:end,:);
-            end
-            session(count).rest2.null_err = null_err;
+%             null_err = zeros(length(ass.clust),50,shuffles);
+%             parfor ii = 1:shuffles
+%                 sample = arrayfun(@(x) randperm(length(analysis.psth), x), cellfun(@length, ass.clust), 'uniformoutput',false);
+%                 [~,~,temp] = bayes_infer(analysis, .05, sample);
+%                 null_err(:, :, ii) = temp(2:end,:);
+%             end
+%             session(count).rest2.null_err = null_err;
             
             [~,~,session(count).rest2.err,session(count).rest2.err_sem]=bayes_infer(analysis,.05,r2_clust);
             [~,~,session(count).rest2.err_all,session(count).rest2.err_sem_all]=bayes_infer(analysis,.05,{cell2mat(r2_clust)});
@@ -250,6 +253,36 @@ for f = 1:length(list)
             session(count).frac_overlap = length(intersect(cell2mat(r1_clust), cell2mat(r2_clust))) / size(ass.deconv,2);
             session(count).null_frac = length(cell2mat(r1_clust)) * length(cell2mat(r2_clust)) / (size(ass.deconv,2)^2); %mean of hypergeometric distribution
             session(count).hypergeo_p = hygepdf(length(intersect(cell2mat(r1_clust), cell2mat(r2_clust))), size(ass.deconv,2), length(cell2mat(r1_clust)), length(cell2mat(r2_clust)));
+            
+            session(count).rest1.stack_overlap = analysis.stack(:, intersect(analysis.pc_list, intersect(cell2mat(r1_clust), cell2mat(r2_clust))));
+            session(count).rest1.stack_diff = analysis.stack(:, intersect(analysis.pc_list, setdiff(cell2mat(r1_clust), cell2mat(r2_clust))));
+            session(count).rest2.stack_overlap = analysis.stack(:, intersect(analysis.pc_list, intersect(cell2mat(r2_clust), cell2mat(r1_clust))));
+            session(count).rest2.stack_diff = analysis.stack(:, intersect(analysis.pc_list, setdiff(cell2mat(r2_clust), cell2mat(r1_clust))));
+%             session(count).rest1.stack_overlap = analysis.stack(:, intersect(cell2mat(r1_clust), cell2mat(r2_clust)));
+%             session(count).rest1.stack_diff = analysis.stack(:, setdiff(cell2mat(r1_clust), cell2mat(r2_clust)));
+%             session(count).rest2.stack_overlap = analysis.stack(:, intersect(cell2mat(r2_clust), cell2mat(r1_clust)));
+%             session(count).rest2.stack_diff = analysis.stack(:, setdiff(cell2mat(r2_clust), cell2mat(r1_clust)));
+            session(count).rest1.stack_clust_pc = analysis.stack(:, intersect(analysis.pc_list, cell2mat(r1_clust)));
+            session(count).rest2.stack_clust_pc = analysis.stack(:, intersect(analysis.pc_list, cell2mat(r2_clust)));
+            session(count).rest1.stack_no_clust_pc = analysis.stack(:, intersect(analysis.pc_list, setxor(1:length(analysis.psth), cell2mat(r1_clust))));
+            session(count).rest2.stack_no_clust_pc = analysis.stack(:, intersect(analysis.pc_list, setxor(1:length(analysis.psth), cell2mat(r2_clust))));
+            
+            session(count).rest1.SI_overlap = analysis.SI(intersect(cell2mat(r1_clust), cell2mat(r2_clust)));
+            session(count).rest1.SI_diff = analysis.SI(setdiff(cell2mat(r1_clust), cell2mat(r2_clust)));
+            session(count).rest2.SI_overlap = analysis.SI(intersect(cell2mat(r2_clust), cell2mat(r1_clust)));
+            session(count).rest2.SI_diff = analysis.SI(setdiff(cell2mat(r2_clust), cell2mat(r1_clust)));
+            
+            session(count).rest1.frac_pc_diff = length(intersect(analysis.pc_list, setdiff(cell2mat(r1_clust), cell2mat(r2_clust)))) / length(setdiff(cell2mat(r1_clust), cell2mat(r2_clust)));
+            session(count).rest2.frac_pc_diff = length(intersect(analysis.pc_list, setdiff(cell2mat(r2_clust), cell2mat(r1_clust)))) / length(setdiff(cell2mat(r2_clust), cell2mat(r1_clust)));
+            
+            width = analysis.width(setdiff(cell2mat(r1_clust), cell2mat(r2_clust)));
+            idx = ~cellfun(@isempty, width);
+            width = cell2mat(width(idx)');
+            session(count).rest1.width_diff = width;
+            width = analysis.width(setdiff(cell2mat(r2_clust), cell2mat(r1_clust)));
+            idx = ~cellfun(@isempty, width);
+            width = cell2mat(width(idx)');
+            session(count).rest2.width_diff = width;
             
             session(count).animal=list{f};
             session(count).date=root(i).name;
@@ -510,6 +543,7 @@ idx = repmat(distance_idx, size(lol,1), 1);
 figure
 [lol,lags]=xcorr_pairs(r1_sig_regions', 50);
 % [lol,lags]=xcorr_pairs(-log10(r1_sig_map)', 50);
+% [lol,lags]=xcorr_pairs(r1_sig_map', 50);
 % lol=lol./max(lol);
 [~,idx]=max(lol);
 % idx=sum(lol);
@@ -525,8 +559,9 @@ hold on
 plot(lags(idx).*3, 1:size(lol,2), 'r')
 
 figure
-[lol,lags]=xcorr_pairs(r2_sig_map', 50);
-lol=lol./max(lol);
+[lol,lags]=xcorr_pairs(r2_sig_regions', 50);
+% [lol,lags]=xcorr_pairs(r2_sig_map', 50);
+% lol=lol./max(lol);
 [~,idx]=max(lol);
 [~,idx]=sort(idx);
 imagesc('xdata',lags.*3,'cdata',lol(:,idx)')
@@ -545,7 +580,17 @@ figure
 % stack=arrayfun(@(x) session(x).rest1.stack_clust, 1:length(session), 'uniformoutput',false);
 
 % stack=arrayfun(@(x) session(x).rest2.stack_no_clust, 1:length(session), 'uniformoutput',false);
-stack=arrayfun(@(x) session(x).rest1.stack_no_clust, 1:length(session), 'uniformoutput',false);
+% stack=arrayfun(@(x) session(x).rest1.stack_no_clust, 1:length(session), 'uniformoutput',false);
+
+stack=arrayfun(@(x) session(x).rest1.stack_overlap, 1:length(session), 'uniformoutput',false);
+
+% stack=arrayfun(@(x) session(x).rest1.stack_clust_pc, 1:length(session), 'uniformoutput',false);
+% stack=arrayfun(@(x) session(x).rest2.stack_clust_pc, 1:length(session), 'uniformoutput',false);
+% stack=arrayfun(@(x) session(x).rest2.stack_no_clust_pc, 1:length(session), 'uniformoutput',false);
+% stack=arrayfun(@(x) session(x).rest2.stack_diff, 1:length(session), 'uniformoutput',false);
+% stack=arrayfun(@(x) session(x).rest1.stack_diff, 1:length(session), 'uniformoutput',false);
+
+
 stack=cell2mat(stack);
 [~,idx]=max(stack);
 [~,idx]=sort(idx);
