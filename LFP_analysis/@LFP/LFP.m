@@ -32,7 +32,8 @@ classdef LFP < handle
 %         Channels = [1 2 3 5 4 6]';
 %         Channels = [1 2 3 5 8 6]';
 %         Channels = [1 2 3 7 8 5]';
-        Channels = [1 2 3 5 5 5]'; %old behavior for RSC RRR
+        Channels = [1 2 3 6 5 5]';
+%         Channels = [1 2 3 5 5 5]'; %old behavior for RSC RRR
 %         Channels = [1 2 3 5 5 6]'; %old old behavior for RSC RRR
 %         Channels = [1 2 3 6 8 7]'; %new behavior for RSC RRR
 %         Channels = [1 2 3 4 8 7]'; %new vr behavior for RSC RRR
