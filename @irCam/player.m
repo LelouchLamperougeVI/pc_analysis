@@ -29,7 +29,7 @@ seek_box=uicontrol(h,'style','checkbox','string','seek','callback',@seek);
         if ~isempty(obj.mvt)
             plot(ax2,find(obj.mvt),obj.traces(obj.mvt),'.');
         end
-        plot(ax2,pos,obj.traces(pos)+5,'vr');
+        plot(ax2,pos,max(obj.traces(pos,:))+5,'vr');
     end
 
     function seek(src, event)

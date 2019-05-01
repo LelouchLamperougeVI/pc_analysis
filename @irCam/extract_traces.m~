@@ -1,0 +1,42 @@
+function extract_traces(obj, mask)
+
+if nargin < 2
+	mask = 'all';
+else
+	switch lower(mask)
+	case 'nose'
+		mask = 'nose';
+	case 'limb'
+		mask = 'limb';
+	otherwise
+		error(['The input value ''' mask ''' is not a valid option']); 
+	end
+end
+
+if ~isempty(obj.original_traces)
+	warning('You already extracted the traces once. Are you sure you want to run it again? This may take a while. Do it in special senarios, e.g. when you reselected the mask.')
+	uinp = input('Do you still want to extract? [Y/N] ');
+	if ~strcmpi(uinp, 'y')
+		return
+	end
+end
+
+cam=obj.cam;
+switch mask
+case 'nose'
+	mask = obj.nose_mask;
+case 'limb'
+	mask = obj.limb_mask;
+case 'all'
+	mask = obj.nose_mask | obj.limb_mask;
+end
+
+mask=obj.nose_mask;
+traces=zeros(1,obj.num_frames);
+parfor ii=1:obj.num_frames
+    frame=cam.read(ii);
+    frame=rgb2gray(frame);
+    traces(ii)=mean(frame(mask));
+end
+obj.traces=traces;
+obj.original_traces=traces;
