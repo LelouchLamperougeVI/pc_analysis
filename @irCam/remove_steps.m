@@ -8,19 +8,28 @@ if isempty(obj.traces)
 end
 
 if nargin<2
-    thres=.05;
+    thres=.1; % 10% of the max decrease in residual
 end
 if nargin<3
-    samples = 10;
+    samples = obj.cam.FrameRate * 10; %10 second gaps
 end
 
-samples=round(samples * obj.cam.FrameRate);
-base_residuals=sum(abs(obj.traces-mean(obj.traces)));
+baseline = obj.original_traces(:,obj.get_label('baseline'));
 
-steps=findchangepts(obj.traces,'statistic','mean','minthreshold',base_residuals*thres,'mindistance',samples);
-steps=[1 steps];
+residue0 = length(baseline) * log(var(baseline));
+[~,residue1] = cpsingle(baseline, 'std', samples);
 
+thres = (residue0 - residue1) * thres;
+
+steps=findchangepts(baseline,'statistic','std', 'minthreshold',thres, 'mindistance',samples);
+steps=[1; steps];
+
+temp=[];
 for ii=1:length(steps)-1
-    obj.traces(steps(ii):steps(ii+1)-1)=obj.traces(steps(ii):steps(ii+1)-1)-mean(obj.traces(steps(ii):steps(ii+1)-1));
+    temp = [temp; zscore(diff(obj.original_traces(steps(ii):steps(ii+1)-1, :)))];
+%     obj.traces(steps(ii):steps(ii+1)-1, :)=obj.original_traces(steps(ii):steps(ii+1)-1, :) - mean( obj.original_traces(steps(ii):steps(ii+1)-1, :) );
 end
-obj.traces(steps(end):end)=obj.traces(steps(end):end)-mean(obj.traces(steps(end):end));
+% obj.traces(steps(end):end, :)=obj.original_traces(steps(end):end, :) - mean( obj.original_traces(steps(end):end, :) );
+temp = [temp; zscore(diff(obj.original_traces(steps(end):end, :)))];
+
+obj.traces = temp;

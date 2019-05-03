@@ -4,19 +4,20 @@ classdef irCam < handle
         traces
         mvt
         dims=zeros(1,2);
+        fs
     end
     
     properties (GetAccess = 'public', SetAccess = 'private')
         cam
         original_traces
+        trace_std
         num_frames
         nose_mask
         limb_mask
         
         masks
         mask_labels = {'nose',...
-                       'limb',... 
-                       'baseline' };
+                       'limb' };
     end
     
     properties (GetAccess = 'private', SetAccess = 'private')
@@ -40,6 +41,7 @@ classdef irCam < handle
             obj.dims(1)=obj.cam.Height;
             obj.dims(2)=obj.cam.Width;
             obj.num_frames=obj.cam.FrameRate*obj.cam.Duration;
+            obj.fs = obj.num_frames / obj.cam.Duration;
             
             obj.default_labels_idx = length(obj.mask_labels);
             obj.masks = false(obj.dims(1), obj.dims(2), obj.default_labels_idx);
@@ -131,19 +133,31 @@ classdef irCam < handle
             obj.limb_mask=obj.gui_get_bounds;
         end
         
-        function detect_mvt(obj,sig,gap)
+        function detect_mvt(obj,sig,gap,dilation)
             % detect motion artifacts
-            % sig: number of SDs from mean (default 3)
-            % gap: number of samples between gaps to fill in (default 3 sec)
-            if nargin<2; sig=3; end
-            if nargin<3; gap=3; end
+            % sig: number of MADs from median (default 2)
+            % gap: number of samples between gaps to fill in (default 1 sec)
+            % dilation: dilate the detected regions (default 1 sec)
+            if nargin<2; sig=2; end
+            if nargin<3; gap=1; end
+            if nargin<4; dilation=1; end %dilate the detection
             gap=obj.cam.FrameRate*gap;
-            obj.mvt=abs(obj.traces-mean(obj.traces))>(std(obj.traces)*sig/2);
+            obj.mvt = any( abs(obj.traces)> (sig .* mad(obj.traces)) ,2);
+            obj.mvt = logical( conv2(obj.mvt, ones(obj.cam.FrameRate*dilation,1), 'same') );
             obj.mvt=fill_gaps(obj.mvt,gap);
+            
+            obj.mvt = double(obj.mvt);
+        end
+        
+        function mvt = export_mvt(obj)
+            mvt = obj.mvt;
+            mvt(mvt==2) = 0;
+            mvt = logical(mvt);
         end
         
         extract_traces(obj);
-        remove_steps(obj,thres,samples)
+        remove_steps(obj,thres,samples);
+        filter_traces(obj,freq);
         player(obj);
     end
     

@@ -11,12 +11,15 @@ end
 cam=obj.cam;
 masks = obj.masks;
 masks = reshape(masks, size(masks,1)*size(masks,2), 1, size(masks,3));
-masks = uint8(squeeze(masks));
+masks = squeeze(masks);
 traces=zeros(obj.num_frames, length(obj.mask_labels));
+trace_std=zeros(obj.num_frames, length(obj.mask_labels));
 parfor ii=1:obj.num_frames
     frame=cam.read(ii);
-    frame=rgb2gray(frame);
+    frame=double(rgb2gray(frame));
     traces(ii,:)=mean(frame(:) .* masks);
+    trace_std(ii,:)=std(frame(:) .* masks);
 end
 obj.traces=traces;
 obj.original_traces=traces;
+obj.trace_std=trace_std;
