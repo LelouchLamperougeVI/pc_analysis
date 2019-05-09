@@ -1,0 +1,9 @@
+function location = im_hungry
+restaurents = {'foodcourt', 'donairs', 'streets', 'edo',...
+                'original joe', 'mama', 'huangho', 'saigonese',...
+                'two guys', 'mall', 'mucha cabana', 'five guys',...
+                'dono', 'luigi', 'manjo tree'};
+            
+location = restaurents{randperm(length(restaurents),1)};
+
+disp(['Your machine overlord has decided that the best place to go for lunch is: ' location])

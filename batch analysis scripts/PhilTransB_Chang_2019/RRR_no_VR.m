@@ -3,8 +3,8 @@
 % Data folder:  Adam's old computer (AKA my computer) E:\HaoRan\RRR\ {RSC036-38}
 
 clear all
-% list = {'RSC036', 'RSC037', 'RSC038'};
-list = {'EE001_new', 'PCH017'};
+list = {'RSC036', 'RSC037', 'RSC038'};
+% list = {'EE001_new', 'PCH017'};
 % list = {'PCH017'};
 % list = {'RSC032'};
 % list = {'RSC036'};
@@ -118,7 +118,8 @@ for f = 1:length(list)
             deconv(any(isnan(deconv),2),:)=[];
             deconv=ca_filt(deconv);
             deconv=zscore(deconv);
-            deconv=fast_smooth(deconv,2);
+%             deconv=fast_smooth(deconv,2);
+            deconv=fast_smooth(deconv,ass.ops.sig*ass.fs);
             imagesc(corr(deconv));
             axis square;
             colormap jet
@@ -129,7 +130,7 @@ for f = 1:length(list)
             deconv(any(isnan(deconv),2),:)=[];
             deconv=ca_filt(deconv);
             deconv=zscore(deconv);
-            deconv=fast_smooth(deconv,2);
+            deconv=fast_smooth(deconv,ass.ops.sig*ass.fs);
             imagesc(corr(deconv));
             axis square;
             colormap jet
@@ -140,7 +141,7 @@ for f = 1:length(list)
             deconv(any(isnan(deconv),2),:)=[];
             deconv=ca_filt(deconv);
             deconv=zscore(deconv);
-            deconv=fast_smooth(deconv,2);
+            deconv=fast_smooth(deconv,ass.ops.sig*ass.fs);
             imagesc(corr(deconv));
             axis square;
             colormap jet
@@ -161,7 +162,7 @@ session.rest1 = struct('SI_clust',[], 'SI_no_clust',[], 'sparsity_clust',[], 'sp
                         'width',[], 'all_width',[], 'norm_width',[], 'stack_all',[], 'stack_clust',[], 'stack_no_clust',[], ...
                         'stack_overlap', [], 'stack_diff', [], 'SI_overlap',[], 'SI_diff',[], 'width_diff',[], ...
                         'frac_overlap_new',[], 'null_frac_new',[], ...
-                        'null_err',[]);
+                        'null_err',[], 'EV',[], 'REV',[]);
 session.rest2 = session.rest1;
 
 shuffles = 1000;
@@ -179,6 +180,7 @@ for f = 1:length(list)
             load(fullfile(full, 'analysis.mat'));
             
             load(fullfile(full, 'ass1.mat'));
+            ass1 = ass;
             r1_clust = ass.clust;
 %             r1_clust( cellfun(@length, r1_clust) < 8 ) = [];
             r1_r = ass.R;
@@ -197,13 +199,13 @@ for f = 1:length(list)
             session(count).rest1.clust_frac_clust = cellfun(@length, r1_clust) ./ size(ass.deconv, 2);
             session(count).rest1.xcoef = arrayfun(@(x) max(xcorr(belt_idx, mean(analysis.stack(:,r1_clust{x}),2), 'coeff')), 1:length(r1_clust));
             
-            null_err = zeros(length(ass.clust),50,shuffles);
-            parfor ii = 1:shuffles
-                sample = arrayfun(@(x) randperm(length(analysis.psth), x), cellfun(@length, ass.clust), 'uniformoutput',false);
-                [~,~,temp] = bayes_infer(analysis, .05, sample);
-                null_err(:, :, ii) = temp(2:end,:);
-            end
-            session(count).rest1.null_err = null_err;
+%             null_err = zeros(length(ass.clust),50,shuffles);
+%             parfor ii = 1:shuffles
+%                 sample = arrayfun(@(x) randperm(length(analysis.psth), x), cellfun(@length, ass.clust), 'uniformoutput',false);
+%                 [~,~,temp] = bayes_infer(analysis, .05, sample);
+%                 null_err(:, :, ii) = temp(2:end,:);
+%             end
+%             session(count).rest1.null_err = null_err;
             
             [~,~,session(count).rest1.err,session(count).rest1.err_sem]=bayes_infer(analysis,.05,r1_clust);
             [~,~,session(count).rest1.err_all,session(count).rest1.err_sem_all]=bayes_infer(analysis,.05,{cell2mat(r1_clust)});
@@ -216,7 +218,10 @@ for f = 1:length(list)
             idx = ~cellfun(@isempty, width);
             width = cell2mat(width(idx)');
             session(count).rest1.all_width = width;
-            session(count).rest1.norm_width = accumarray(session(count).rest1.width, 1, [50 50]) ./ accumarray(width, 1, [50 50]);
+            try
+                session(count).rest1.norm_width = accumarray(session(count).rest1.width, 1, [50 50]) ./ accumarray(width, 1, [50 50]);
+            catch
+            end
             session(count).rest1.stack_clust = analysis.stack(:,cell2mat(r1_clust));
             session(count).rest1.stack_no_clust = analysis.stack(:,setxor(cell2mat(r1_clust), 1:length(analysis.psth)));
             session(count).rest1.stack_all = analysis.stack;
@@ -225,7 +230,9 @@ for f = 1:length(list)
             session(count).rest1.frac_pc = length(analysis.pc_list) / length(analysis.psth);
             session(count).rest1.frac_pc_clust_clust = cellfun(@(x) length(intersect(analysis.pc_list, x)) / length(x), r1_clust);
             
+            
             load(fullfile(full, 'ass3.mat'));
+            ass3 = ass;
             r2_clust = ass.clust;
 %             r2_clust( cellfun(@length, r2_clust) < 10 ) = [];
             r2_r = ass.R;
@@ -244,13 +251,13 @@ for f = 1:length(list)
             session(count).rest2.clust_frac_clust = cellfun(@length, r2_clust) ./ size(ass.deconv, 2);
             session(count).rest2.xcoef = arrayfun(@(x) max(xcorr(belt_idx, mean(analysis.stack(:,r2_clust{x}),2), 'coeff')), 1:length(r2_clust));
             
-            null_err = zeros(length(ass.clust),50,shuffles);
-            parfor ii = 1:shuffles
-                sample = arrayfun(@(x) randperm(length(analysis.psth), x), cellfun(@length, ass.clust), 'uniformoutput',false);
-                [~,~,temp] = bayes_infer(analysis, .05, sample);
-                null_err(:, :, ii) = temp(2:end,:);
-            end
-            session(count).rest2.null_err = null_err;
+%             null_err = zeros(length(ass.clust),50,shuffles);
+%             parfor ii = 1:shuffles
+%                 sample = arrayfun(@(x) randperm(length(analysis.psth), x), cellfun(@length, ass.clust), 'uniformoutput',false);
+%                 [~,~,temp] = bayes_infer(analysis, .05, sample);
+%                 null_err(:, :, ii) = temp(2:end,:);
+%             end
+%             session(count).rest2.null_err = null_err;
             
             [~,~,session(count).rest2.err,session(count).rest2.err_sem]=bayes_infer(analysis,.05,r2_clust);
             [~,~,session(count).rest2.err_all,session(count).rest2.err_sem_all]=bayes_infer(analysis,.05,{cell2mat(r2_clust)});
@@ -263,7 +270,10 @@ for f = 1:length(list)
             idx = ~cellfun(@isempty, width);
             width = cell2mat(width(idx)');
             session(count).rest2.all_width = width;
-            session(count).rest2.norm_width = accumarray(session(count).rest2.width, 1, [50 50]) ./ accumarray(width, 1, [50 50]);
+            try
+                session(count).rest2.norm_width = accumarray(session(count).rest2.width, 1, [50 50]) ./ accumarray(width, 1, [50 50]);
+            catch
+            end
             session(count).rest2.stack_clust = analysis.stack(:,cell2mat(r2_clust));
             session(count).rest2.stack_no_clust = analysis.stack(:,setxor(cell2mat(r2_clust), 1:length(analysis.psth)));
             session(count).rest2.stack_all = analysis.stack;
@@ -305,6 +315,8 @@ for f = 1:length(list)
             
             session(count).rest1.frac_pc_diff = length(intersect(analysis.pc_list, setdiff(cell2mat(r1_clust), cell2mat(r2_clust)))) / length(setdiff(cell2mat(r1_clust), cell2mat(r2_clust)));
             session(count).rest2.frac_pc_diff = length(intersect(analysis.pc_list, setdiff(cell2mat(r2_clust), cell2mat(r1_clust)))) / length(setdiff(cell2mat(r2_clust), cell2mat(r1_clust)));
+            
+            [session(count).EV, session(count).REV] = ev(ass1, analysis.original_deconv, ass3);
             
             width = analysis.width(setdiff(cell2mat(r1_clust), cell2mat(r2_clust)));
             idx = ~cellfun(@isempty, width);

@@ -1,4 +1,9 @@
 function remove_steps(obj,thres,samples)
+%{
+IMPORTANT!!!
+This function has been DEPRECATED
+%}
+
 %detect abrupt step changes in signal baseline and remove them
 %thres: fraction of total residual for minimum stepping (default 0.05)
 %samples: minimum number of samples a step contains (default 10 sec)

@@ -18,7 +18,7 @@ run_thres = behavior.unit_vel < run_thres;
 deconv=zscore(fast_smooth(deconv,sig));
 
 ordered = get_order(analysis);
-ordered = intersect(ordered, analysis.pc_list, 'stable');
+% ordered = intersect(ordered, analysis.pc_list, 'stable');
 
 if peaks_flag
     p_neurons = repmat(1:length(ordered), length(behavior.trials)-1);

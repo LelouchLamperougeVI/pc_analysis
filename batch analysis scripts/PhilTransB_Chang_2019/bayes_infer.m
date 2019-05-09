@@ -69,7 +69,7 @@ n = n(even_idx,:);
 
 pos = movmedian(unit_pos,round(tau),1);
 pos = pos(even_idx);
-pos = discretize(pos, linspace(0, analysis.vr_length, bins+1));
+pos = discretize(pos, linspace(min(pos), max(pos), bins+1));
 % pos = discretize(pos, linspace(-analysis.vr_length, 0, bins+1));
 
 [~,~,stack]=getStack(bins,sd,vr_length,odd_deconv,odd_unit_pos,odd_unit_vel,odd_frame_ts,odd_trials);
@@ -95,7 +95,13 @@ end
         
         [~,decoded(count,:)] = max(P);
         
-        err(count,:) = arrayfun(@(x) mean(abs(pos(pos == x) - decoded(count, pos == x))), 1:bins) .* analysis.vr_length/bins;
-        err_sem(count,:) = arrayfun(@(x) sem(abs(pos(pos == x) - decoded(count, pos == x)), 2), 1:bins) .* analysis.vr_length/bins;
+        err(count,:) = arrayfun(@(x) mean(min(...
+                        [abs(pos(pos == x) - decoded(count, pos == x)) ; ...
+                        bins - abs(pos(pos == x) - decoded(count, pos == x))] ...
+                        )), 1:bins).* analysis.vr_length/bins;
+        err_sem(count,:) = arrayfun(@(x) sem(min(...
+                        [abs(pos(pos == x) - decoded(count, pos == x)) ; ...
+                        bins - abs(pos(pos == x) - decoded(count, pos == x))] ...
+                        ), 2), 1:bins) .* analysis.vr_length/bins;
     end
 end

@@ -27,51 +27,58 @@ pos_raw=dist*pi/5*.1;
 speed_raw=fast_smooth((pos_raw./median(diff(frame_ts)))',nSmooth);
 speed_raw=speed_raw(frame_ts);
 
-obj.behavior.speed_raw_noSmooth = cumsum(pos_raw);
-obj.behavior.speed_raw_noSmooth = [0 diff(obj.behavior.speed_raw_noSmooth(frame_ts))./diff(frame_ts)'];
-obj.behavior.speed_raw=speed_raw;
-if length(rwd)<3
-    return
+behavior.speed_raw_noSmooth = cumsum(pos_raw);
+behavior.speed_raw_noSmooth = [0 diff(behavior.speed_raw_noSmooth(frame_ts))./diff(frame_ts)'];
+behavior.speed_raw=speed_raw;
+if length(rwd)<5
+    ts=sort([find(dist~=0) 1 length(dist)]);
+    rwd=[];
+%     obj.behavior=behavior;
+%     return
 end
 
-count=1;
-while(count<length(rwd))
-    if sum(pos_raw(rwd(count):rwd(count+1)))<20
-        rwd(count+1)=[];
-    else
-        count=count+1;
+if isempty(rwd)
+    pos_raw = cumsum(pos_raw);
+else
+    count=1;
+    while(count<length(rwd))
+        if sum(pos_raw(rwd(count):rwd(count+1)))<20
+            rwd(count+1)=[];
+        else
+            count=count+1;
+        end
     end
-end
-pos_raw(1:rwd(1)-1)=cumsum(pos_raw(1:rwd(1)-1));
-for i=1:length(rwd)-1
-    pos_raw(rwd(i):rwd(i+1)-1)=cumsum(pos_raw(rwd(i):rwd(i+1)-1));
-end
-pos_raw(rwd(end):end)=cumsum(pos_raw(rwd(end):end));
-
-ts=find(dist~=0);
-ts(ts<rwd(1)|ts>rwd(end))=[];
-ts=sort([ts rwd]);
-
-spurious = arrayfun(@(x) max(pos_raw(rwd(x):rwd(x+1))), 1:length(rwd)-1); % to detect spots where the valve didn't open or got stuck...
-spur_range = median(spurious);
-spurious = find(spurious > ( spur_range + 20));
-
-for i = 1:length(spurious)
-    temp = pos_raw(rwd(spurious(i)) : rwd(spurious(i) + 1));
-    idx = round(range(temp) / spur_range);
-    idx = knnsearch(temp', range(temp) .* (1:(idx-1))' ./ idx);
-    
-    for j = 1:length(idx)-1
-        temp(idx(j):idx(j+1)-1) = temp(idx(j):idx(j+1)-1) - temp(idx(j));
+    pos_raw(1:rwd(1)-1)=cumsum(pos_raw(1:rwd(1)-1));
+    for i=1:length(rwd)-1
+        pos_raw(rwd(i):rwd(i+1)-1)=cumsum(pos_raw(rwd(i):rwd(i+1)-1));
     end
-    if diff(temp(end-1:end)) < 0
-        temp(idx(end):end-1) = temp(idx(end):end-1) - temp(idx(end));
-    else
-        temp(idx(end):end) = temp(idx(end):end) - temp(idx(end));
+    pos_raw(rwd(end):end)=cumsum(pos_raw(rwd(end):end));
+
+    ts=find(dist~=0);
+%     ts(ts<rwd(1)|ts>rwd(end))=[];
+    ts=sort([ts rwd 1 length(dist)]);
+
+    spurious = arrayfun(@(x) max(pos_raw(rwd(x):rwd(x+1))), 1:length(rwd)-1); % to detect spots where the valve didn't open or got stuck...
+    spur_range = median(spurious);
+    spurious = find(spurious > ( spur_range + 20));
+
+    for i = 1:length(spurious)
+        temp = pos_raw(rwd(spurious(i)) : rwd(spurious(i) + 1));
+        idx = round(range(temp) / spur_range);
+        idx = knnsearch(temp', range(temp) .* (1:(idx-1))' ./ idx);
+
+        for j = 1:length(idx)-1
+            temp(idx(j):idx(j+1)-1) = temp(idx(j):idx(j+1)-1) - temp(idx(j));
+        end
+        if diff(temp(end-1:end)) < 0
+            temp(idx(end):end-1) = temp(idx(end):end-1) - temp(idx(end));
+        else
+            temp(idx(end):end) = temp(idx(end):end) - temp(idx(end));
+        end
+
+        pos_raw(rwd(spurious(i)) : rwd(spurious(i) + 1)) = temp;
+        rwd = sort( [rwd ( idx + rwd(spurious(i)) - 1 )] );
     end
-    
-    pos_raw(rwd(spurious(i)) : rwd(spurious(i) + 1)) = temp;
-    rwd = sort( [rwd ( idx + rwd(spurious(i)) - 1 )] );
 end
 
 pos_raw=pos_raw(ts);

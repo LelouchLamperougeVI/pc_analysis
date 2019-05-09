@@ -32,8 +32,8 @@ classdef LFP < handle
 %         Channels = [1 2 3 5 4 6]';
 %         Channels = [1 2 3 5 8 6]';
 %         Channels = [1 2 3 7 8 5]';
-        Channels = [1 2 3 6 5 5]';
-%         Channels = [1 2 3 5 5 5]'; %old behavior for RSC RRR
+%         Channels = [1 2 3 6 5 5]';
+        Channels = [1 2 3 5 5 5]'; %old behavior for RSC RRR
 %         Channels = [1 2 3 5 5 6]'; %old old behavior for RSC RRR
 %         Channels = [1 2 3 6 8 7]'; %new behavior for RSC RRR
 %         Channels = [1 2 3 4 8 7]'; %new vr behavior for RSC RRR
@@ -88,11 +88,30 @@ classdef LFP < handle
         end
         
         function import_deconv(obj,deconv) % import deconv
-%             if size(deconv,1)>18000
-%                 obj.deconv=stupid_windows_fs(deconv);
-%             else
-                obj.deconv=deconv;
-%             end
+            if size(deconv,1)>18000 && ~isempty(obj.behavior)
+                tcs.tt=obj.ts_2p';
+                [vel,temp] = convert_behavior(obj.behavior,tcs,deconv);
+                vel = vel.unit_vel;
+                temp = sum(zscore(fast_smooth(temp,obj.fs_2p*.5)),2);
+                ori_r = corr(temp, vel');
+                
+                [vel,temp] = convert_behavior(obj.behavior,tcs,stupid_windows_fs(deconv));
+                vel = vel.unit_vel;
+                temp = sum(zscore(fast_smooth(temp,obj.fs_2p*.5)),2);
+                alt_r = corr(temp, vel');
+
+                if alt_r > ori_r
+                    disp('DANGER! A rupture in Space-Time continuum has been detected!');
+                    uinp = input('Should I fix it for you? Y/N [Y] ', 's');
+                    if strcmpi(uinp,'y') || strcmpi(uinp,'yes') || isempty(uinp)
+                        obj.deconv=stupid_windows_fs(deconv);
+                        disp('OK. I''ve fixed it for you. But know that this only works for behavioural data. It''s up to you to remember to correct it during rest.');
+                        return
+                    end
+                    disp('I surely hope you know what you''re doing...');
+                end
+            end
+            obj.deconv=deconv;
         end
         
         function import_analysis(obj,analysis) % import pc_analysis obtained from run trials
