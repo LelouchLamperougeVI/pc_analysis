@@ -73,7 +73,7 @@ switch option
         k=size(obj.raw,2);
         for i=1:k
             ax(i)=subplot(k,1,i);
-            plot(obj.raw(1:1e5,i));
+            plot(obj.raw(1:1e6,i));
             if ismember(i, obj.Channels)
                 ylabel([num2str(i) ' = ' obj.get_channel(i)]);
             else

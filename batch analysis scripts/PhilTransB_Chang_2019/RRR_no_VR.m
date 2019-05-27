@@ -121,6 +121,7 @@ for f = 1:length(list)
 %             deconv=fast_smooth(deconv,2);
             deconv=fast_smooth(deconv,ass.ops.sig*ass.fs);
             imagesc(corr(deconv));
+            caxis([0 .6])
             axis square;
             colormap jet
             
@@ -132,6 +133,7 @@ for f = 1:length(list)
             deconv=zscore(deconv);
             deconv=fast_smooth(deconv,ass.ops.sig*ass.fs);
             imagesc(corr(deconv));
+            caxis([0 .6])
             axis square;
             colormap jet
             
@@ -143,6 +145,7 @@ for f = 1:length(list)
             deconv=zscore(deconv);
             deconv=fast_smooth(deconv,ass.ops.sig*ass.fs);
             imagesc(corr(deconv));
+            caxis([0 .6])
             axis square;
             colormap jet
             
@@ -312,6 +315,11 @@ for f = 1:length(list)
             session(count).rest1.SI_diff = analysis.SI(setdiff(cell2mat(r1_clust), cell2mat(r2_clust)));
             session(count).rest2.SI_overlap = analysis.SI(intersect(cell2mat(r2_clust), cell2mat(r1_clust)));
             session(count).rest2.SI_diff = analysis.SI(setdiff(cell2mat(r2_clust), cell2mat(r1_clust)));
+            
+            session(count).rest1.sparsity_overlap = analysis.sparsity(intersect(cell2mat(r1_clust), cell2mat(r2_clust)));
+            session(count).rest1.sparsity_diff = analysis.sparsity(setdiff(cell2mat(r1_clust), cell2mat(r2_clust)));
+            session(count).rest2.sparsity_overlap = analysis.sparsity(intersect(cell2mat(r2_clust), cell2mat(r1_clust)));
+            session(count).rest2.sparsity_diff = analysis.sparsity(setdiff(cell2mat(r2_clust), cell2mat(r1_clust)));
             
             session(count).rest1.frac_pc_diff = length(intersect(analysis.pc_list, setdiff(cell2mat(r1_clust), cell2mat(r2_clust)))) / length(setdiff(cell2mat(r1_clust), cell2mat(r2_clust)));
             session(count).rest2.frac_pc_diff = length(intersect(analysis.pc_list, setdiff(cell2mat(r2_clust), cell2mat(r1_clust)))) / length(setdiff(cell2mat(r2_clust), cell2mat(r1_clust)));

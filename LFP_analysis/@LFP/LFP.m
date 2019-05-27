@@ -27,15 +27,21 @@ classdef LFP < handle
         
         spec = struct('spectrum',[],'t',[],'f',[]);
         
+        session % session information
+        maskNeurons
+        mimg
+        
 %         Channels = [1 2 3 6 8 7]';
 %         Channels = [1 2 3 4 5 6]';
 %         Channels = [1 2 3 5 4 6]';
 %         Channels = [1 2 3 5 8 6]';
 %         Channels = [1 2 3 7 8 5]';
 %         Channels = [1 2 3 6 5 5]';
-        Channels = [1 2 3 5 5 5]'; %old behavior for RSC RRR
-%         Channels = [1 2 3 5 5 6]'; %old old behavior for RSC RRR
-%         Channels = [1 2 3 6 8 7]'; %new behavior for RSC RRR
+%         Channels = [1 2 3 5 5 5]'; %old behavior for RSC RRR
+%         Channels = [1 2 3 5 5 6]'; %old old behavior for RSC RRR, also works for Ingrid's RRR
+%         Channels = [1 2 3 7 5 5]';
+%         Channels = [1 2 3 5 5 6]';
+        Channels = [1 2 3 6 8 7]'; %new behavior for RSC RRR
 %         Channels = [1 2 3 4 8 7]'; %new vr behavior for RSC RRR
 %         Channels = [1 3 2 6 5 5]';
     end
@@ -55,11 +61,32 @@ classdef LFP < handle
     end
     
     methods
-        function obj = LFP(fn) %construct with passed abf file
-            if nargin<1
+        function obj = LFP(varargin) %construct with passed abf file
+            if isempty(varargin)
                 [fn,path]=uigetfile('*.abf');
-                fn=[path fn];
+            else
+                fn = varargin{1};
+            	path = strsplit(fn, {'\\','/'});
+                fn = path{end};
+                if isunix
+                    path = strjoin( path(1:end-1), '/');
+                elseif ispc
+                    path = strjoin( path(1:end-1), '\');
+                end
             end
+            obj.session.date = datetime( regexp(fn, '^\d{4}_(\d{2}_){2}', 'match','once'), 'inputformat', 'yyyy_MM_dd_' );
+            obj.session.id = regexp(fn, '_(\d+).abf$', 'tokens','once'); obj.session.id = obj.session.id{1};
+            path = strsplit(path, {'\\','/'});
+            idx = strcmp( path, datestr(obj.session.date, 'yyyy_mm_dd') );
+            path = path(1: find(idx));
+            obj.session.animal = path{find(idx)-1};
+            if isunix
+                path = strjoin( path, '/');
+            elseif ispc
+                path = strjoin( path, '\');
+            end
+            obj.session.wd = path;
+            
             obj.update_channels();
             obj.load(fn);
             obj.two_photon_ts;
@@ -70,6 +97,25 @@ classdef LFP < handle
             obj.down_sample(obj.default_ops.down_fs);
             obj.filter_bands;
             obj.extract_behaviour;
+            
+            try
+                deconv=load(fullfile(obj.session.wd, obj.session.id, 'plane1', 'deconv.mat'));
+                obj.import_deconv(deconv.deconv);
+            catch
+                disp('Failed to autoload deconv :(');
+            end
+            if exist(fullfile(obj.session.wd, 'analysis.mat'), 'file')
+                analysis=load(fullfile(obj.session.wd, 'analysis.mat'));
+                obj.import_analysis(analysis.analysis);
+            else
+                disp('No analysis file found');
+            end
+            if exist(fullfile(obj.session.wd, obj.session.id, 'plane1', 'masks_neurons.mat'), 'file')
+                maskNeurons = load(fullfile(obj.session.wd, obj.session.id, 'plane1', 'masks_neurons.mat'));
+                mimg = load(fullfile(obj.session.wd, obj.session.id, 'plane1', 'mean_img.mat'));
+                obj.maskNeurons = maskNeurons.maskNeurons;
+                obj.mimg = double(mimg.mimg);
+            end
         end
         
         function load(obj, fn) % replace current data with another abf file
@@ -88,30 +134,52 @@ classdef LFP < handle
         end
         
         function import_deconv(obj,deconv) % import deconv
+            if exist(fullfile(obj.session.wd, 'fkd18k'), 'file')
+                fid = fopen(fullfile(obj.session.wd, 'fkd18k'), 'r');
+                if fscanf(fid, '%d')
+                    obj.deconv = stupid_windows_fs(deconv);
+                    disp('18k correction applied');
+                else
+                    obj.deconv = deconv;
+                    if size(deconv,1)>18000
+                        disp('18k correction unnecessary');
+                    end
+                end
+                fclose(fid);
+                return
+            end
             if size(deconv,1)>18000 && ~isempty(obj.behavior)
                 tcs.tt=obj.ts_2p';
                 [vel,temp] = convert_behavior(obj.behavior,tcs,deconv);
                 vel = vel.unit_vel;
-                temp = sum(zscore(fast_smooth(temp,obj.fs_2p*.5)),2);
+                temp = fast_smooth(temp,obj.fs_2p*.5);
+                if size(temp,1) < length(vel); vel=vel(1:size(temp,1)); end
                 ori_r = corr(temp, vel');
                 
                 [vel,temp] = convert_behavior(obj.behavior,tcs,stupid_windows_fs(deconv));
                 vel = vel.unit_vel;
-                temp = sum(zscore(fast_smooth(temp,obj.fs_2p*.5)),2);
+                temp = fast_smooth(temp,obj.fs_2p*.5);
+                if size(temp,1) < length(vel); vel=vel(1:size(temp,1)); end
                 alt_r = corr(temp, vel');
 
-                if alt_r > ori_r
+                if prctile(abs(alt_r), 70) > prctile(abs(ori_r), 70)
                     disp('DANGER! A rupture in Space-Time continuum has been detected!');
                     uinp = input('Should I fix it for you? Y/N [Y] ', 's');
                     if strcmpi(uinp,'y') || strcmpi(uinp,'yes') || isempty(uinp)
                         obj.deconv=stupid_windows_fs(deconv);
-                        disp('OK. I''ve fixed it for you. But know that this only works for behavioural data. It''s up to you to remember to correct it during rest.');
+                        disp('OK. I''ve fixed it for you. But know that this only works for behavioural data. It''s up to you to remember to correct it during rest.');                        
+                        fid = fopen(fullfile(obj.session.wd, 'fkd18k'), 'w');
+                        fprintf(fid, '%d', 1);
+                        fclose(fid);
                         return
                     end
                     disp('I surely hope you know what you''re doing...');
                 end
             end
             obj.deconv=deconv;
+            fid = fopen(fullfile(obj.session.wd, 'fkd18k'), 'w');
+            fprintf(fid, '%d', 0);
+            fclose(fid);
         end
         
         function import_analysis(obj,analysis) % import pc_analysis obtained from run trials
@@ -218,6 +286,7 @@ classdef LFP < handle
         reference60(obj,len);
         filter_bands(obj);
         extract_behaviour(obj);
+        enregistrer(obj, fn);
     end
     
     methods (Access = private)

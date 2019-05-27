@@ -232,6 +232,10 @@ switch lower(type)
         c.Label.String = 'normalized mean dF/F';
         if strcmpi(obj.ops.order,'cluster')
             title('Cluster Sorted');
+            hold on
+            for ii = 1:length(obj.clust)
+                plot(zeros(1, length(obj.clust{ii})), arrayfun(@(x) find(obj.order == x), obj.clust{ii}), 'linewidth',5);
+            end
         elseif strcmpi(obj.ops.order,'pc')
             title('Place Field Sorted');
         else

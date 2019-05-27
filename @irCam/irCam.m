@@ -1,4 +1,5 @@
 classdef irCam < handle
+    % workflow: add_mask (optional - add_label) --> extract_traces --> filter_traces --> detect_mvt --> player --> export_mvt
     properties
         frames
         traces
@@ -53,7 +54,9 @@ classdef irCam < handle
         end
         
         function add_mask(obj,label)
+            % choose an ROI for a label
             mask = obj.gui_get_bounds;
+            close gcf
             if nargin < 2
                 label = listdlg('liststring',obj.mask_labels, 'selectionmode','single', 'promptstring','Select mask label:');
                 if isempty(label)
@@ -71,6 +74,7 @@ classdef irCam < handle
         end
         
         function add_label(obj, label)
+            % add a new label
             if nargin < 2
                 error('You must provide a name for you custom label')
             end
@@ -83,6 +87,7 @@ classdef irCam < handle
         end
         
         function remove_label(obj, label)
+            % remove a label from the list
             idx = cellfun(@(x) strcmpi(label, x), obj.mask_labels);
             if ~sum(idx)
                 error('Dummy, the label you''re trying to remove doesn''t appear to exist in the first place...')
@@ -95,6 +100,7 @@ classdef irCam < handle
         end
         
         function clear_mask(obj, mask)
+            % clear the ROI selection for a label
             switch class(mask)
                 case {'double', 'logical'}
                     obj.get_label(mask); %check for error
@@ -126,30 +132,43 @@ classdef irCam < handle
         end
         
         function choose_nose(obj)
+            % DEPRECATED
             obj.nose_mask=obj.gui_get_bounds;
         end
         
         function choose_limb(obj)
+            % DEPRECATED
             obj.limb_mask=obj.gui_get_bounds;
         end
         
-        function detect_mvt(obj,sig,gap,dilation)
+        function detect_mvt(obj,sig,dilation,gap,dur)
             % detect motion artifacts
-            % sig: number of MADs from median (default 2)
-            % gap: number of samples between gaps to fill in (default 1 sec)
-            % dilation: dilate the detected regions (default 1 sec)
-            if nargin<2; sig=2; end
-            if nargin<3; gap=1; end
-            if nargin<4; dilation=1; end %dilate the detection
+            % pipes: MAD --> dilate --> fill_gaps --> duration filt
+            % sig: number of MADs from median (default 3)
+            % dilation: dilate the detected regions (default .5 sec - two-tailed; i.e. not 1 sec each tails)
+            % gap: number of samples between gaps to fill in (default 2*dilation)
+            % dur: minimum duration of movement epoch (default 2 sec)
+            if nargin<2; sig=3; end
+            if nargin<3; dilation=.5; end
+            if nargin<4; gap=2*dilation; end
+            if nargin<5; dur=2; end %dilate the detection
             gap=obj.cam.FrameRate*gap;
             obj.mvt = any( abs(obj.traces)> (sig .* mad(obj.traces)) ,2);
             obj.mvt = logical( conv2(obj.mvt, ones(obj.cam.FrameRate*dilation,1), 'same') );
-            obj.mvt=fill_gaps(obj.mvt,gap);
-            
+            obj.mvt = fill_gaps(obj.mvt,gap);
             obj.mvt = double(obj.mvt);
+            
+            heads = find(get_head(obj.mvt));
+            tails = sort( length(obj.mvt)+1 - find( get_head( obj.mvt(end:-1:1) ) ) );
+            idx = find((tails - heads +1) < (dur*obj.cam.FrameRate));
+            for i=1:length(idx)
+                obj.mvt(heads(idx(i)) : tails(idx(i))) = 2;
+            end
+            
         end
         
         function mvt = export_mvt(obj)
+            % export a logical array for timestamps where movements occured
             mvt = obj.mvt;
             mvt(mvt==2) = 0;
             mvt = logical(mvt);

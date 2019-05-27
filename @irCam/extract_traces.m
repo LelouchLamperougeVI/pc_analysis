@@ -1,4 +1,5 @@
 function extract_traces(obj)
+% Extract traces of pixels intensity for individual masks
 
 if ~isempty(obj.original_traces)
 	warning('You already extracted the traces once. Are you sure you want to run it again? This may take a while. Do it in special circumstances, e.g. when you reselected masks.')
