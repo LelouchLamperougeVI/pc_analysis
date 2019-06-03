@@ -16,7 +16,7 @@ switch option
         
     case 'bands'
         k=5;
-        if isempty(obj.theta)
+        if isempty(obj.lfp.theta)
             error('must filter bands first');
         end
         %         if ~isempty(obj.cam.mvt)
@@ -24,23 +24,23 @@ switch option
         %         end
         figure;
         ax1=subplot(k,1,1);
-        plot(obj.t,obj.lfp);
+        plot(obj.lfp.ts,obj.lfp.lfp);
         hold on
-        plot(obj.swr_peaks,ones(length(obj.swr_peaks),1),'k*');
+        plot(obj.lfp.swr.swr_peaks,ones(length(obj.lfp.swr.swr_peaks),1),'k*');
         ylabel('broad band')
         ax2=subplot(k,1,2);
-        plot(obj.t,obj.delta);
+        plot(obj.lfp.ts,obj.lfp.delta);
         ylabel('\delta')
         ax3=subplot(k,1,3);
-        plot(obj.t,obj.theta);
+        plot(obj.lfp.ts,obj.lfp.theta);
         ylabel('\theta')
         ax4=subplot(k,1,4);
-        plot(obj.t,obj.gamma);
+        plot(obj.lfp.ts,obj.lfp.gamma);
         ylabel('\gamma')
         ax5=subplot(k,1,5);
-        plot(obj.t,obj.swr);
+        plot(obj.lfp.ts,obj.lfp.swr.swr);
         hold on
-        plot(obj.swr_peaks,ones(length(obj.swr_peaks),1),'k*');
+        plot(obj.lfp.swr.swr_peaks,ones(length(obj.lfp.swr.swr_peaks),1),'k*');
         ylabel('SWR')
         %         if ~isempty(obj.cam.mvt)
         %             ax6=subplot(k,1,6);
@@ -56,14 +56,14 @@ switch option
         if isempty(obj.spec.spectrum)
             error('A spectrum needs to be generated before you can plot it');
         end
-        if isempty(obj.deconv)
+        if isempty(obj.twop.deconv)
             error('Deconv must be loaded into current LFP object');
         end
         figure;
         ax1=subplot(2,1,1);
         plot_spec;
         ax2=subplot(2,1,2);
-        imagesc(ax2,'xdata',obj.ts_2p,'cdata',fast_smooth(zscore(obj.deconv),2)');
+        imagesc(ax2,'xdata',obj.twop.ts,'cdata',fast_smooth(zscore(obj.twop.deconv),2)');
         colormap(ax2,get_colour('black'));
         colorbar;
         linkaxes([ax1 ax2],'x');
@@ -81,6 +81,50 @@ switch option
             end
         end
         linkaxes(ax,'x');
+        
+    case 'topography'
+        colours=jet;
+        bins = size(obj.analysis.stack, 1);
+        colours = colours( round(linspace(1, size(colours,1), bins)) , :);
+        figure;
+        bkg = nan(size(obj.topo.mimg));
+        h = imagesc(bkg);
+        set(h, 'alphadata', 0);
+        colormap jet;
+        set(gca, 'xtick',[])
+        set(gca, 'ytick',[])
+        hold on
+        for i=1:bins
+            [x,y]=find(obj.topo.loc==i);
+            plot(x,y,'.', 'color', colours(i,:));
+        end
+        axis square
+        p = get(gca,'position');
+        c = colorbar;
+        c.Label.String = 'Position (cm)';
+        caxis([0 obj.analysis.vr_length]);
+        set(gca, 'position',p);
+        
+        centroid = false(size(obj.topo.mimg));
+        idx = round( obj.topo.centroid );
+        idx = sub2ind( size(centroid), idx(2,:), idx(1,:) );
+        centroid(idx) = true;
+        centroid = centroid .* obj.topo.loc;
+        centroid(~centroid) = nan;
+%         centroid = fast_smooth2(centroid, 'sig', 10);
+        centroid = fast_smooth2(centroid, 'method', 'mean', 'wdw', 50);
+        centroid = (centroid - 1) ./ (bins - 1) .* obj.analysis.vr_length;
+        figure;
+        h = imagesc(centroid');
+        set(h, 'alphadata', ~isnan(centroid'));
+        colormap jet
+        axis square
+        p = get(gca,'position');
+        c = colorbar;
+        c.Label.String = 'Position (cm)';
+        caxis([0 obj.analysis.vr_length]);
+        set(gca, 'position',p);
+        
         
 end
 

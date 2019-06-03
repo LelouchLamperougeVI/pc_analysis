@@ -6,49 +6,49 @@ end
 
 if filt_60
     %notch 60
-    [a,b,c,d]=butter(2,[58 62]/obj.fs*2,'stop');
+    [a,b,c,d]=butter(2,[58 62]/obj.lfp.fs*2,'stop');
     [sos,g]=ss2sos(a,b,c,d);
-    obj.lfp=filtfilt(sos,g,obj.lfp)./obj.f60_env;
+    obj.lfp.lfp=filtfilt(sos,g,obj.lfp.lfp)./obj.f60_env;
     %harmonic
-    [a,b,c,d]=butter(2,[178 182]/obj.fs*2,'stop');
+    [a,b,c,d]=butter(2,[178 182]/obj.lfp.fs*2,'stop');
     [sos,g]=ss2sos(a,b,c,d);
-    obj.lfp=filtfilt(sos,g,obj.lfp)./obj.f60_env;
+    obj.lfp.lfp=filtfilt(sos,g,obj.lfp.lfp)./obj.f60_env;
 end
 
 %delta
-[a,b,c,d]=butter(2,[1 4]/obj.fs*2,'bandpass');
+[a,b,c,d]=butter(2,[1 4]/obj.lfp.fs*2,'bandpass');
 [sos,g]=ss2sos(a,b,c,d);
-obj.delta=filtfilt(sos,g,obj.lfp)./obj.f60_env;
+obj.lfp.delta=filtfilt(sos,g,obj.lfp.lfp)./obj.f60_env;
 
 %theta
-[a,b,c,d]=butter(2,[5 10]/obj.fs*2,'bandpass');
+[a,b,c,d]=butter(2,[5 10]/obj.lfp.fs*2,'bandpass');
 [sos,g]=ss2sos(a,b,c,d);
-obj.theta=filtfilt(sos,g,obj.lfp)./obj.f60_env;
+obj.lfp.theta=filtfilt(sos,g,obj.lfp.lfp)./obj.f60_env;
 
 %gamma
-[a,b,c,d]=butter(2,[30 140]/obj.fs*2,'bandpass');
+[a,b,c,d]=butter(2,[30 140]/obj.lfp.fs*2,'bandpass');
 [sos,g]=ss2sos(a,b,c,d);
-obj.gamma=filtfilt(sos,g,obj.lfp)./obj.f60_env;
+obj.lfp.gamma=filtfilt(sos,g,obj.lfp.lfp)./obj.f60_env;
 
 %ripples
-if obj.fs < 500
+if obj.lfp.fs < 500
     error('LFP has been down sampled too much, the minimum Fs should be 500 Hz');
 end
-[a,b,c,d]=butter(2,[150 250]/obj.fs*2,'bandpass');
+[a,b,c,d]=butter(2,[150 250]/obj.lfp.fs*2,'bandpass');
 [sos,g]=ss2sos(a,b,c,d);
-obj.swr=filtfilt(sos,g,obj.lfp)./obj.f60_env;
+obj.lfp.swr.swr=filtfilt(sos,g,obj.lfp.lfp)./obj.f60_env;
 
 % movements are characterized by increase in power in the high frequencies ranging from 500 to 1000 Hz
-[a,b,c,d]=butter(2,[500 1000]/obj.fs*2,'bandpass');
+[a,b,c,d]=butter(2,[500 1000]/obj.lfp.fs*2,'bandpass');
 [sos,g]=ss2sos(a,b,c,d);
-obj.lfp_mvt=filtfilt(sos,g,obj.lfp)./obj.f60_env;
+obj.lfp_mvt=filtfilt(sos,g,obj.lfp.lfp)./obj.f60_env;
 
 % amplitude envelope for SWR band and ripples detection
-env=envelope(obj.swr);
+env=envelope(obj.lfp.swr.swr);
 ts=mean(env)+3*std(env);
 ts=env>ts;
 
-gaps=.02*obj.fs; %consecutive ripples less than 20 ms apart are concatenated
+gaps=.02*obj.lfp.fs; %consecutive ripples less than 20 ms apart are concatenated
 ts=fill_gaps(ts,gaps);
 
 heads=find(get_head(ts));
@@ -64,31 +64,31 @@ if tails(end)==length(env)
     tails(end)=[];
 end
 
-obj.swr_env=env;
-obj.swr_peaks=zeros(length(heads),1);
-obj.swr_on=zeros(length(heads),1);
-obj.swr_dur=zeros(length(heads),1);
+obj.lfp.swr.swr_env=env;
+obj.lfp.swr.swr_peaks=zeros(length(heads),1);
+obj.lfp.swr.swr_on=zeros(length(heads),1);
+obj.lfp.swr.swr_dur=zeros(length(heads),1);
 for i=1:length(heads)
-    obj.swr_on(i)=obj.t(heads(i));
+    obj.lfp.swr.swr_on(i)=obj.lfp.ts(heads(i));
     [~,pks]=max(env(heads(i):tails(i)));
-    obj.swr_peaks(i)=obj.t(heads(i)+pks-1);
+    obj.lfp.swr.swr_peaks(i)=obj.lfp.ts(heads(i)+pks-1);
     try
         [~,pks]=findpeaks(env(heads(i):tails(i)));
     catch
         pks=[];
     end
-    obj.swr_cyc(i)=length(pks);
-    obj.swr_dur(i)=obj.t(tails(i)) - obj.t(heads(i));
+    obj.lfp.swr.swr_cyc(i)=length(pks);
+    obj.lfp.swr.swr_dur(i)=obj.lfp.ts(tails(i)) - obj.lfp.ts(heads(i));
 end
 
-short=obj.swr_cyc < obj.default_ops.swr_cyc; %ripples containing less than n cycles are discarded
-obj.swr_peaks(short)=[];
-obj.swr_on(short)=[];
-obj.swr_dur(short)=[];
-obj.swr_cyc(short)=[];
+short=obj.lfp.swr.swr_cyc < obj.default_ops.swr_cyc; %ripples containing less than n cycles are discarded
+obj.lfp.swr.swr_peaks(short)=[];
+obj.lfp.swr.swr_on(short)=[];
+obj.lfp.swr.swr_dur(short)=[];
+obj.lfp.swr.swr_cyc(short)=[];
 
-tooClose = [false; diff(obj.swr_peaks) < obj.default_ops.swr_gap];
-obj.swr_peaks(tooClose)=[];
-obj.swr_on(tooClose)=[];
-obj.swr_dur(tooClose)=[];
-obj.swr_cyc(tooClose)=[];
+tooClose = [false; diff(obj.lfp.swr.swr_peaks) < obj.default_ops.swr_gap];
+obj.lfp.swr.swr_peaks(tooClose)=[];
+obj.lfp.swr.swr_on(tooClose)=[];
+obj.lfp.swr.swr_dur(tooClose)=[];
+obj.lfp.swr.swr_cyc(tooClose)=[];

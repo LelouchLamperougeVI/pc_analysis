@@ -1,12 +1,12 @@
 function down_sample(obj,Fs)
 % Downsample
 
-factor = floor(obj.fs/Fs);
+factor = floor(obj.lfp.fs/Fs);
 if ~factor
     error('requested sampling rate is too fast');
 end
-obj.lfp = decimate(obj.lfp,factor,'fir');
-obj.fs = obj.fs * ceil(length(obj.lfp)/factor)/length(obj.lfp);
-obj.t = linspace(0,(length(obj.lfp) - 1)/obj.fs,length(obj.lfp));
+obj.lfp.lfp = decimate(obj.lfp.lfp,factor,'fir');
+obj.lfp.fs = obj.lfp.fs * ceil(length(obj.lfp.lfp)/factor)/length(obj.lfp.lfp);
+obj.lfp.ts = linspace(0,(length(obj.lfp.lfp) - 1)/obj.lfp.fs,length(obj.lfp.lfp));
 
 end

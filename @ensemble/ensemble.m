@@ -17,12 +17,19 @@ classdef ensemble < LFP
         clust % ensemble clusters
         clust_order % order neurons by ensembles
         swr_stack
+        swr_all
         swr_t
+        colours
     end
     
     methods
         function obj = ensemble(varargin)
             obj@LFP(varargin);
+            if isempty(obj.analysis)
+                warning('no analysis available');
+            else
+                obj.pc_order = obj.analysis.order;
+            end
         end
         
         function duration(obj,thres) % remove SCEs outside duration threshold (thres = [lower_lim upper_lim])
@@ -44,6 +51,8 @@ classdef ensemble < LFP
         corr(obj);
         hclust(obj);
         [stack,all,out,t]=swr_window(obj);
+        topography(obj);
+        make_colours(obj);
         plot(obj,type,varargin);
     end
     

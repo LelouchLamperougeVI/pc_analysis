@@ -3,7 +3,8 @@
 % Data folder:  Adam's old computer (AKA my computer) E:\HaoRan\RRR\ {RSC036-38}
 
 clear all
-list = {'RSC036', 'RSC037', 'RSC038'};
+% list = {'RSC036', 'RSC037', 'RSC038'};
+list = {'EE001_new', 'EE003_new', 'pch17', 'pch18'};
 % list = {'EE001_new', 'PCH017'};
 % list = {'PCH017'};
 % list = {'RSC032'};
@@ -84,14 +85,15 @@ for f = 1:length(list)
         clear lfp;
         full = fullfile(root(i).folder, root(i).name);
         
-        if exist(fullfile(full, 'ass3.mat'),'file')
-            load(fullfile(full, 'lfp2.mat'));
+%         if exist(fullfile(full, 'ass3.mat'),'file')
+%             load(fullfile(full, 'lfp2.mat'));
+            lfp = LFP(fullfile(full, [root(i).name '_2.abf']));
             lfp.perform_analysis;
             analysis = lfp.analysis;
             save(fullfile(full, 'analysis.mat'), 'analysis');
-            save(fullfile(full, 'lfp2.mat'), 'lfp');
+            lfp.enregistrer;
             disp(['Got ' num2str(length(analysis.pc_list)) ' place cells out of ' num2str(length(analysis.psth))])
-        end
+%         end
     end
     
 end

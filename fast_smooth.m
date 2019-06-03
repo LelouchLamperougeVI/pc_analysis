@@ -35,7 +35,7 @@ alpha=(kernelSize-1)/sig/2;
 kernel=gausswin(kernelSize,alpha);
 kernel=kernel./sum(kernel);
 
-nan_idx = any(isnan(data),2);
+nan_idx = any(isnan(data),2); % TODO: this is not generalizable
 taper=zeros(kernelSize,1);
 data=[repmat(taper,1,size(data,2));data;repmat(taper,1,size(data,2))];
 data=data(:);

@@ -5,23 +5,29 @@ if ~isempty(obj.order)
     order=obj.order;
     lab='sorted neuron no.';
 else
-    order=1:size(obj.deconv,2);
+    order=1:size(obj.twop.deconv,2);
     lab='neuron no.';
 end
 
 switch lower(type)
     case 'sce'
+        wbins = 100;
         figure;
-        deconv=(obj.deconv - mean(obj.deconv,'omitnan'))./std(obj.deconv,'omitnan');
-        deconv=fast_smooth(deconv(:,order),obj.ops.sig*obj.fs);
-        ax(1)=subplot(5,1,1:3);
-        imagesc('xdata',obj.ts,'cdata',deconv');
-        colormap(get_colour('black'));
+        deconv=(obj.twop.deconv - mean(obj.twop.deconv,'omitnan'))./std(obj.twop.deconv,'omitnan');
+        deconv=fast_smooth(deconv(:,order),obj.ops.sig*obj.twop.fs);
+        idx = 1:3*wbins;
+        idx( ~mod(1:3*wbins, wbins) ) = [];
+        ax(1)=subplot(5,wbins,idx);
+        imagesc('xdata',obj.twop.ts,'cdata',deconv');
+%         colormap(get_colour('black'));
+        colormap jet
         ylim([1 size(deconv,2)]);
         ylabel(lab);
         
-        ax(2)=subplot(5,1,4);
-        plot(obj.ts,obj.MUA);
+        idx = 3*wbins:4*wbins;
+        idx( ~mod(3*wbins:4*wbins, wbins) ) = [];
+        ax(2)=subplot(5,wbins,idx);
+        plot(obj.twop.ts,obj.MUA);
         hold on
         plot(obj.SCE.on, min(obj.MUA).*ones(length(obj.SCE.on),1),'^k');
         for i=1:length(obj.SCE.dur)
@@ -31,9 +37,11 @@ switch lower(type)
         ylabel('population mean dF/F');
         xlabel('time (sec)');
         
-        ax(3)=subplot(5,1,5);
+        idx = 4*wbins:5*wbins;
+        idx( ~mod(4*wbins:5*wbins, wbins) ) = [];
+        ax(3)=subplot(5,wbins,idx);
         for ii = 1:length(obj.clust_SCE)
-            subset(ii)=plot(obj.ts,obj.clust_MUA(ii).MUA);
+            subset(ii)=plot(obj.twop.ts,obj.clust_MUA(ii).MUA, 'color', obj.colours(ii,:));
             hold on
             plot(obj.clust_SCE(ii).SCE.on, min(obj.clust_MUA(ii).MUA).*ones(length(obj.clust_SCE(ii).SCE.on),1),'^k');
             for i=1:length(obj.clust_SCE(ii).SCE.dur)
@@ -47,21 +55,33 @@ switch lower(type)
         
         linkaxes(ax,'x');
         
+        idx = 1:3*wbins;
+        idx( ~~mod(1:3*wbins, wbins) ) = [];
+        ax(4) = subplot(5,wbins, idx);
+        if strcmpi(obj.ops.order,'cluster')
+            hold on
+            for ii = 1:length(obj.clust)
+                plot(zeros(1, length(obj.clust{ii})), arrayfun(@(x) find(obj.order == x), obj.clust{ii}), 'linewidth',8, 'color',obj.colours(ii,:));
+            end
+        end
+        linkaxes([ax(1) ax(4)],'y');
+        set(ax(4), 'visible','off');
+        
     case 'lfp'
-        if isempty(obj.lfp)
+        if isempty(obj.lfp.lfp)
             error('need to load lfp first');
         end
         figure;
-        deconv=fast_smooth(obj.deconv(:,order),obj.ops.sig*obj.fs);
+        deconv=fast_smooth(obj.twop.deconv(:,order),obj.ops.sig*obj.twop.fs);
         deconv=(deconv-mean(deconv,'omitnan'))./std(deconv,'omitnan');
         ax(1)=subplot(5,1,1:3);
-        imagesc('xdata',obj.ts,'cdata',deconv');
+        imagesc('xdata',obj.twop.ts,'cdata',deconv');
 %         colormap(get_colour('black'));
         ylim([1 size(deconv,2)]);
         ylabel(lab);
         
         ax(2)=subplot(5,1,4);
-        plot(obj.ts,obj.MUA);
+        plot(obj.twop.ts,obj.MUA);
         hold on
         plot(obj.SCE.on, min(obj.MUA).*ones(length(obj.SCE.on),1),'^k');
         for i=1:length(obj.SCE.dur)
@@ -72,7 +92,7 @@ switch lower(type)
         xlabel('time (sec)');
         
         ax(3)=subplot(5,1,5);
-        plot(obj.lfp.t, obj.lfp.lfp);
+        plot(obj.lfp.ts, obj.lfp.lfp);
         xlabel('time (sec)');
         ylabel('lfp');
         
@@ -127,7 +147,7 @@ switch lower(type)
             c.Label.String='Corr. Coef.';
             xlabel(lab);
             ylabel(lab);
-            title(['clust ' num2str(count)]);
+            title(['clust ' num2str(count)], 'color',obj.colours(count,:));
             count=count+1;
         end
         
@@ -135,14 +155,13 @@ switch lower(type)
         if isempty(obj.tree)
             error('You need to build linkage tree first by running @basic_ensemble/hclust');
         end
-        clist = 'brgycm';
         figure;
         ax_u=subplot(2,2,2);
         h = dendrogram(obj.tree,0,'reorder',order);
         set(h, 'color', 'k');
         for i = 1:length(obj.clust)
             idx = dendro_colours(obj.tree, obj.clust{i});
-            set(h(idx), 'color', clist(mod(i,length(clist))+1));
+            set(h(idx), 'color', obj.colours(i,:));
         end
         axis square
         ax_l=subplot(2,2,3);
@@ -150,7 +169,7 @@ switch lower(type)
         set(h, 'color', 'k');
         for i = 1:length(obj.clust)
             idx = dendro_colours(obj.tree, obj.clust{i});
-            set(h(idx), 'color', clist(mod(i,length(clist))+1));
+            set(h(idx), 'color', obj.colours(i,:));
         end
         axis square
         ax_m=subplot(2,2,4);
@@ -165,7 +184,6 @@ switch lower(type)
         linkaxes([ax_u ax_m], 'x');
         linkaxes([ax_l ax_m], 'y');
         
-        
     case 'pc'
         if isempty(obj.clust)
             error('data not clustered');
@@ -173,7 +191,7 @@ switch lower(type)
         if nargin<3
             error('please give cluster number');
         end
-        plot_analysis(obj.lfp.analysis,[1 0 0],obj.clust{varargin{1}});
+        plot_analysis(obj.analysis,[1 0 0],obj.clust{varargin{1}});
         
     case 'spec'
         if isempty(obj.spec)
@@ -234,7 +252,7 @@ switch lower(type)
             title('Cluster Sorted');
             hold on
             for ii = 1:length(obj.clust)
-                plot(zeros(1, length(obj.clust{ii})), arrayfun(@(x) find(obj.order == x), obj.clust{ii}), 'linewidth',5);
+                plot(zeros(1, length(obj.clust{ii})), arrayfun(@(x) find(obj.order == x), obj.clust{ii}), 'linewidth',5, 'color',obj.colours(ii,:));
             end
         elseif strcmpi(obj.ops.order,'pc')
             title('Place Field Sorted');
@@ -242,6 +260,15 @@ switch lower(type)
         end
         xlabel('time from SWR peak (sec)');
         ylabel('sorted neuron no.');
+        
+        figure
+        hold on
+        for ii=1:length(obj.clust)
+            temp = mean(obj.swr_all(:, obj.clust{ii}, :), 2);
+            err = sem(temp, 3);
+            mu = mean(temp, 3);
+            errorbar(obj.swr_t, mu, err, 'color',obj.colours(ii,:));
+        end
         
     case 'silhouette'
         if strcmp(obj.ops.clust_method, 'shuffle')
@@ -255,5 +282,28 @@ switch lower(type)
         xticklabels(strsplit(num2str(ticks)));
         xlabel('number of clusters');
         ylabel('average silhouette width');
+        
+    case 'clust_topo'
+        figure;
+%         imagesc(ones(size(obj.topo.mimg)));
+        imagesc(obj.topo.mimg')
+%         colormap white;
+        colormap gray
+        set(gca,'visible','off')
+        hold on
+        for i =1:length(obj.clust)
+            for j=1:size(obj.topo.clust.vertices{i}, 3)
+                l=plot(obj.topo.clust.vertices{i}(2,:,j), obj.topo.clust.vertices{i}(1,:,j), 'color', obj.colours(i,:));
+                l.Color(4) = .25;
+            end
+        end
+        for i=1:length(obj.clust)
+            [x,y]=find(obj.topo.clust.masks==i);
+            plot(x,y,'.', 'color', obj.colours(i,:));
+        end
+        axis square
+        
+    otherwise
+        plot@LFP(obj, type);
         
 end

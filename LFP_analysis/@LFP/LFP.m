@@ -1,35 +1,24 @@
 classdef LFP < handle
 % All the tools for analyzing simultaneous 2p + LFP in one place
 
-    properties (GetAccess = 'public', SetAccess = 'private')
-        lfp %unfiltered lfp trace
-        fs %sampling rate in Hz
-        t %timestamps series
-        fs_2p
-        ts_2p
+    properties (GetAccess = 'public', SetAccess = 'protected')
+        lfp = struct('lfp',[], 'fs',[], 'ts',[], 'delta',[], 'theta',[], ...
+                    'gamma',[], 'swr',...
+                    struct('swr_env',[], 'swr_peaks',[], 'swr_dur',[], ...
+                    'swr_on',[], 'swr_cyc',[], 'swr',[]) );
+        twop = struct( 'fs',[], 'ts',[], 'deconv',[] );
         behavior
         ts_cam
         cam % irCam object
-        deconv
         analysis
         ensemble % basic_ensemble object
-        delta
-        theta
-        gamma
-        swr
-        swr_env % ripple power/amplitude envelope
-        swr_peaks %ripple peak onset times
-        swr_dur %ripple durations
-        swr_on %ripple onset times
-        swr_cyc %number of ripple frequency cycles
         
         lfp_mvt %500-1k Hz band signal for movement detection
         
         spec = struct('spectrum',[],'t',[],'f',[]);
         
         session % session information
-        maskNeurons
-        mimg
+        topo = struct('maskNeurons',[], 'mimg',[]);
         
 %         Channels = [1 2 3 6 8 7]';
 %         Channels = [1 2 3 4 5 6]';
@@ -55,13 +44,16 @@ classdef LFP < handle
         f60_env = 1;
     end
     
-    properties (GetAccess = 'private', Constant)
+    properties (GetAccess = 'protected', Constant)
         nfft = 2^16;
-        default_ops = struct('down_fs',2e3,'spec_wdw',.5, 'swr_cyc',3, 'swr_gap', .25);
+        default_ops = struct('down_fs',2e3,'spec_wdw',.5, 'swr_cyc',3, 'swr_gap', .25, 'FOV', 835.76 .* ones(2,1));
     end
     
     methods
         function obj = LFP(varargin) %construct with passed abf file
+            if ~isempty(varargin) && iscell(varargin{1})
+                varargin = varargin{1};
+            end
             if isempty(varargin)
                 [fn,path]=uigetfile('*.abf');
             else
@@ -88,12 +80,9 @@ classdef LFP < handle
             obj.session.wd = path;
             
             obj.update_channels();
-            obj.load(fn);
+            obj.load(fullfile(path,fn));
             obj.two_photon_ts;
-            try
-                obj.irCam_ts;
-            catch
-            end
+            try obj.irCam_ts; catch; end
             obj.down_sample(obj.default_ops.down_fs);
             obj.filter_bands;
             obj.extract_behaviour;
@@ -101,29 +90,34 @@ classdef LFP < handle
             try
                 deconv=load(fullfile(obj.session.wd, obj.session.id, 'plane1', 'deconv.mat'));
                 obj.import_deconv(deconv.deconv);
+                disp('Deconv loaded')
             catch
                 disp('Failed to autoload deconv :(');
             end
             if exist(fullfile(obj.session.wd, 'analysis.mat'), 'file')
                 analysis=load(fullfile(obj.session.wd, 'analysis.mat'));
                 obj.import_analysis(analysis.analysis);
+                disp('Analysis loaded');
             else
                 disp('No analysis file found');
             end
             if exist(fullfile(obj.session.wd, obj.session.id, 'plane1', 'masks_neurons.mat'), 'file')
                 maskNeurons = load(fullfile(obj.session.wd, obj.session.id, 'plane1', 'masks_neurons.mat'));
                 mimg = load(fullfile(obj.session.wd, obj.session.id, 'plane1', 'mean_img.mat'));
-                obj.maskNeurons = maskNeurons.maskNeurons;
-                obj.mimg = double(mimg.mimg);
+                obj.topo.maskNeurons = maskNeurons.maskNeurons;
+                obj.topo.mimg = double(mimg.mimg);
+                disp('Topography loaded');
+            else
+                disp('Failed to load topography');
             end
         end
         
         function load(obj, fn) % replace current data with another abf file
             [d,s] = abfload(fn);
             obj.si=s;
-            obj.fs = 1/s * 1e+6;
+            obj.lfp.fs = 1/s * 1e+6;
             obj.raw = d;
-            obj.lfp = d(:,obj.get_channel('lfp'));
+            obj.lfp.lfp = d(:,obj.get_channel('lfp'));
         end
         
         function import_cam(obj,cam) % import a camera object
@@ -137,10 +131,10 @@ classdef LFP < handle
             if exist(fullfile(obj.session.wd, 'fkd18k'), 'file')
                 fid = fopen(fullfile(obj.session.wd, 'fkd18k'), 'r');
                 if fscanf(fid, '%d')
-                    obj.deconv = stupid_windows_fs(deconv);
+                    obj.twop.deconv = stupid_windows_fs(deconv);
                     disp('18k correction applied');
                 else
-                    obj.deconv = deconv;
+                    obj.twop.deconv = deconv;
                     if size(deconv,1)>18000
                         disp('18k correction unnecessary');
                     end
@@ -149,16 +143,16 @@ classdef LFP < handle
                 return
             end
             if size(deconv,1)>18000 && ~isempty(obj.behavior)
-                tcs.tt=obj.ts_2p';
+                tcs.tt=obj.twop.ts';
                 [vel,temp] = convert_behavior(obj.behavior,tcs,deconv);
                 vel = vel.unit_vel;
-                temp = fast_smooth(temp,obj.fs_2p*.5);
+                temp = fast_smooth(temp,obj.twop.fs*.5);
                 if size(temp,1) < length(vel); vel=vel(1:size(temp,1)); end
                 ori_r = corr(temp, vel');
                 
                 [vel,temp] = convert_behavior(obj.behavior,tcs,stupid_windows_fs(deconv));
                 vel = vel.unit_vel;
-                temp = fast_smooth(temp,obj.fs_2p*.5);
+                temp = fast_smooth(temp,obj.twop.fs*.5);
                 if size(temp,1) < length(vel); vel=vel(1:size(temp,1)); end
                 alt_r = corr(temp, vel');
 
@@ -166,7 +160,7 @@ classdef LFP < handle
                     disp('DANGER! A rupture in Space-Time continuum has been detected!');
                     uinp = input('Should I fix it for you? Y/N [Y] ', 's');
                     if strcmpi(uinp,'y') || strcmpi(uinp,'yes') || isempty(uinp)
-                        obj.deconv=stupid_windows_fs(deconv);
+                        obj.twop.deconv=stupid_windows_fs(deconv);
                         disp('OK. I''ve fixed it for you. But know that this only works for behavioural data. It''s up to you to remember to correct it during rest.');                        
                         fid = fopen(fullfile(obj.session.wd, 'fkd18k'), 'w');
                         fprintf(fid, '%d', 1);
@@ -176,7 +170,7 @@ classdef LFP < handle
                     disp('I surely hope you know what you''re doing...');
                 end
             end
-            obj.deconv=deconv;
+            obj.twop.deconv=deconv;
             fid = fopen(fullfile(obj.session.wd, 'fkd18k'), 'w');
             fprintf(fid, '%d', 0);
             fclose(fid);
@@ -195,25 +189,25 @@ classdef LFP < handle
             if isempty(obj.behavior)
                 error('no behavioural data currently exists');
             end
-            if isempty(obj.deconv)
+            if isempty(obj.twop.deconv)
                 error('no deconv data currently exists');
             end
-            tcs.tt=obj.ts_2p';
-            [beh,dec]=convert_behavior(obj.behavior,tcs,obj.deconv);
+            tcs.tt=obj.twop.ts';
+            [beh,dec]=convert_behavior(obj.behavior,tcs,obj.twop.deconv);
             obj.analysis=pc_batch_analysis(beh,dec,varargin);
             obj.analysis.order=get_order(obj.analysis);
         end
         
-        function detect_sce(obj,varargin) % construct basic_ensemble object 
-            if isempty(obj.deconv)
-                error('no deconv data available');
-            end
-            obj.ensemble = basic_ensemble(obj.deconv,obj.ts_2p,varargin);
-            if ~isempty(obj.analysis)
-                obj.ensemble.pc_order=get_order(obj.analysis);
-            end
-            obj.ensemble.lfp=obj;
-        end
+%         function detect_sce(obj,varargin) % construct basic_ensemble object 
+%             if isempty(obj.twop.deconv)
+%                 error('no deconv data available');
+%             end
+%             obj.ensemble = basic_ensemble(obj.twop.deconv,obj.twop.ts,varargin);
+%             if ~isempty(obj.analysis)
+%                 obj.ensemble.pc_order=get_order(obj.analysis);
+%             end
+%             obj.ensemble.lfp=obj;
+%         end
         
         function set_channels(obj, ch) % change channels configuration from default
             obj.Channels = ch;
@@ -232,17 +226,17 @@ classdef LFP < handle
         end
         
         function reset(obj) % reset to original lfp from abf
-            obj.fs = 1/obj.si * 1e+6;
-            obj.lfp = obj.raw(:,obj.get_channel('lfp'));
+            obj.lfp.fs = 1/obj.si * 1e+6;
+            obj.lfp.lfp = obj.raw(:,obj.get_channel('lfp'));
         end
         
         function invert_pol(obj) % invert the polarities between electrode tips
-            m=median(obj.lfp);
-            obj.lfp=-(obj.lfp-m)+m;
+            m=median(obj.lfp.lfp);
+            obj.lfp.lfp=-(obj.lfp.lfp-m)+m;
         end
         
         function remove_mvt(obj) % remove moving epochs from deconv detected by camera and belt encoder (whatever is available)
-            if isempty(obj.deconv)
+            if isempty(obj.twop.deconv)
                 error('deconv needs to be loaded into current LFP object first');
             end
             
@@ -256,14 +250,14 @@ classdef LFP < handle
                 tails=get_head(obj.cam.mvt(end:-1:1)');
                 tails=obj.ts_cam(tails(end:-1:1));
                 
-                heads(tails<obj.ts_2p(1))=[];tails(tails<obj.ts_2p(1))=[];
-                tails(heads>obj.ts_2p(end))=[];heads(heads>obj.ts_2p(end))=[];
+                heads(tails<obj.twop.ts(1))=[];tails(tails<obj.twop.ts(1))=[];
+                tails(heads>obj.twop.ts(end))=[];heads(heads>obj.twop.ts(end))=[];
                 
                 for i=1:length(heads)
-                    idx=[find(obj.ts_2p>heads(i),1) find(obj.ts_2p<tails(i),1,'last')];
+                    idx=[find(obj.twop.ts>heads(i),1) find(obj.twop.ts<tails(i),1,'last')];
                     idx(1)=~(idx(1)<1)*idx(1) + (idx(1)<1);
-                    idx(2)=~(idx(2)>length(obj.ts_2p)).*idx(2) + (idx(2)>length(obj.ts_2p))*length(obj.ts_2p);
-                    obj.deconv(idx(1):idx(2),:)=nan;
+                    idx(2)=~(idx(2)>length(obj.twop.ts)).*idx(2) + (idx(2)>length(obj.twop.ts))*length(obj.twop.ts);
+                    obj.twop.deconv(idx(1):idx(2),:)=nan;
                 end
             end
             
@@ -272,11 +266,11 @@ classdef LFP < handle
             elseif ~isfield(obj.behavior,'unit_vel')
                 thres=noRun(obj.behavior.speed_raw);
                 thres=abs(obj.behavior.speed_raw)>thres;
-                obj.deconv(thres,:)=nan;
+                obj.twop.deconv(thres,:)=nan;
             else
                 thres=noRun(obj.behavior.unit_vel);
                 thres=abs(obj.behavior.unit_vel)>thres;
-                obj.deconv(thres,:)=nan;
+                obj.twop.deconv(thres,:)=nan;
             end
         end
         
@@ -287,6 +281,7 @@ classdef LFP < handle
         filter_bands(obj);
         extract_behaviour(obj);
         enregistrer(obj, fn);
+        topography(obj, FOV);
     end
     
     methods (Access = private)
