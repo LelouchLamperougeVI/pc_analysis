@@ -5,6 +5,7 @@
 clear all
 % list = {'RSC036', 'RSC037', 'RSC038'};
 list = {'EE001_new', 'EE003_new', 'pch17', 'pch18'};
+% list = {'EE003_new', 'pch17', 'pch18'};
 % list = {'EE001_new', 'PCH017'};
 % list = {'PCH017'};
 % list = {'RSC032'};
@@ -18,58 +19,35 @@ for f = 1:length(list)
     root(1:2) = [];
     
     for i = 1:length(root)
-        clear lfp;
         full = fullfile(root(i).folder, root(i).name);
         
-        load(fullfile(full, '2', 'Plane1', 'deconv.mat'));
-        lfp = LFP(fullfile(full, [root(i).name '_2.abf']));
-        deconv = stupid_windows_fs(deconv);
-        lfp.import_deconv(deconv);
-        lfp.perform_analysis;
-        analysis = lfp.analysis;
-        save(fullfile(full, 'analysis.mat'), 'analysis');
-        save(fullfile(full, 'lfp2.mat'), 'lfp');
-        disp(['Got ' num2str(length(analysis.pc_list)) ' place cells out of ' num2str(size(deconv,2))])
-
-%         load(fullfile(full, 'analysis.mat'));
-        
-        clear lfp;
         clear ass
-        load(fullfile(full, '1', 'Plane1', 'deconv.mat'));
-        lfp = LFP(fullfile(full, [root(i).name '_1.abf']));
-        deconv = stupid_windows_fs(deconv);
-        lfp.import_deconv(deconv);
-        lfp.import_analysis(analysis);
-        lfp.remove_mvt;
-        lfp.detect_sce;
-        ass = lfp.ensemble;
+        ass = ensemble(fullfile(full, [root(i).name '_1.abf']));
+%         lfp.remove_mvt;
+        ass.detect_sce;
 %         ass.set_ops('clust_method','silhouette');
         ass.set_ops('e_size',5);
         ass.set_ops('clust_method','thres');
         ass.set_ops('order','cluster');
         ass.cluster;
+        ass.topography;
+        ass.swr_window;
         ass.plot('tree');
-        save(fullfile(full, 'lfp1.mat'), 'lfp');
-        save(fullfile(full, 'ass1.mat'), 'ass');
+        ass.enregistrer;
         
-        clear lfp;
         clear ass
-        load(fullfile(full, '3', 'Plane1', 'deconv.mat'));
-        lfp = LFP(fullfile(full, [root(i).name '_3.abf']));
-        deconv = stupid_windows_fs(deconv);
-        lfp.import_deconv(deconv);
-        lfp.import_analysis(analysis);
-        lfp.remove_mvt;
-        lfp.detect_sce;
-        ass = lfp.ensemble;
+        ass = ensemble(fullfile(full, [root(i).name '_3.abf']));
+%         lfp.remove_mvt;
+        ass.detect_sce;
 %         ass.set_ops('clust_method','silhouette');
         ass.set_ops('e_size',5);
         ass.set_ops('clust_method','thres');
         ass.set_ops('order','cluster');
         ass.cluster;
+        ass.topography;
+        ass.swr_window;
         ass.plot('tree');
-        save(fullfile(full, 'lfp3.mat'), 'lfp');
-        save(fullfile(full, 'ass3.mat'), 'ass');
+        ass.enregistrer;
     end
     
 end
@@ -160,6 +138,8 @@ end
 
 %% Spatial Info, Sparsity, recording length and other stats
 
+belt;
+
 session = struct('animal',[],'date',[], 'rest1', [], 'rest2', [], 'frac_overlap',[], 'null_frac',[], 'hypergeo_p',[]);
 session.rest1 = struct('SI_clust',[], 'SI_no_clust',[], 'sparsity_clust',[], 'sparsity_no_clust',[], 'recording_frac', [],...
                         'clust_size',[], 'clust_num',[], 'clust_frac',[], 'xcoef',[], 'err',[], 'err_sem',[], 'err_all',[], 'err_sem_all',[], ...
@@ -181,36 +161,37 @@ for f = 1:length(list)
         clear lfp;
         full = fullfile(root(i).folder, root(i).name);
         
-        if exist(fullfile(full, 'ass3.mat'),'file')
+        if exist(fullfile(full, 'lfp3.mat'),'file')
             load(fullfile(full, 'analysis.mat'));
             
-            load(fullfile(full, 'ass1.mat'));
+            load(fullfile(full, 'lfp1.mat'));
+            ass = lfp;
             ass1 = ass;
             r1_clust = ass.clust;
 %             r1_clust( cellfun(@length, r1_clust) < 8 ) = [];
             r1_r = ass.R;
             r1_r = tril(r1_r, -1);
-            r1_r(~r1_r) = [];
+            r1_r(r1_r==0) = [];
             
             session(count).rest1.SI_clust = analysis.SI(cell2mat(r1_clust));
             session(count).rest1.SI_clust_clust = cellfun( @(x) analysis.SI(x), r1_clust, 'uniformoutput',false );
             session(count).rest1.SI_no_clust = analysis.SI(setxor(cell2mat(r1_clust), 1:length(analysis.psth)));
             session(count).rest1.sparsity_clust = analysis.sparsity(cell2mat(r1_clust));
             session(count).rest1.sparsity_no_clust = analysis.sparsity(setxor(cell2mat(r1_clust), 1:length(analysis.psth)));
-            session(count).rest1.recording_frac = sum(~any(isnan(ass.deconv),2)) / size(ass.deconv,1);
+            session(count).rest1.recording_frac = sum(~any(isnan(ass.twop.deconv),2)) / size(ass.twop.deconv,1);
             session(count).rest1.clust_size = cellfun(@length, r1_clust);
             session(count).rest1.clust_num = length(r1_clust);
-            session(count).rest1.clust_frac = length(cell2mat(r1_clust)) / size(ass.deconv, 2);
-            session(count).rest1.clust_frac_clust = cellfun(@length, r1_clust) ./ size(ass.deconv, 2);
+            session(count).rest1.clust_frac = length(cell2mat(r1_clust)) / size(ass.twop.deconv, 2);
+            session(count).rest1.clust_frac_clust = cellfun(@length, r1_clust) ./ size(ass.twop.deconv, 2);
             session(count).rest1.xcoef = arrayfun(@(x) max(xcorr(belt_idx, mean(analysis.stack(:,r1_clust{x}),2), 'coeff')), 1:length(r1_clust));
             
-%             null_err = zeros(length(ass.clust),50,shuffles);
-%             parfor ii = 1:shuffles
-%                 sample = arrayfun(@(x) randperm(length(analysis.psth), x), cellfun(@length, ass.clust), 'uniformoutput',false);
-%                 [~,~,temp] = bayes_infer(analysis, .05, sample);
-%                 null_err(:, :, ii) = temp(2:end,:);
-%             end
-%             session(count).rest1.null_err = null_err;
+            null_err = zeros(length(ass.clust),50,shuffles);
+            parfor ii = 1:shuffles
+                sample = arrayfun(@(x) randperm(length(analysis.psth), x), cellfun(@length, ass.clust), 'uniformoutput',false);
+                [~,~,temp] = bayes_infer(analysis, .05, sample);
+                null_err(:, :, ii) = temp(2:end,:);
+            end
+            session(count).rest1.null_err = null_err;
             
             [~,~,session(count).rest1.err,session(count).rest1.err_sem]=bayes_infer(analysis,.05,r1_clust);
             [~,~,session(count).rest1.err_all,session(count).rest1.err_sem_all]=bayes_infer(analysis,.05,{cell2mat(r1_clust)});
@@ -236,33 +217,34 @@ for f = 1:length(list)
             session(count).rest1.frac_pc_clust_clust = cellfun(@(x) length(intersect(analysis.pc_list, x)) / length(x), r1_clust);
             
             
-            load(fullfile(full, 'ass3.mat'));
+            load(fullfile(full, 'lfp3.mat'));
+            ass=lfp;
             ass3 = ass;
             r2_clust = ass.clust;
 %             r2_clust( cellfun(@length, r2_clust) < 10 ) = [];
             r2_r = ass.R;
             r2_r = tril(r2_r, -1);
-            r2_r(~r2_r) = [];
+            r2_r(r2_r==0) = [];
             
             session(count).rest2.SI_clust = analysis.SI(cell2mat(r2_clust));
             session(count).rest2.SI_clust_clust = cellfun( @(x) analysis.SI(x), r2_clust, 'uniformoutput',false );
             session(count).rest2.SI_no_clust = analysis.SI(setxor(cell2mat(r2_clust), 1:length(analysis.psth)));
             session(count).rest2.sparsity_clust = analysis.sparsity(cell2mat(r2_clust));
             session(count).rest2.sparsity_no_clust = analysis.sparsity(setxor(cell2mat(r2_clust), 1:length(analysis.psth)));
-            session(count).rest2.recording_frac = sum(~any(isnan(ass.deconv),2)) / size(ass.deconv,1);
+            session(count).rest2.recording_frac = sum(~any(isnan(ass.twop.deconv),2)) / size(ass.twop.deconv,1);
             session(count).rest2.clust_size = cellfun(@length, r2_clust);
             session(count).rest2.clust_num = length(r2_clust);
-            session(count).rest2.clust_frac = length(cell2mat(r2_clust)) / size(ass.deconv, 2);
-            session(count).rest2.clust_frac_clust = cellfun(@length, r2_clust) ./ size(ass.deconv, 2);
+            session(count).rest2.clust_frac = length(cell2mat(r2_clust)) / size(ass.twop.deconv, 2);
+            session(count).rest2.clust_frac_clust = cellfun(@length, r2_clust) ./ size(ass.twop.deconv, 2);
             session(count).rest2.xcoef = arrayfun(@(x) max(xcorr(belt_idx, mean(analysis.stack(:,r2_clust{x}),2), 'coeff')), 1:length(r2_clust));
             
-%             null_err = zeros(length(ass.clust),50,shuffles);
-%             parfor ii = 1:shuffles
-%                 sample = arrayfun(@(x) randperm(length(analysis.psth), x), cellfun(@length, ass.clust), 'uniformoutput',false);
-%                 [~,~,temp] = bayes_infer(analysis, .05, sample);
-%                 null_err(:, :, ii) = temp(2:end,:);
-%             end
-%             session(count).rest2.null_err = null_err;
+            null_err = zeros(length(ass.clust),50,shuffles);
+            parfor ii = 1:shuffles
+                sample = arrayfun(@(x) randperm(length(analysis.psth), x), cellfun(@length, ass.clust), 'uniformoutput',false);
+                [~,~,temp] = bayes_infer(analysis, .05, sample);
+                null_err(:, :, ii) = temp(2:end,:);
+            end
+            session(count).rest2.null_err = null_err;
             
             [~,~,session(count).rest2.err,session(count).rest2.err_sem]=bayes_infer(analysis,.05,r2_clust);
             [~,~,session(count).rest2.err_all,session(count).rest2.err_sem_all]=bayes_infer(analysis,.05,{cell2mat(r2_clust)});
@@ -287,16 +269,16 @@ for f = 1:length(list)
             session(count).rest2.frac_pc = length(analysis.pc_list) / length(analysis.psth);
             session(count).rest2.frac_pc_clust_clust = cellfun(@(x) length(intersect(analysis.pc_list, x)) / length(x), r2_clust);
             
-            session(count).frac_overlap = length(intersect(cell2mat(r1_clust), cell2mat(r2_clust))) / size(ass.deconv,2);
+            session(count).frac_overlap = length(intersect(cell2mat(r1_clust), cell2mat(r2_clust))) / size(ass.twop.deconv,2);
             session(count).frac_overlap_new = length(intersect(cell2mat(r1_clust), cell2mat(r2_clust))) / ...
                                                ( length(cell2mat(r1_clust)) + length(cell2mat(r2_clust)) - length(intersect(cell2mat(r1_clust), cell2mat(r2_clust)))); %C / A+B-C
                                            
-            session(count).null_frac = length(cell2mat(r1_clust)) * length(cell2mat(r2_clust)) / (size(ass.deconv,2)^2); %mean of hypergeometric distribution
-            session(count).null_frac_new = (length(cell2mat(r1_clust)) * length(cell2mat(r2_clust)) / size(ass.deconv,2)) / ...
+            session(count).null_frac = length(cell2mat(r1_clust)) * length(cell2mat(r2_clust)) / (size(ass.twop.deconv,2)^2); %mean of hypergeometric distribution
+            session(count).null_frac_new = (length(cell2mat(r1_clust)) * length(cell2mat(r2_clust)) / size(ass.twop.deconv,2)) / ...
                                             (length(cell2mat(r1_clust)) + length(cell2mat(r1_clust)) - ...
-                                            (length(cell2mat(r1_clust)) * length(cell2mat(r2_clust)) / size(ass.deconv,2)) ); %mean of hypergeometric distribution
+                                            (length(cell2mat(r1_clust)) * length(cell2mat(r2_clust)) / size(ass.twop.deconv,2)) ); %mean of hypergeometric distribution
             
-            session(count).hypergeo_p = hygepdf(length(intersect(cell2mat(r1_clust), cell2mat(r2_clust))), size(ass.deconv,2), length(cell2mat(r1_clust)), length(cell2mat(r2_clust)));
+            session(count).hypergeo_p = hygepdf(length(intersect(cell2mat(r1_clust), cell2mat(r2_clust))), size(ass.twop.deconv,2), length(cell2mat(r1_clust)), length(cell2mat(r2_clust)));
             
             session(count).rest1.stack_overlap_pc = analysis.stack(:, intersect(analysis.pc_list, intersect(cell2mat(r1_clust), cell2mat(r2_clust))));
             session(count).rest1.stack_diff_pc = analysis.stack(:, intersect(analysis.pc_list, setdiff(cell2mat(r1_clust), cell2mat(r2_clust))));
@@ -342,7 +324,7 @@ for f = 1:length(list)
             
             deconv = analysis.deconv;
             deconv=(deconv-mean(deconv,'omitnan'))./std(deconv,'omitnan'); %zscore
-            deconv=fast_smooth(deconv,ass.ops.sig*ass.fs);
+            deconv=fast_smooth(deconv,ass.ops.sig*ass.twop.fs);
             deconv(isnan(sum(deconv,2)),:)=[];
             e_r = corr(deconv);
             e_r = tril(e_r, -1);
@@ -354,7 +336,7 @@ for f = 1:length(list)
             
             session(count).animal=list{f};
             session(count).date=root(i).name;
-            count = count+1;
+            count = count+1
         end
         
     end

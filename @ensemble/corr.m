@@ -3,6 +3,7 @@ function corr(obj)
 
 deconv = obj.twop.deconv;
 deconv=(deconv-mean(deconv,'omitnan'))./std(deconv,'omitnan'); %zscore
+deconv(:, all(isnan(deconv))) = 0;
 deconv=fast_smooth(deconv,obj.ops.sig*obj.twop.fs);
 deconv(isnan(sum(deconv,2)),:)=[];
 

@@ -12,11 +12,19 @@ Dm(1:length(Dm)+1:numel(Dm))=0;
 D=squareform(Dm);
 
 obj.tree=linkage(D,'average');
-obj.clust_order = optimalleaforder(obj.tree, D);
+try
+    obj.clust_order = optimalleaforder(obj.tree, D);
+catch
+    tmp_d=D; tmp_d(isnan(tmp_d)) = 1;
+    obj.clust_order = optimalleaforder(obj.tree, tmp_d);
+end
 
-thres = linkage(squareform(1-abs(obj.null_R)), 'average');
-thres=prctile(thres(:,3),obj.ops.e_prctile);
-obj.h_thres = thres;
+try
+    thres = linkage(squareform(1-abs(obj.null_R)), 'average');
+    thres=prctile(thres(:,3),obj.ops.e_prctile);
+    obj.h_thres = thres;
+catch
+end
 
 if strcmp(obj.ops.clust_method, 'silhouette')
     c=obj.silhouette_cluster(obj.tree, Dm, obj.ops.e_size);
@@ -31,7 +39,8 @@ for i=1:max(c)
     clust{count}=find(c==i)';
     temp=Dm(clust{count},clust{count});
     temp=squareform(temp);
-    if mean(temp(:))<thres && length(clust{count})>=obj.ops.e_size
+%     if mean(temp(:))<thres && length(clust{count})>=obj.ops.e_size
+    if length(clust{count})>=obj.ops.e_size
         count=count+1;
     else
         clust(count)=[];

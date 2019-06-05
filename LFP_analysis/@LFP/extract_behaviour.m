@@ -61,6 +61,10 @@ else
     spurious = arrayfun(@(x) max(pos_raw(rwd(x):rwd(x+1))), 1:length(rwd)-1); % to detect spots where the valve didn't open or got stuck...
     spur_range = median(spurious);
     spurious = find(spurious > ( spur_range + 20));
+    if range( pos_raw(rwd(end) : end) ) > ( spur_range + 20)
+        spurious = [spurious length(rwd)];
+        rwd = [rwd length(pos_raw)];
+    end
 
     for i = 1:length(spurious)
         temp = pos_raw(rwd(spurious(i)) : rwd(spurious(i) + 1));
@@ -77,7 +81,7 @@ else
         end
 
         pos_raw(rwd(spurious(i)) : rwd(spurious(i) + 1)) = temp;
-        rwd = sort( [rwd ( idx + rwd(spurious(i)) - 1 )] );
+%         rwd = sort( [rwd ( idx' + rwd(spurious(i)) - 1 )] );
     end
 end
 

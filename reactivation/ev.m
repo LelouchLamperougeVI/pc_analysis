@@ -71,11 +71,11 @@ function rval = idtype(input)
 issym = @(A) ( sum(sum( A == A' )) / numel(A) ) > .3; %computers are only as precise as themselves... values returned from corr() don't always return TRUE in issymmetric()
 
 switch class(input)
-    case 'basic_ensemble'
+    case 'ensemble'
         try
             rval{1} = input.R;
             rval{2} = input.ops.sig;
-            rval{3} = input.fs;
+            rval{3} = input.twop.fs;
         catch
             if isempty(input.R)
                 error('The ''basic_ensemble'' does not have a correlation matrix constructed');
