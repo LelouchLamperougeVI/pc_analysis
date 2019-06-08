@@ -18,7 +18,9 @@ classdef ensemble < LFP
         clust_order % order neurons by ensembles
         swr_stack
         swr_all
+        swr_null_all
         swr_t
+        swr_class
         colours
     end
     
@@ -50,9 +52,10 @@ classdef ensemble < LFP
         sce_spectrum(obj,varargin);
         corr(obj);
         hclust(obj);
-        [stack,all,out,t]=swr_window(obj);
+        [stack,all,t]=swr_window(obj);
         topography(obj);
         make_colours(obj);
+        classi_swr(obj, wdw, p);
         plot(obj,type,varargin);
     end
     

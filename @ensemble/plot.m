@@ -191,7 +191,7 @@ switch lower(type)
         if nargin<3
             error('please give cluster number');
         end
-        plot_analysis(obj.analysis,[1 0 0],obj.clust{varargin{1}});
+        plot_analysis(obj.analysis,[1 1 0],obj.clust{varargin{1}});
         
     case 'spec'
         if isempty(obj.spec)
@@ -261,13 +261,35 @@ switch lower(type)
         xlabel('time from SWR peak (sec)');
         ylabel('sorted neuron no.');
         
-        figure
-        hold on
+        k=5;
         for ii=1:length(obj.clust)
+            if ~mod(ii-1, k^2)
+                figure;
+            end
+            h(ii) = subplot(k,k, mod(ii-1, k^2)+1);
             temp = mean(obj.swr_all(:, obj.clust{ii}, :), 2);
             err = sem(temp, 3);
             mu = mean(temp, 3);
-            errorbar(obj.swr_t, mu, err, 'color',obj.colours(ii,:));
+            errorshade(obj.swr_t, mu, err, 'colour', obj.colours(ii,:), 'target',h(ii));
+            temp = mean(obj.swr_null_all(:, obj.clust{ii}, :), 2);
+            err = sem(temp, 3);
+            mu = mean(temp, 3);
+            errorshade(obj.swr_t, mu, err, 'colour', 'k', 'target',h(ii));
+            title(['Clust ' num2str(ii)]);
+        end
+        linkaxes(h, 'y');
+%         labels = arrayfun(@(x) ['clust ' num2str(x)], 1:length(obj.clust), 'uniformoutput',false);
+%         legend(labels);
+
+        for ii=1:length(obj.clust)
+            if ~mod(ii-1, k^2)
+                figure;
+            end
+            h(ii) = subplot(k,k, mod(ii-1, k^2)+1);
+            temp = mean(obj.swr_all(:, obj.clust{ii}, :), 2);
+%             imagesc(squeeze(temp)');
+            imagesc(fast_smooth(squeeze(temp),1)');
+            title(['Clust ' num2str(ii)]);
         end
         
     case 'silhouette'
