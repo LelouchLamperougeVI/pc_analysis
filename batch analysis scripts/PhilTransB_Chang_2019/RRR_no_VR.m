@@ -3,8 +3,8 @@
 % Data folder:  Adam's old computer (AKA my computer) E:\HaoRan\RRR\ {RSC036-38}
 
 clear all
-% list = {'RSC036', 'RSC037', 'RSC038'};
-list = {'EE001_new', 'EE003_new', 'pch17', 'pch18'};
+list = {'RSC036', 'RSC037', 'RSC038'};
+% list = {'EE001_new', 'EE003_new', 'pch17', 'pch18'};
 % list = {'EE003_new', 'pch17', 'pch18'};
 % list = {'EE001_new', 'PCH017'};
 % list = {'PCH017'};
@@ -24,6 +24,7 @@ for f = 1:length(list)
         clear ass
         ass = ensemble(fullfile(full, [root(i).name '_1.abf']));
 %         lfp.remove_mvt;
+        ass.remove_mvt;
         ass.detect_sce;
 %         ass.set_ops('clust_method','silhouette');
         ass.set_ops('e_size',5);
@@ -31,13 +32,14 @@ for f = 1:length(list)
         ass.set_ops('order','cluster');
         ass.cluster;
         ass.topography;
-        ass.swr_window;
+%         ass.swr_window;
         ass.plot('tree');
         ass.enregistrer;
         
         clear ass
         ass = ensemble(fullfile(full, [root(i).name '_3.abf']));
 %         lfp.remove_mvt;
+        ass.remove_mvt;
         ass.detect_sce;
 %         ass.set_ops('clust_method','silhouette');
         ass.set_ops('e_size',5);
@@ -45,7 +47,7 @@ for f = 1:length(list)
         ass.set_ops('order','cluster');
         ass.cluster;
         ass.topography;
-        ass.swr_window;
+%         ass.swr_window;
         ass.plot('tree');
         ass.enregistrer;
     end
