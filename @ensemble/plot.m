@@ -174,10 +174,18 @@ switch lower(type)
         axis square
         ax_m=subplot(2,2,4);
         imagesc(obj.R(order,order));
-        colormap jet
+        
+        rrange = [-.5 1];
+        cmap = redbluecmap;
+        cmap = interp1(1:size(cmap,1), cmap, linspace(1, size(cmap,1), 65), 'spline');
+        cmap(cmap<0) = 0;
+        idx = linspace(-1, 1, size(cmap,1));
+        cmap = cmap( idx > rrange(1) & idx < rrange(2), : );
+        
+        colormap(cmap)
         axis square
         p = get(ax_m, 'Position');
-        caxis([-.5 1])
+        caxis(rrange)
         colorbar;
         set(ax_m, 'Position', p);
         

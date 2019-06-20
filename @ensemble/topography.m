@@ -16,7 +16,23 @@ obj.topo.clust.centroid = arrayfun(@(x) reshape([obj.topo.clust.centroid{x}.Cent
 obj.topo.clust.vertices = cellfun(@vertices, obj.topo.clust.centroid, 'uniformoutput',false);
 
 obj.topo.clust.distances = cellfun(@distance, obj.topo.clust.centroid, 'uniformoutput',false);
-obj.topo.clust.mu_d = cellfun(@(x) mean(distance(x)), obj.topo.clust.centroid, 'uniformoutput',false);
+obj.topo.clust.mu_d = cellfun(@(x) mean(distance(x)), obj.topo.clust.centroid);
+
+% the following block was hastily implemented to test the "clusteredness"
+% of each ensemble in physical space via a permutation test
+shuffles = 1000;
+mu_null = zeros(shuffles, length(obj.topo.clust.centroid));
+centroid = obj.topo.clust.centroid;
+centroids = obj.topo.centroid;
+fhandle = @distance;
+parfor kk = 1:shuffles
+    temp = cellfun(@(x) randperm(size(centroids,2), size(x,2)), centroid, 'uniformoutput',false);
+    temp = cellfun(@(x) centroids(:, x), temp, 'uniformoutput',false);
+    mu_null(kk, :) = cellfun(@(x) mean( feval( fhandle, x)), temp);
+end
+obj.topo.clust.mu_null = mu_null;
+obj.topo.clust.pval = sum( obj.topo.clust.mu_d > mu_null ) ./ shuffles;
+% end block
 
 obj.topo.clust.masks = permute(1:length(obj.clust), [3 1 2]) .* cell2mat( permute(obj.topo.clust.masks, [3 1 2]) );
 obj.topo.clust.masks = sum( obj.topo.clust.masks, 3);

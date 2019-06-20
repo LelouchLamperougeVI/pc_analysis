@@ -404,9 +404,13 @@ plot(find(~~h), idx(~~h), '*')
 %% Decoding error heat map
 r1_err_map = [];
 r1_sem_map = [];
+r1_err_pop = [];
+r1_sem_pop = [];
 for i = 1:length(session)
     r1_err_map = [r1_err_map; session(i).rest1.err(2:end,:)];
     r1_sem_map = [r1_sem_map; session(i).rest1.err_sem(2:end,:)];
+    r1_err_pop = [r1_err_pop; session(i).rest1.err(1,:)];
+    r1_sem_pop = [r1_sem_pop; session(i).rest1.err_sem(1,:)];
 end
 [r1_err_min,r1_err_min_idx] = min(r1_err_map,[],2);
 [~,r1_err_idx] = sort(r1_err_min_idx);
@@ -418,19 +422,23 @@ caxis([0 80]);
 p = get(gca, 'position');
 colorbar
 set(gca, 'position', p);
-% hold on;
-% plot(r1_err_min_idx(r1_err_idx),1:length(r1_err_idx),'r');
-% subplot(1,2,2);
-% imagesc(r1_sem_map(r1_err_idx,:));
-% colormap jet
-% caxis([0 10]);
-% colorbar
+figure
+imagesc(corr(r1_err_map));
+colormap jet
+caxis([-.5 1]);
+p = get(gca, 'position');
+colorbar
+set(gca, 'position', p);
 
 r2_err_map = [];
 r2_sem_map = [];
+r2_err_pop = [];
+r2_sem_pop = [];
 for i = 1:length(session)
     r2_err_map = [r2_err_map; session(i).rest2.err(2:end,:)];
     r2_sem_map = [r2_sem_map; session(i).rest2.err_sem(2:end,:)];
+    r2_err_pop = [r2_err_pop; session(i).rest2.err(1,:)];
+    r2_sem_pop = [r2_sem_pop; session(i).rest2.err_sem(1,:)];
 end
 [r2_err_min,r2_err_min_idx] = min(r2_err_map,[],2);
 [~,r2_err_idx] = sort(r2_err_min_idx);
@@ -442,33 +450,34 @@ caxis([0 80]);
 p = get(gca, 'position');
 colorbar
 set(gca, 'position', p);
-% hold on;
-% plot(r2_err_min_idx(r2_err_idx),1:length(r2_err_idx),'r');
-% subplot(1,2,2);
-% imagesc(r2_sem_map(r2_err_idx,:));
-% colormap jet
-% caxis([0 10]);
-% colorbar
+figure
+imagesc(corr(r2_err_map));
+colormap jet
+caxis([-.5 1]);
+p = get(gca, 'position');
+colorbar
+set(gca, 'position', p);
 
-% non_err_map = [];
-% non_sem_map = [];
-% for i = 1:length(session)
-%     non_err_map = [non_err_map; session(i).rest2.err(1,:)];
-%     non_sem_map = [non_sem_map; session(i).rest2.err_sem(1,:)];
-% end
-% [~,idx] = min(non_err_map,[],2);
-% [~,idx] = sort(idx);
-% figure
+[~,idx] = min(r1_err_pop,[],2);
+[~,idx] = sort(idx);
+figure
 % subplot(1,2,1);
-% imagesc(non_err_map(idx,:));
-% colormap jet
-% caxis([0 80]);
-% colorbar
-% subplot(1,2,2);
-% imagesc(non_sem_map(idx,:));
-% colormap jet
-% caxis([0 10]);
-% colorbar
+imagesc(r1_err_pop(idx,:));
+colormap jet
+caxis([0 25]);
+p = get(gca, 'position');
+colorbar
+set(gca, 'position', p);
+[~,idx] = min(r2_err_pop,[],2);
+[~,idx] = sort(idx);
+figure
+% subplot(1,2,1);
+imagesc(r2_err_pop(idx,:));
+colormap jet
+caxis([0 25]);
+p = get(gca, 'position');
+colorbar
+set(gca, 'position', p);
 
 
 %% permutation test significant regions
@@ -532,7 +541,7 @@ bar([sum(r1_sig_map <= .05 & r1_sig_map > .01); sum(r1_sig_map <= .01 & r1_sig_m
 hold on
 % plot(movmedian(sum(r1_sig_regions)./numel(r1_sig_regions), 10/3), 'r', 'linewidth', 5)
 % plot(movmedian(sum(r1_sig_regions), 10/3), 'r', 'linewidth', 5)
-ylim([0 10])
+% ylim([0 10])
 
 figure
 % bar(sum(r2_sig_regions)./sum(r2_sig_regions(:)));
@@ -541,7 +550,7 @@ bar([sum(r2_sig_map <= .05 & r2_sig_map > .01); sum(r2_sig_map <= .01 & r2_sig_m
 hold on
 % plot(movmedian(sum(r2_sig_regions)./numel(r2_sig_regions), 10/3), 'r', 'linewidth', 5)
 % plot(movmedian(sum(r2_sig_regions), 10/3), 'r', 'linewidth', 5)
-ylim([0 10])
+% ylim([0 10])
 
 
 
@@ -639,11 +648,15 @@ figure
 
 % stack=arrayfun(@(x) session(x).rest1.stack_clust_pc, 1:length(session), 'uniformoutput',false);
 % stack=arrayfun(@(x) session(x).rest2.stack_clust_pc, 1:length(session), 'uniformoutput',false);
+% stack=arrayfun(@(x) session(x).rest1.stack_no_clust_pc, 1:length(session), 'uniformoutput',false);
 % stack=arrayfun(@(x) session(x).rest2.stack_no_clust_pc, 1:length(session), 'uniformoutput',false);
 % stack=arrayfun(@(x) session(x).rest1.stack_diff, 1:length(session), 'uniformoutput',false);
 % stack=arrayfun(@(x) session(x).rest2.stack_diff, 1:length(session), 'uniformoutput',false);
 
-stack = {cell2mat( arrayfun(@(x) session(x).rest1.stack_mu_psth, 1:length(session),'uniformoutput',false) )};
+stack=arrayfun(@(x) session(x).rest1.stack_diff_pc, 1:length(session), 'uniformoutput',false);
+stack=arrayfun(@(x) session(x).rest2.stack_diff_pc, 1:length(session), 'uniformoutput',false);
+
+% stack = {cell2mat( arrayfun(@(x) session(x).rest1.stack_mu_psth, 1:length(session),'uniformoutput',false) )};
 % stack = {cell2mat( arrayfun(@(x) session(x).rest2.stack_mu_psth, 1:length(session),'uniformoutput',false) )};
 
 
@@ -679,7 +692,7 @@ clc
 p = [70 95 99];
 c = {'r', 'g', 'b', 'k'};
 
-lol = r1_sig_map;
+lol = r2_sig_map;
 lol(~lol) = .001;
 
 figure

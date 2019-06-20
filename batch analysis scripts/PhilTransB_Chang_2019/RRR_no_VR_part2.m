@@ -144,3 +144,24 @@ plot(find(~~s), idx(~~s), '*')
 
 
 linkaxes(h,'y')
+
+
+%% min-max sorted err_map with no significant removed
+[~,idx]=sort(mean(r1_err_map,2));
+idx = intersect(idx, find(sum(r1_sig_map < .05, 2) > 0), 'stable');
+figure
+imagesc(r1_err_map(idx,:))
+colormap jet
+caxis([0 80]);
+p = get(gca, 'position');
+colorbar
+set(gca, 'position', p);
+figure
+[~,idx]=sort(mean(r2_err_map,2));
+idx = intersect(idx, find(sum(r2_sig_map < .05, 2) > 0), 'stable');
+imagesc(r2_err_map(idx,:))
+colormap jet
+caxis([0 80]);
+p = get(gca, 'position');
+colorbar
+set(gca, 'position', p);

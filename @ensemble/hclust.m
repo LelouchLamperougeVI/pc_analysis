@@ -7,7 +7,8 @@ if isempty(obj.R)
     obj.corr;
 end
 
-Dm=1-abs(obj.R);
+% Dm=1-abs(obj.R); %this used to be default
+Dm = 1 - obj.R; %this is the default when using 'correlation' for pdist
 Dm(1:length(Dm)+1:numel(Dm))=0;
 D=squareform(Dm);
 
