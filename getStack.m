@@ -1,4 +1,4 @@
-function [psth,raw_psth,raw_stack,mu_fr,Pi,stack,vel_stack]=getStack(bins,sd,vr_length,deconv,pos,vel,ft,trials)
+function [psth,raw_psth,raw_stack,mu_fr,Pi,stack,vel_stack, zscore_stack]=getStack(bins,sd,vr_length,deconv,pos,vel,ft,trials)
 
 % deconv=deconv(thres,:);
 
@@ -8,6 +8,8 @@ function [psth,raw_psth,raw_stack,mu_fr,Pi,stack,vel_stack]=getStack(bins,sd,vr_
 
 sd=sd/vr_length*bins;
 list=1:size(deconv,2);
+
+zdeconv = zscore(deconv);
 
 raw_psth=zeros(length(trials)-1,bins,length(list));
 vel_stack=zeros(length(trials)-1,bins);
@@ -19,9 +21,11 @@ if any(isnan(trial_bins)) || any(isnan(pos_bins)); error('yo dun goof''d'); end
 
 Pi=zeros(bins,1);
 raw_stack=zeros(bins,length(list));
+zscore_stack=zeros(bins,length(list));
 for i=1:bins
     temp=pos_bins==i;
     raw_stack(i,:)=mean(deconv(temp,:),1);
+    zscore_stack(i,:)=mean(zdeconv(temp,:),1);
 %     raw_stack(i,:)=mean_fr(deconv(temp,:));
     Pi(i)=sum(temp);
 end

@@ -424,11 +424,7 @@ colorbar
 set(gca, 'position', p);
 figure
 imagesc(corr(r1_err_map));
-colormap jet
-caxis([-.5 1]);
-p = get(gca, 'position');
-colorbar
-set(gca, 'position', p);
+rbmap('caxis', [-.5 1]);
 
 r2_err_map = [];
 r2_sem_map = [];
@@ -452,11 +448,7 @@ colorbar
 set(gca, 'position', p);
 figure
 imagesc(corr(r2_err_map));
-colormap jet
-caxis([-.5 1]);
-p = get(gca, 'position');
-colorbar
-set(gca, 'position', p);
+rbmap('caxis', [-.5 1]);
 
 [~,idx] = min(r1_err_pop,[],2);
 [~,idx] = sort(idx);
@@ -653,16 +645,19 @@ figure
 % stack=arrayfun(@(x) session(x).rest1.stack_diff, 1:length(session), 'uniformoutput',false);
 % stack=arrayfun(@(x) session(x).rest2.stack_diff, 1:length(session), 'uniformoutput',false);
 
-stack=arrayfun(@(x) session(x).rest1.stack_diff_pc, 1:length(session), 'uniformoutput',false);
-stack=arrayfun(@(x) session(x).rest2.stack_diff_pc, 1:length(session), 'uniformoutput',false);
+% stack=arrayfun(@(x) session(x).rest1.stack_diff_pc, 1:length(session), 'uniformoutput',false);
+% stack=arrayfun(@(x) session(x).rest2.stack_diff_pc, 1:length(session), 'uniformoutput',false);
 
 % stack = {cell2mat( arrayfun(@(x) session(x).rest1.stack_mu_psth, 1:length(session),'uniformoutput',false) )};
 % stack = {cell2mat( arrayfun(@(x) session(x).rest2.stack_mu_psth, 1:length(session),'uniformoutput',false) )};
 
+stack=[ arrayfun(@(x) session(x).rest2.stack_clust_pc, 1:length(session), 'uniformoutput',false),...
+        arrayfun(@(x) session(x).rest2.stack_no_clust_pc, 1:length(session), 'uniformoutput',false) ];
 
 stack=cell2mat(stack);
 stack = (stack - min(stack)) ./ range(stack);
-[~,idx]=max(stack);
+% [~,idx]=max(stack);
+[~,idx]=min(stack);
 [~,idx]=sort(idx);
 imagesc(stack(:,idx)');
 colormap jet

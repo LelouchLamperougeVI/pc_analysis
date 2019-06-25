@@ -175,19 +175,8 @@ switch lower(type)
         ax_m=subplot(2,2,4);
         imagesc(obj.R(order,order));
         
-        rrange = [-.5 1];
-        cmap = redbluecmap;
-        cmap = interp1(1:size(cmap,1), cmap, linspace(1, size(cmap,1), 65), 'spline');
-        cmap(cmap<0) = 0;
-        idx = linspace(-1, 1, size(cmap,1));
-        cmap = cmap( idx > rrange(1) & idx < rrange(2), : );
-        
-        colormap(cmap)
+        rbmap(ax_m, 'colorbar',true, 'caxis', [-.5 1], 'normalize',true, 'interp', 129);
         axis square
-        p = get(ax_m, 'Position');
-        caxis(rrange)
-        colorbar;
-        set(ax_m, 'Position', p);
         
         linkaxes([ax_u ax_m], 'x');
         linkaxes([ax_l ax_m], 'y');

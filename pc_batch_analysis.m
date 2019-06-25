@@ -69,7 +69,7 @@ frame_ts=frame_ts(thres);
 deconv=ca_filt(deconv);
 deconv=deconv(thres,:);
 
-[psth,raw_psth,raw_stack,mu_fr,Pi,stack,vel_stack]=getStack(bins,sd,vr_length,deconv,unit_pos,unit_vel,frame_ts,trials);
+[psth,raw_psth,raw_stack,mu_fr,Pi,stack,vel_stack, zscore_stack]=getStack(bins,sd,vr_length,deconv,unit_pos,unit_vel,frame_ts,trials);
 
 silent=sum(deconv)==0; %cell that don't firing during the running epochs
 
@@ -144,9 +144,9 @@ sparsity=sum(Pi.*raw_stack).^2./sum(Pi.*raw_stack.^2);
 if maskFlag
     maskNeurons=varargin{maskFlag+1};
     mimg=varargin{maskFlag+2};
-    analysis=v2struct(vr_length,fs,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,original_deconv,behavior,silent,rick_rejects,maskNeurons,mimg);
+    analysis=v2struct(vr_length,fs,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,original_deconv,behavior,silent,rick_rejects,maskNeurons,mimg, zscore_stack);
 else
-    analysis=v2struct(vr_length,fs,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,original_deconv,behavior,silent,rick_rejects);
+    analysis=v2struct(vr_length,fs,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,original_deconv,behavior,silent,rick_rejects, zscore_stack);
 end
 
     function updateBar(~)

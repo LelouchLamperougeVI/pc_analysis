@@ -55,6 +55,8 @@ while idx < length(in)
             ops.sig = in{idx+1};
         case 'wdw'
             ops.wdw = in{idx+1};
+        otherwise
+            warning(['''' in{idx} ''' is not a valid parameter. Ignored']);
     end
     idx = idx+2;
 end
