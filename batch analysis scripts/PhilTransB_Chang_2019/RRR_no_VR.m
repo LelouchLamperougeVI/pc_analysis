@@ -187,13 +187,13 @@ for f = 1:length(list)
             session(count).rest1.clust_frac_clust = cellfun(@length, r1_clust) ./ size(ass.twop.deconv, 2);
             session(count).rest1.xcoef = arrayfun(@(x) max(xcorr(belt_idx, mean(analysis.stack(:,r1_clust{x}),2), 'coeff')), 1:length(r1_clust));
             
-            null_err = zeros(length(ass.clust),50,shuffles);
-            parfor ii = 1:shuffles
-                sample = arrayfun(@(x) randperm(length(analysis.psth), x), cellfun(@length, ass.clust), 'uniformoutput',false);
-                [~,~,temp] = bayes_infer(analysis, .05, sample);
-                null_err(:, :, ii) = temp(2:end,:);
-            end
-            session(count).rest1.null_err = null_err;
+%             null_err = zeros(length(ass.clust),50,shuffles);
+%             parfor ii = 1:shuffles
+%                 sample = arrayfun(@(x) randperm(length(analysis.psth), x), cellfun(@length, ass.clust), 'uniformoutput',false);
+%                 [~,~,temp] = bayes_infer(analysis, .05, sample);
+%                 null_err(:, :, ii) = temp(2:end,:);
+%             end
+%             session(count).rest1.null_err = null_err;
             
             [~,~,session(count).rest1.err,session(count).rest1.err_sem]=bayes_infer(analysis,.05,r1_clust);
             [~,~,session(count).rest1.err_all,session(count).rest1.err_sem_all]=bayes_infer(analysis,.05,{cell2mat(r1_clust)});
@@ -240,13 +240,13 @@ for f = 1:length(list)
             session(count).rest2.clust_frac_clust = cellfun(@length, r2_clust) ./ size(ass.twop.deconv, 2);
             session(count).rest2.xcoef = arrayfun(@(x) max(xcorr(belt_idx, mean(analysis.stack(:,r2_clust{x}),2), 'coeff')), 1:length(r2_clust));
             
-            null_err = zeros(length(ass.clust),50,shuffles);
-            parfor ii = 1:shuffles
-                sample = arrayfun(@(x) randperm(length(analysis.psth), x), cellfun(@length, ass.clust), 'uniformoutput',false);
-                [~,~,temp] = bayes_infer(analysis, .05, sample);
-                null_err(:, :, ii) = temp(2:end,:);
-            end
-            session(count).rest2.null_err = null_err;
+%             null_err = zeros(length(ass.clust),50,shuffles);
+%             parfor ii = 1:shuffles
+%                 sample = arrayfun(@(x) randperm(length(analysis.psth), x), cellfun(@length, ass.clust), 'uniformoutput',false);
+%                 [~,~,temp] = bayes_infer(analysis, .05, sample);
+%                 null_err(:, :, ii) = temp(2:end,:);
+%             end
+%             session(count).rest2.null_err = null_err;
             
             [~,~,session(count).rest2.err,session(count).rest2.err_sem]=bayes_infer(analysis,.05,r2_clust);
             [~,~,session(count).rest2.err_all,session(count).rest2.err_sem_all]=bayes_infer(analysis,.05,{cell2mat(r2_clust)});
@@ -296,6 +296,11 @@ for f = 1:length(list)
             session(count).rest2.stack_clust_pc = analysis.stack(:, intersect(analysis.pc_list, cell2mat(r2_clust)));
             session(count).rest1.stack_no_clust_pc = analysis.stack(:, intersect(analysis.pc_list, setxor(1:length(analysis.psth), cell2mat(r1_clust))));
             session(count).rest2.stack_no_clust_pc = analysis.stack(:, intersect(analysis.pc_list, setxor(1:length(analysis.psth), cell2mat(r2_clust))));
+            
+            session(count).rest1.stack_clust_pc_z = analysis.zscore_stack(:, intersect(analysis.pc_list, cell2mat(r1_clust)));
+            session(count).rest2.stack_clust_pc_z = analysis.zscore_stack(:, intersect(analysis.pc_list, cell2mat(r2_clust)));
+            session(count).rest1.stack_no_clust_pc_z = analysis.zscore_stack(:, intersect(analysis.pc_list, setxor(1:length(analysis.psth), cell2mat(r1_clust))));
+            session(count).rest2.stack_no_clust_pc_z = analysis.zscore_stack(:, intersect(analysis.pc_list, setxor(1:length(analysis.psth), cell2mat(r2_clust))));
             
             session(count).rest1.SI_overlap = analysis.SI(intersect(cell2mat(r1_clust), cell2mat(r2_clust)));
             session(count).rest1.SI_diff = analysis.SI(setdiff(cell2mat(r1_clust), cell2mat(r2_clust)));
@@ -366,10 +371,17 @@ axis square
 %% Distance from cue decoding correlation
 bins = size(session(1).rest1.err,2);
 bins_idx = 1:bins;
-belt_indices = find(belt_idx);
+belt_indices = [find(belt_idx)-50 find(belt_idx) find(belt_idx)+50];
 distance_idx = knnsearch(belt_indices', bins_idx');
-
 distance_idx = abs(bins_idx - belt_indices(distance_idx));
+
+distance_cues = zeros(bins, length(unique(belt_num))-1);
+for i = 1:length(unique(belt_num))-1
+    belt_indices = [find(belt_num == i)-50 find(belt_num == i) find(belt_num == i)+50];
+    temp = knnsearch(belt_indices', bins_idx');
+    distance_cues(:, i) = abs(bins_idx - belt_indices(temp));
+end
+
 
 
 %% location vs scale fraction map
@@ -403,7 +415,10 @@ plot(find(~~h), idx(~~h), '*')
 
 %% Decoding error heat map
 r1_err_map = [];
+r1_err_clust = [];
 r1_sem_map = [];
+r1_err_noclust = [];
+r1_err_null = [];
 r1_err_pop = [];
 r1_sem_pop = [];
 for i = 1:length(session)
@@ -411,6 +426,9 @@ for i = 1:length(session)
     r1_sem_map = [r1_sem_map; session(i).rest1.err_sem(2:end,:)];
     r1_err_pop = [r1_err_pop; session(i).rest1.err(1,:)];
     r1_sem_pop = [r1_sem_pop; session(i).rest1.err_sem(1,:)];
+    r1_err_noclust = [r1_err_noclust; session(i).rest1.err_no_clust(2,:)];
+    r1_err_clust = [r1_err_clust; session(i).rest1.err_all(2,:)];
+    r1_err_null = [r1_err_null; mean( session(i).rest1.null_err, 3)];
 end
 [r1_err_min,r1_err_min_idx] = min(r1_err_map,[],2);
 [~,r1_err_idx] = sort(r1_err_min_idx);
@@ -428,6 +446,9 @@ rbmap('caxis', [-.5 1]);
 
 r2_err_map = [];
 r2_sem_map = [];
+r2_err_clust = [];
+r2_err_noclust = [];
+r2_err_null = [];
 r2_err_pop = [];
 r2_sem_pop = [];
 for i = 1:length(session)
@@ -435,6 +456,9 @@ for i = 1:length(session)
     r2_sem_map = [r2_sem_map; session(i).rest2.err_sem(2:end,:)];
     r2_err_pop = [r2_err_pop; session(i).rest2.err(1,:)];
     r2_sem_pop = [r2_sem_pop; session(i).rest2.err_sem(1,:)];
+    r2_err_noclust = [r2_err_noclust; session(i).rest2.err_no_clust(2,:)];
+    r2_err_clust = [r2_err_clust; session(i).rest2.err_all(2,:)];
+    r2_err_null = [r2_err_null; mean( session(i).rest2.null_err, 3)];
 end
 [r2_err_min,r2_err_min_idx] = min(r2_err_map,[],2);
 [~,r2_err_idx] = sort(r2_err_min_idx);
@@ -476,14 +500,14 @@ set(gca, 'position', p);
 r1_sig_regions=[];
 r1_sig_map = [];
 for i = 1:length(session)
-    r1_sig_regions = [r1_sig_regions; session(i).rest1.err(2:end,:) < prctile(session(i).rest1.null_err, 5, 3)];
+    r1_sig_regions = [r1_sig_regions; session(i).rest1.err(2:end,:) < prctile(session(i).rest1.null_err, 10, 3)];
     r1_sig_map = [r1_sig_map; sum( session(i).rest1.err(2:end,:) > session(i).rest1.null_err ,3) ./ size(session(i).rest1.null_err,3)];
 end
 
 r2_sig_regions=[];
 r2_sig_map = [];
 for i = 1:length(session)
-    r2_sig_regions = [r2_sig_regions; session(i).rest2.err(2:end,:) < prctile(session(i).rest2.null_err, 5, 3)];
+    r2_sig_regions = [r2_sig_regions; session(i).rest2.err(2:end,:) < prctile(session(i).rest2.null_err, 10, 3)];
     r2_sig_map = [r2_sig_map; sum( session(i).rest2.err(2:end,:) > session(i).rest2.null_err ,3) ./ size(session(i).rest2.null_err,3)];
 end
 figure

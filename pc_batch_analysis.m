@@ -73,9 +73,10 @@ deconv=deconv(thres,:);
 
 silent=sum(deconv)==0; %cell that don't firing during the running epochs
 
-SI=get_si_skaggs(raw_stack,mu_fr,Pi);
+[SI, SI_marge]=get_si_skaggs(raw_stack,mu_fr,Pi);
 if testFlag==1 || testFlag==3
     SI=[SI;zeros(shuffles,length(SI))];
+    shuff_stack = zeros(bins,size(SI,2), shuffles);
     h=waitbar(0,'permutation testing...');
     count=1;
     if parFlag
@@ -85,8 +86,8 @@ if testFlag==1 || testFlag==3
             %             temp=randperm(size(deconv,1),size(deconv,2));
             %             temp=mat_circshift(deconv,temp);
             temp=burst_shuffler(deconv);
-            [~,~,shuff_stack,shuff_mu,shuff_pi]=getStack(bins,sd,vr_length,temp,unit_pos,unit_vel,frame_ts,trials);
-            SI(i+1,:)=get_si_skaggs(shuff_stack,shuff_mu,shuff_pi);
+            [~,~,shuff_raw_stack,shuff_mu,shuff_pi,shuff_stack(:,:,i)]=getStack(bins,sd,vr_length,temp,unit_pos,unit_vel,frame_ts,trials);
+            SI(i+1,:)=get_si_skaggs(shuff_raw_stack,shuff_mu,shuff_pi);
             send(dq,i);
         end
         close(h);
@@ -95,8 +96,8 @@ if testFlag==1 || testFlag==3
             %             temp=randperm(size(deconv,1),size(deconv,2));
             %             temp=mat_circshift(deconv,temp);
             temp=burst_shuffler(deconv);
-            [~,~,shuff_stack,shuff_mu,shuff_pi]=getStack(bins,sd,vr_length,temp,unit_pos,unit_vel,frame_ts,trials);
-            SI(i+1,:)=get_si_skaggs(shuff_stack,shuff_mu,shuff_pi);
+            [~,~,shuff_raw_stack,shuff_mu,shuff_pi,shuff_stack(:,:,i)]=getStack(bins,sd,vr_length,temp,unit_pos,unit_vel,frame_ts,trials);
+            SI(i+1,:)=get_si_skaggs(shuff_raw_stack,shuff_mu,shuff_pi);
             updateBar;
         end
         close(h);
@@ -144,9 +145,9 @@ sparsity=sum(Pi.*raw_stack).^2./sum(Pi.*raw_stack.^2);
 if maskFlag
     maskNeurons=varargin{maskFlag+1};
     mimg=varargin{maskFlag+2};
-    analysis=v2struct(vr_length,fs,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,original_deconv,behavior,silent,rick_rejects,maskNeurons,mimg, zscore_stack);
+    analysis=v2struct(vr_length,fs,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,original_deconv,behavior,silent,rick_rejects,maskNeurons,mimg, zscore_stack, shuff_stack, SI_marge);
 else
-    analysis=v2struct(vr_length,fs,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,original_deconv,behavior,silent,rick_rejects, zscore_stack);
+    analysis=v2struct(vr_length,fs,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,original_deconv,behavior,silent,rick_rejects, zscore_stack, shuff_stack, SI_marge);
 end
 
     function updateBar(~)

@@ -210,49 +210,41 @@ figure
 
 h(1) = subplot(2,2,1);
 stack=arrayfun(@(x) session(x).rest1.stack_clust_pc, 1:length(session), 'uniformoutput',false);
+% stack=arrayfun(@(x) session(x).rest1.stack_clust_pc_z, 1:length(session), 'uniformoutput',false);
 stack = cell2mat(stack);
+% stack = fast_smooth(stack, 4/148*50);
 % stack = (stack - min(stack)) ./ range(stack);
-stack = zscore(stack);
-[~,idx] = min(stack);
-[~,idx] = sort(idx);
-% imagesc(stack(:, idx)');
-% colormap jet
+% stack = zscore(stack);
 errorshade( mean(stack,2), sem(stack,2), 'h',h(1) );
 title('R1 Clust PC');
 
 h(2) = subplot(2,2,2);
 stack=arrayfun(@(x) session(x).rest2.stack_clust_pc, 1:length(session), 'uniformoutput',false);
+% stack=arrayfun(@(x) session(x).rest2.stack_clust_pc_z, 1:length(session), 'uniformoutput',false);
 stack = cell2mat(stack);
+% stack = fast_smooth(stack, 4/148*50);
 % stack = (stack - min(stack)) ./ range(stack);
-stack = zscore(stack);
-[~,idx] = min(stack);
-[~,idx] = sort(idx);
-% imagesc(stack(:, idx)');
-% colormap jet
+% stack = zscore(stack);
 errorshade( mean(stack,2), sem(stack,2), 'h',h(2) );
 title('R2 Clust PC');
 
 h(3) = subplot(2,2,3);
 stack=arrayfun(@(x) session(x).rest1.stack_no_clust_pc, 1:length(session), 'uniformoutput',false);
+% stack=arrayfun(@(x) session(x).rest1.stack_no_clust_pc_z, 1:length(session), 'uniformoutput',false);
 stack = cell2mat(stack);
+% stack = fast_smooth(stack, 4/148*50);
 % stack = (stack - min(stack)) ./ range(stack);
-stack = zscore(stack);
-[~,idx] = min(stack);
-[~,idx] = sort(idx);
-% imagesc(stack(:, idx)');
-% colormap jet
+% stack = zscore(stack);
 errorshade( mean(stack,2), sem(stack,2), 'h',h(3) );
 title('R1 No Clust PC');
 
 h(4) = subplot(2,2,4);
 stack=arrayfun(@(x) session(x).rest2.stack_no_clust_pc, 1:length(session), 'uniformoutput',false);
+% stack=arrayfun(@(x) session(x).rest2.stack_no_clust_pc_z, 1:length(session), 'uniformoutput',false);
 stack = cell2mat(stack);
+% stack = fast_smooth(stack, 4/148*50);
 % stack = (stack - min(stack)) ./ range(stack);
-stack = zscore(stack);
-[~,idx] = min(stack);
-[~,idx] = sort(idx);
-% imagesc(stack(:, idx)');
-% colormap jet
+% stack = zscore(stack);
 errorshade( mean(stack,2), sem(stack,2), 'h',h(4) );
 title('R2 No Clust PC');
 
@@ -260,12 +252,20 @@ linkaxes(h, 'y')
 
 
 %% pc width
+stack_shuff = [];
 width = [];
+SI = [];
+SI_all = [];
+SI_clust1 = [];
+SI_clust2 = [];
+SI_no_clust1 = [];
+SI_no_clust2 = [];
 trials_stack = {};
 trials_width_clust1 = {};
 trials_width_no_clust1 = {};
 trials_width_clust2 = {};
 trials_width_no_clust2 = {};
+vel_stack=[];
 % bad = {};
 bad = {'2017_08_11', '2017_08_18', '2017_09_18'};
 % bad = {'2017_08_11', '2017_08_18', '2017_09_18', '2017_11_02'};
@@ -283,16 +283,36 @@ for f = 1:length(list)
             clear analysis
             load(fullfile(full, 'analysis.mat'));
             width = [width analysis.width(analysis.pc_list)];
+            temp = analysis.SI(analysis.pc_list);
+            idx = [cellfun(@(x) any( ismember( x(:,2), find(belt_num == 1) ) ), analysis.width(analysis.pc_list));...
+                cellfun(@(x) any( ismember( x(:,2), find(belt_num == 2) ) ), analysis.width(analysis.pc_list));...
+                cellfun(@(x) any( ismember( x(:,2), find(belt_num == 3) ) ), analysis.width(analysis.pc_list));...
+                cellfun(@(x) any( ismember( x(:,2), find(belt_num == 4) ) ), analysis.width(analysis.pc_list)) ];
+            SI = [SI, temp.*idx];
+            idx = cellfun(@(x) arrayfun(@(y) any(ismember( x(:,2), y )), 1:50 ), analysis.width(analysis.pc_list), 'uniformoutput',false);
+            idx = cell2mat(idx')';
+            SI_all = [SI_all temp.*idx];
             trials_stack = [trials_stack {analysis.stack(:,analysis.pc_list)}];
+            vel_stack = [vel_stack mean(analysis.vel_stack)'];
+            stack_shuff = [stack_shuff mean( analysis.shuff_stack(:,analysis.pc_list,:), 3)];
             
             clear lfp
             load(fullfile(full, 'lfp1.mat'));
             trials_width_clust1 = [trials_width_clust1 cell2mat( analysis.width( intersect(analysis.pc_list, cell2mat(lfp.clust) ) )' )];
             trials_width_no_clust1 = [trials_width_no_clust1 cell2mat( analysis.width( intersect(analysis.pc_list, setxor( 1:length(analysis.psth), cell2mat(lfp.clust) ) ) )' )];
+            temp = analysis.SI_marge(:, intersect(analysis.pc_list, cell2mat(lfp.clust) ) );
+            SI_clust1 = [SI_clust1, temp];
+            temp = analysis.SI_marge(:, intersect(analysis.pc_list, setxor( 1:length(analysis.psth), cell2mat(lfp.clust) ) ) );
+            SI_no_clust1 = [SI_no_clust1, temp];
+            
             clear lfp
             load(fullfile(full, 'lfp3.mat'));
             trials_width_clust2 = [trials_width_clust2 cell2mat( analysis.width( intersect(analysis.pc_list, cell2mat(lfp.clust) ) )' )];
             trials_width_no_clust2 = [trials_width_no_clust2 cell2mat( analysis.width( intersect(analysis.pc_list, setxor( 1:length(analysis.psth), cell2mat(lfp.clust) ) ) )' )];
+            temp = analysis.SI_marge(:, intersect(analysis.pc_list, cell2mat(lfp.clust) ) );
+            SI_clust2 = [SI_clust2, temp];
+            temp = analysis.SI_marge(:, intersect(analysis.pc_list, setxor( 1:length(analysis.psth), cell2mat(lfp.clust) ) ) );
+            SI_no_clust2 = [SI_no_clust2, temp];
             
             count = count+1
         end
@@ -304,6 +324,12 @@ trials_width_clust1 = cell2mat(trials_width_clust1');
 trials_width_no_clust1 = cell2mat(trials_width_no_clust1');
 trials_width_clust2 = cell2mat(trials_width_clust2');
 trials_width_no_clust2 = cell2mat(trials_width_no_clust2');
+SI(~SI) = nan;
+SI_all(~SI_all) = nan;
+SI_clust1(~SI_clust1) = nan;
+SI_clust2(~SI_clust2) = nan;
+SI_no_clust1(~SI_no_clust1) = nan;
+SI_no_clust2(~SI_no_clust2) = nan;
 %% cont'd
 figure
 h(1) = subplot(2,2,2);
@@ -367,9 +393,12 @@ p = p ./ sum(p(:));
 plot(sum(p));
 
 %% activity box plots
-
+stack=[ arrayfun(@(x) session(x).rest2.stack_clust_pc, 1:length(session), 'uniformoutput',false),...
+        arrayfun(@(x) session(x).rest2.stack_no_clust_pc, 1:length(session), 'uniformoutput',false) ];
+stack=cell2mat(stack);
 x = [];
 g = [];
+mu=[];err=[];
 idx = [3 4 1 2];
 for i = 1:4
     temp = stack(belt_num == idx(i), :);
@@ -378,7 +407,13 @@ for i = 1:4
     x = [x; temp(:)];
     g = [g; i.* ones(numel(temp), 1)];
 end
-
+i=5;
+    temp = stack(1, :);
+    mu(i) = mean(temp(:));
+    err(i) = sem(temp(:));
+    x = [x; temp(:)];
+    g = [g; i.* ones(numel(temp), 1)];
+    
 figure
 errorbar(mu, err);
 hold on
@@ -390,62 +425,42 @@ c = multcompare(stats);
 
 %% activity error plots cont'd
 x = [];
-g_state = [];
-g_cue = [];
+g = [];
+mu=[];
+err=[];
 idx = [3 4 1 2];
-count = 1;
 
-stack=arrayfun(@(x) session(x).rest1.stack_clust_pc, 1:length(session), 'uniformoutput',false); stack=cell2mat(stack); stack = (stack - min(stack)) ./ range(stack);
-for i = 1:4
-    temp = stack(belt_num == idx(i), :);
-    mu(count) = mean(temp(:));
-    err(count) = sem(temp(:));
-    x = [x; temp(:)];
-    g_cue = [g_cue; i.* ones(numel(temp), 1)];
-    g_state = [g_state; repmat( {'r1cl'}, numel(temp), 1 )];
-    count = count+1;
-end
-stack=arrayfun(@(x) session(x).rest2.stack_clust_pc, 1:length(session), 'uniformoutput',false); stack=cell2mat(stack); stack = (stack - min(stack)) ./ range(stack);
-for i = 1:4
-    temp = stack(belt_num == idx(i), :);
-    mu(count) = mean(temp(:));
-    err(count) = sem(temp(:));
-    x = [x; temp(:)];
-    g_cue = [g_cue; i.* ones(numel(temp), 1)];
-    g_state = [g_state; repmat( {'r2cl'}, numel(temp), 1 )];
-    count = count+1;
-end
-stack=arrayfun(@(x) session(x).rest1.stack_no_clust_pc, 1:length(session), 'uniformoutput',false); stack=cell2mat(stack); stack = (stack - min(stack)) ./ range(stack);
-for i = 1:4
-    temp = stack(belt_num == idx(i), :);
-    mu(count) = mean(temp(:));
-    err(count) = sem(temp(:));
-    x = [x; temp(:)];
-    g_cue = [g_cue; i.* ones(numel(temp), 1)];
-    g_state = [g_state; repmat( {'r1nocl'}, numel(temp), 1 )];
-    count = count+1;
-end
 stack=arrayfun(@(x) session(x).rest2.stack_no_clust_pc, 1:length(session), 'uniformoutput',false); stack=cell2mat(stack); stack = (stack - min(stack)) ./ range(stack);
 for i = 1:4
     temp = stack(belt_num == idx(i), :);
-    mu(count) = mean(temp(:));
-    err(count) = sem(temp(:));
+    mu(i) = mean(temp(:));
+    err(i) = sem(temp(:));
     x = [x; temp(:)];
-    g_cue = [g_cue; i.* ones(numel(temp), 1)];
-    g_state = [g_state; repmat( {'r2nocl'}, numel(temp), 1 )];
+    g = [g; i.* ones(numel(temp), 1)];
     count = count+1;
 end
+i=5;
+    temp = stack(1, :);
+    mu(i) = mean(temp(:));
+    err(i) = sem(temp(:));
+    x = [x; temp(:)];
+    g = [g; i.* ones(numel(temp), 1)];
 
-[~,~,stats] = anovan(x, {g_state, g_cue} );
-multcompare(stats, 'dimension', [1 2]);
+[~,~,stats] = anovan(x, g);
+c = multcompare(stats)
 
+figure
+errorbar(mu, err);
+hold on
+bar(mu);
+ylim([.23 .33])
 
 %% clust x noclust correlogram
 stack_clust = arrayfun(@(x) session(x).rest1.stack_clust_pc, 1:length(session), 'uniformoutput',false);
 stack_no_clust = arrayfun(@(x) session(x).rest1.stack_no_clust_pc, 1:length(session), 'uniformoutput',false);
 
-stack_clust = cellfun(@(x) mean( ( x - min(x) ) ./ range(x) ,2), stack_clust, 'uniformoutput',false);
-stack_no_clust = cellfun(@(x) mean( ( x - min(x) ) ./ range(x) ,2), stack_no_clust, 'uniformoutput',false);
+stack_clust = cellfun(@(x) mean( x ,2), stack_clust, 'uniformoutput',false);
+stack_no_clust = cellfun(@(x) mean( x ,2), stack_no_clust, 'uniformoutput',false);
 
 stack_clust = cell2mat(stack_clust);
 stack_no_clust = cell2mat(stack_no_clust);
@@ -466,8 +481,8 @@ end
 stack_clust = arrayfun(@(x) session(x).rest2.stack_clust_pc, 1:length(session), 'uniformoutput',false);
 stack_no_clust = arrayfun(@(x) session(x).rest2.stack_no_clust_pc, 1:length(session), 'uniformoutput',false);
 
-stack_clust = cellfun(@(x) mean( ( x - min(x) ) ./ range(x) ,2), stack_clust, 'uniformoutput',false);
-stack_no_clust = cellfun(@(x) mean( ( x - min(x) ) ./ range(x) ,2), stack_no_clust, 'uniformoutput',false);
+stack_clust = cellfun(@(x) mean( x ,2), stack_clust, 'uniformoutput',false);
+stack_no_clust = cellfun(@(x) mean( x ,2), stack_no_clust, 'uniformoutput',false);
 
 stack_clust = cell2mat(stack_clust);
 stack_no_clust = cell2mat(stack_no_clust);
@@ -483,6 +498,161 @@ hold on
 for i = 1:length(p)
     plot(p{i}(:,2), p{i}(:,1), 'k');
 end
+
+
+
+%% Cue xcorr
+stack=arrayfun(@(x) session(x).rest1.stack_no_clust_pc, 1:length(session), 'uniformoutput',false);
+stack = cell2mat(stack);
+r = cell2mat( arrayfun( @(x) xcorr(stack(:,x), (belt_num==4)', 5, 'coeff'), 1:size(stack,2), 'uniformoutput',false) );
+errorshade(mean(r,2), sem(r,2))
+
+
+%% Cue and/or reward correlation
+clc
+stack=arrayfun(@(x) session(x).rest2.stack_clust_pc, 1:length(session), 'uniformoutput',false);
+% stack=arrayfun(@(x) session(x).rest2.stack_no_clust_pc, 1:length(session), 'uniformoutput',false);
+stack = cell2mat(cellfun(@(x) mean(x,2), stack, 'uniformoutput',false));
+% stack = cell2mat(stack);
+[r,p] = corr( repmat( (49:-1:0)', size(stack,2), 1 ), stack(:))
+[r,p] = corr( repmat( distance_idx', size(stack,2), 1 ), stack(:))
+% [r,p] = corr( repmat( distance_cues, size(stack,2), 1 ), stack(:))
+
+%%
+figure
+clc
+stack=arrayfun(@(x) session(x).rest1.stack_clust_pc, 1:length(session), 'uniformoutput',false);
+stack = cell2mat(cellfun(@(x) mean(x,2), stack, 'uniformoutput',false));
+h(1) = subplot(2,2,1);
+lregress(repmat( (49:-1:0)', size(stack,2), 1 ), stack(:), 1, h(1));
+[r,p] = corr( repmat( (49:-1:0)', size(stack,2), 1 ), stack(:));
+disp(['r = ' num2str(r) ' p = ' num2str(p)]);
+stack=arrayfun(@(x) session(x).rest2.stack_clust_pc, 1:length(session), 'uniformoutput',false);
+stack = cell2mat(cellfun(@(x) mean(x,2), stack, 'uniformoutput',false));
+h(2) = subplot(2,2,2);
+lregress(repmat( (49:-1:0)', size(stack,2), 1 ), stack(:), 1, h(2));
+[r,p] = corr( repmat( (49:-1:0)', size(stack,2), 1 ), stack(:));
+disp(['r = ' num2str(r) ' p = ' num2str(p)]);
+stack=arrayfun(@(x) session(x).rest1.stack_no_clust_pc, 1:length(session), 'uniformoutput',false);
+stack = cell2mat(cellfun(@(x) mean(x,2), stack, 'uniformoutput',false));
+h(3) = subplot(2,2,3);
+lregress(repmat( (49:-1:0)', size(stack,2), 1 ), stack(:), 1, h(3));
+[r,p] = corr( repmat( (49:-1:0)', size(stack,2), 1 ), stack(:));
+disp(['r = ' num2str(r) ' p = ' num2str(p)]);
+stack=arrayfun(@(x) session(x).rest2.stack_no_clust_pc, 1:length(session), 'uniformoutput',false);
+stack = cell2mat(cellfun(@(x) mean(x,2), stack, 'uniformoutput',false));
+h(4) = subplot(2,2,4);
+lregress(repmat( (49:-1:0)', size(stack,2), 1 ), stack(:), 1, h(4));
+[r,p] = corr( repmat( (49:-1:0)', size(stack,2), 1 ), stack(:));
+disp(['r = ' num2str(r) ' p = ' num2str(p)]);
+
+linkaxes(h, 'xy')
+
+%%
+figure
+clc
+stack=arrayfun(@(x) session(x).rest1.stack_clust_pc, 1:length(session), 'uniformoutput',false);
+stack = cell2mat(cellfun(@(x) mean(x,2), stack, 'uniformoutput',false));
+h(1) = subplot(2,2,1);
+lregress(repmat( distance_idx', size(stack,2), 1 ), stack(:), 1, h(1));
+[r,p] = corr( repmat( distance_idx', size(stack,2), 1 ), stack(:));
+disp(['r = ' num2str(r) ' p = ' num2str(p)]);
+stack=arrayfun(@(x) session(x).rest2.stack_clust_pc, 1:length(session), 'uniformoutput',false);
+stack = cell2mat(cellfun(@(x) mean(x,2), stack, 'uniformoutput',false));
+h(2) = subplot(2,2,2);
+lregress(repmat( distance_idx', size(stack,2), 1 ), stack(:), 1, h(2));
+[r,p] = corr( repmat( distance_idx', size(stack,2), 1 ), stack(:));
+disp(['r = ' num2str(r) ' p = ' num2str(p)]);
+stack=arrayfun(@(x) session(x).rest1.stack_no_clust_pc, 1:length(session), 'uniformoutput',false);
+stack = cell2mat(cellfun(@(x) mean(x,2), stack, 'uniformoutput',false));
+h(3) = subplot(2,2,3);
+lregress(repmat( distance_idx', size(stack,2), 1 ), stack(:), 1, h(3));
+[r,p] = corr( repmat( distance_idx', size(stack,2), 1 ), stack(:));
+disp(['r = ' num2str(r) ' p = ' num2str(p)]);
+stack=arrayfun(@(x) session(x).rest2.stack_no_clust_pc, 1:length(session), 'uniformoutput',false);
+stack = cell2mat(cellfun(@(x) mean(x,2), stack, 'uniformoutput',false));
+h(4) = subplot(2,2,4);
+lregress(repmat( distance_idx', size(stack,2), 1 ), stack(:), 1, h(4));
+[r,p] = corr( repmat( distance_idx', size(stack,2), 1 ), stack(:));
+disp(['r = ' num2str(r) ' p = ' num2str(p)]);
+
+linkaxes(h, 'xy')
+
+
+%% Speed x FR
+% a sanity check...
+stack = arrayfun(@(x) [session(x).rest2.stack_clust_pc session(x).rest2.stack_no_clust_pc], 1:length(session), 'uniformoutput',false);
+stack = cell2mat(cellfun(@(x) mean(x,2), stack, 'uniformoutput',false));
+[r,p] = corr(vel_stack(~isnan(vel_stack)), stack(~isnan(vel_stack)))
+figure
+plot(vel_stack(~isnan(vel_stack)), stack(~isnan(vel_stack)), '.k');
+axis square
+
+
+%% decoding error
+
+errorshade(nanmean(r1_err_map)', sem(r1_err_map)');
+errorshade(nanmean(r1_err_noclust)', sem(r1_err_noclust)')
+errorshade(nanmean(r1_err_null)', sem(r1_err_null)')
+
+errorshade(nanmean(r2_err_map)', sem(r2_err_map)');
+errorshade(nanmean(r2_err_noclust)', sem(r2_err_noclust)')
+errorshade(nanmean(r2_err_null)', sem(r2_err_null)')
+
+
+%% SI
+figure
+
+h(1) = subplot(2,2,1);
+errorshade( nanmean(SI_clust1,2), sem(SI_clust1,2), 'h',h(1) );
+title('R1 Clust PC');
+
+h(2) = subplot(2,2,2);
+errorshade( nanmean(SI_clust2,2), sem(SI_clust2,2), 'h',h(2) );
+title('R2 Clust PC');
+
+h(3) = subplot(2,2,3);
+errorshade( nanmean(SI_no_clust1,2), sem(SI_no_clust1,2), 'h',h(3) );
+title('R1 No Clust PC');
+
+h(4) = subplot(2,2,4);
+errorshade( nanmean(SI_no_clust2,2), sem(SI_no_clust2,2), 'h',h(4) );
+title('R2 No Clust PC');
+
+linkaxes(h, 'y')
+
+
+%% boxplots
+tmp = SI_clust2;
+x = [];
+g = [];
+mu=[];err=[];
+idx = [3 4 1 2];
+for i = 1:4
+    temp = tmp(belt_num == idx(i), :);
+    mu(i) = nanmean(temp(:));
+    err(i) = sem(temp(:));
+    x = [x; temp(:)];
+    g = [g; i.* ones(numel(temp), 1)];
+end
+i=5;
+    temp = tmp(1, :);
+    mu(i) = nanmean(temp(:));
+    err(i) = sem(temp(:));
+    x = [x; temp(:)];
+    g = [g; i.* ones(numel(temp), 1)];
+    
+figure
+errorbar(mu, err);
+hold on
+bar(mu);
+ylim([0 .04])
+
+[~,~,stats] = anova1(x, g);
+c = multcompare(stats)
+
+
+
 
 
 
