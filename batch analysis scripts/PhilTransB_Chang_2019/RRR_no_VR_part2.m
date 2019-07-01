@@ -252,6 +252,8 @@ linkaxes(h, 'y')
 
 
 %% pc width
+P1 = [];
+P2 = [];
 stack_shuff = [];
 width = [];
 SI = [];
@@ -304,6 +306,8 @@ for f = 1:length(list)
             SI_clust1 = [SI_clust1, temp];
             temp = analysis.SI_marge(:, intersect(analysis.pc_list, setxor( 1:length(analysis.psth), cell2mat(lfp.clust) ) ) );
             SI_no_clust1 = [SI_no_clust1, temp];
+            [~,P] = lfp.bayes_infer;
+            P1 = [P1 mean(P(:,:,1),2)];
             
             clear lfp
             load(fullfile(full, 'lfp3.mat'));
@@ -313,6 +317,8 @@ for f = 1:length(list)
             SI_clust2 = [SI_clust2, temp];
             temp = analysis.SI_marge(:, intersect(analysis.pc_list, setxor( 1:length(analysis.psth), cell2mat(lfp.clust) ) ) );
             SI_no_clust2 = [SI_no_clust2, temp];
+            [~,P] = lfp.bayes_infer;
+            P2 = [P2 mean(P(:,:,1),2)];
             
             count = count+1
         end

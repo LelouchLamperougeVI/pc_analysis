@@ -194,10 +194,17 @@ for f = 1:length(list)
 %                 null_err(:, :, ii) = temp(2:end,:);
 %             end
 %             session(count).rest1.null_err = null_err;
+
+            null_err = zeros(50, size(ass.twop.deconv, 1),shuffles);
+            parfor ii = 1:shuffles
+                [~,null_err(:, :, ii)] = ass.bayes_infer('tester', ass.twop.deconv(:, randperm(length(ass.analysis.psth))));
+            end
+            session(count).rest1.null_err = null_err;
+            [~, session(count).rest1.bayesP] = ass.bayes_infer;
             
-            [~,~,session(count).rest1.err,session(count).rest1.err_sem]=bayes_infer(analysis,.05,r1_clust);
-            [~,~,session(count).rest1.err_all,session(count).rest1.err_sem_all]=bayes_infer(analysis,.05,{cell2mat(r1_clust)});
-            [~,~,session(count).rest1.err_no_clust,session(count).rest1.err_sem_no_clust]=bayes_infer(analysis,.05,{setxor(cell2mat(r1_clust), 1:length(analysis.psth))});
+%             [~,~,session(count).rest1.err,session(count).rest1.err_sem]=bayes_infer(analysis,.05,r1_clust);
+%             [~,~,session(count).rest1.err_all,session(count).rest1.err_sem_all]=bayes_infer(analysis,.05,{cell2mat(r1_clust)});
+%             [~,~,session(count).rest1.err_no_clust,session(count).rest1.err_sem_no_clust]=bayes_infer(analysis,.05,{setxor(cell2mat(r1_clust), 1:length(analysis.psth))});
             width = analysis.width(cell2mat(r1_clust));
             idx = ~cellfun(@isempty, width);
             width = cell2mat(width(idx)');
@@ -247,10 +254,17 @@ for f = 1:length(list)
 %                 null_err(:, :, ii) = temp(2:end,:);
 %             end
 %             session(count).rest2.null_err = null_err;
+
+            null_err = zeros(50, size(ass.twop.deconv, 1),shuffles);
+            parfor ii = 1:shuffles
+                [~,null_err(:, :, ii)] = ass.bayes_infer('tester', ass.twop.deconv(:, randperm(length(ass.analysis.psth))));
+            end
+            session(count).rest2.null_err = null_err;
+            [~, session(count).rest2.bayesP] = ass.bayes_infer;
             
-            [~,~,session(count).rest2.err,session(count).rest2.err_sem]=bayes_infer(analysis,.05,r2_clust);
-            [~,~,session(count).rest2.err_all,session(count).rest2.err_sem_all]=bayes_infer(analysis,.05,{cell2mat(r2_clust)});
-            [~,~,session(count).rest2.err_no_clust,session(count).rest2.err_sem_no_clust]=bayes_infer(analysis,.05,{setxor(cell2mat(r2_clust), 1:length(analysis.psth))});
+%             [~,~,session(count).rest2.err,session(count).rest2.err_sem]=bayes_infer(analysis,.05,r2_clust);
+%             [~,~,session(count).rest2.err_all,session(count).rest2.err_sem_all]=bayes_infer(analysis,.05,{cell2mat(r2_clust)});
+%             [~,~,session(count).rest2.err_no_clust,session(count).rest2.err_sem_no_clust]=bayes_infer(analysis,.05,{setxor(cell2mat(r2_clust), 1:length(analysis.psth))});
             width = analysis.width(cell2mat(r2_clust));
             idx = ~cellfun(@isempty, width);
             width = cell2mat(width(idx)');

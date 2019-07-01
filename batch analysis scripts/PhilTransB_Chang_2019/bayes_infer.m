@@ -1,5 +1,5 @@
-function [decoded, pos, err, err_sem] = bayes_infer(analysis,tau,clust)
-
+function [decoded, pos, err, err_sem] = bayes_infer(analysis,tau,clust,sig)
+% seems like sig=5 gives best accuracy
 % bins=80;
 bins=50;
 sd=4;
@@ -32,7 +32,8 @@ frame_ts=frame_ts(thres);
 deconv=ca_filt(deconv);
 deconv=deconv(thres,:);
 
-deconv=fast_smooth(deconv,10);
+deconv=fast_smooth(deconv,sig);
+deconv = (deconv - min(deconv)) ./ range(deconv);
 
 trials_idx = knnsearch(frame_ts', trials');
 

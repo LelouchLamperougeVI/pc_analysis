@@ -56,6 +56,7 @@ classdef ensemble < LFP
         topography(obj);
         make_colours(obj);
         classi_swr(obj, wdw, p);
+        [decoded, P] = bayes_infer(obj, varargin);
         plot(obj,type,varargin);
     end
     
