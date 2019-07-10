@@ -1,4 +1,4 @@
-function [EV,REV] = ev(varargin)
+function [EV,REV, e1, e2] = ev(varargin)
 % Run explained variance analysis
 % Takes as input variables of types 'basic_ensembles', 'deconv' and NxN
 % corr matrix
@@ -6,7 +6,21 @@ function [EV,REV] = ev(varargin)
 % smoothing parameter ['sig', value] and sampling rate ['fs', value]
 % [EV, REV] = ev(pre, exp, post, 'sig', val, 'fs', val)
 
-[Rpre, Rexp, Rpost] = parse_inputs(varargin);
+[Rpre, Rexp, Rpost, clust1, clust2] = parse_inputs(varargin);
+[EV, REV] = calc_ev(Rpre, Rexp, Rpost);
+
+e1 = zeros(length(clust1), 2);
+for i = 1:length(clust1)
+    [e1(i,1), e1(i,2)] = calc_ev(Rpre(clust1{i},clust1{i}), Rexp(clust1{i},clust1{i}), Rpost(clust1{i},clust1{i}));
+end
+e2 = zeros(length(clust2), 2);
+for i = 1:length(clust2)
+    [e2(i,1), e2(i,2)] = calc_ev(Rpre(clust2{i},clust2{i}), Rexp(clust2{i},clust2{i}), Rpost(clust2{i},clust2{i}));
+end
+
+
+
+function [EV, REV] = calc_ev(Rpre, Rexp, Rpost)
 Rpre = triu(Rpre,1); Rpre = Rpre(Rpre~=0);
 Rexp = triu(Rexp,1); Rexp = Rexp(Rexp~=0);
 Rpost = triu(Rpost,1); Rpost = Rpost(Rpost~=0);
@@ -19,7 +33,7 @@ EV = ( (ExpPost - ExpPre*PrePost) / (sqrt((1 - ExpPre^2) * (1 - PrePost^2))) )^2
 REV = ( (ExpPre - ExpPost*PrePost) / (sqrt((1 - ExpPost^2) * (1 - PrePost^2))) )^2;
 
 
-function [Rpre, Rexp, Rpost] = parse_inputs(inputs)
+function [Rpre, Rexp, Rpost, clust1, clust2] = parse_inputs(inputs)
 if length(inputs) < 3
     error('You need to provide at least 3 variables: pre, exp, post');
 end
@@ -38,6 +52,11 @@ for ii = 1:3
         end
         sig = epochs{ii}{2};
         fs = epochs{ii}{3};
+        if ii == 1
+            clust1 = epochs{ii}{4};
+        elseif ii == 3
+            clust2 = epochs{ii}{4};
+        end
     end
     epochs{ii} = epochs{ii}{1};
 end
@@ -76,6 +95,7 @@ switch class(input)
             rval{1} = input.R;
             rval{2} = input.ops.sig;
             rval{3} = input.twop.fs;
+            rval{4} = input.clust;
         catch
             if isempty(input.R)
                 error('The ''basic_ensemble'' does not have a correlation matrix constructed');

@@ -3,7 +3,8 @@ function topography(obj)
 % Obscure reference from the 70's; don't worry if you don't get it
 
 if isempty(obj.clust)
-    error('data was not clustered');
+    warning('data either not clustered, or no ensemble detected');
+    return
 end
 
 topography@LFP(obj, obj.ops.FOV);

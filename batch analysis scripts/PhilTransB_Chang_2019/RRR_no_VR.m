@@ -25,13 +25,14 @@ for f = 1:length(list)
         ass = ensemble(fullfile(full, [root(i).name '_1.abf']));
 %         lfp.remove_mvt;
         ass.remove_mvt;
-        ass.detect_sce;
 %         ass.set_ops('clust_method','silhouette');
-        ass.set_ops('e_size',5);
+%         ass.set_ops('e_size',5);
+        ass.set_ops('e_size',10);
         ass.set_ops('clust_method','thres');
         ass.set_ops('order','cluster');
         ass.cluster;
         ass.topography;
+        ass.detect_sce;
 %         ass.swr_window;
         ass.plot('tree');
         ass.enregistrer;
@@ -40,13 +41,13 @@ for f = 1:length(list)
         ass = ensemble(fullfile(full, [root(i).name '_3.abf']));
 %         lfp.remove_mvt;
         ass.remove_mvt;
-        ass.detect_sce;
 %         ass.set_ops('clust_method','silhouette');
-        ass.set_ops('e_size',5);
+        ass.set_ops('e_size',10);
         ass.set_ops('clust_method','thres');
         ass.set_ops('order','cluster');
         ass.cluster;
         ass.topography;
+        ass.detect_sce;
 %         ass.swr_window;
         ass.plot('tree');
         ass.enregistrer;
@@ -195,16 +196,16 @@ for f = 1:length(list)
 %             end
 %             session(count).rest1.null_err = null_err;
 
-            null_err = zeros(50, size(ass.twop.deconv, 1),shuffles);
-            parfor ii = 1:shuffles
-                [~,null_err(:, :, ii)] = ass.bayes_infer('tester', ass.twop.deconv(:, randperm(length(ass.analysis.psth))));
-            end
-            session(count).rest1.null_err = null_err;
-            [~, session(count).rest1.bayesP] = ass.bayes_infer;
+%             null_err = zeros(50, size(ass.twop.deconv, 1),shuffles);
+%             parfor ii = 1:shuffles
+%                 [~,null_err(:, :, ii)] = ass.bayes_infer('tester', ass.twop.deconv(:, randperm(length(ass.analysis.psth))));
+%             end
+%             session(count).rest1.null_err = null_err;
+%             [~, session(count).rest1.bayesP] = ass.bayes_infer;
             
-%             [~,~,session(count).rest1.err,session(count).rest1.err_sem]=bayes_infer(analysis,.05,r1_clust);
-%             [~,~,session(count).rest1.err_all,session(count).rest1.err_sem_all]=bayes_infer(analysis,.05,{cell2mat(r1_clust)});
-%             [~,~,session(count).rest1.err_no_clust,session(count).rest1.err_sem_no_clust]=bayes_infer(analysis,.05,{setxor(cell2mat(r1_clust), 1:length(analysis.psth))});
+            [~,~,session(count).rest1.err,session(count).rest1.err_sem]=bayes_infer(analysis,.05,r1_clust, 5);
+            [~,~,session(count).rest1.err_all,session(count).rest1.err_sem_all]=bayes_infer(analysis,.05,{cell2mat(r1_clust)}, 5);
+            [~,~,session(count).rest1.err_no_clust,session(count).rest1.err_sem_no_clust]=bayes_infer(analysis,.05,{setxor(cell2mat(r1_clust), 1:length(analysis.psth))}, 5);
             width = analysis.width(cell2mat(r1_clust));
             idx = ~cellfun(@isempty, width);
             width = cell2mat(width(idx)');
@@ -255,16 +256,16 @@ for f = 1:length(list)
 %             end
 %             session(count).rest2.null_err = null_err;
 
-            null_err = zeros(50, size(ass.twop.deconv, 1),shuffles);
-            parfor ii = 1:shuffles
-                [~,null_err(:, :, ii)] = ass.bayes_infer('tester', ass.twop.deconv(:, randperm(length(ass.analysis.psth))));
-            end
-            session(count).rest2.null_err = null_err;
-            [~, session(count).rest2.bayesP] = ass.bayes_infer;
+%             null_err = zeros(50, size(ass.twop.deconv, 1),shuffles);
+%             parfor ii = 1:shuffles
+%                 [~,null_err(:, :, ii)] = ass.bayes_infer('tester', ass.twop.deconv(:, randperm(length(ass.analysis.psth))));
+%             end
+%             session(count).rest2.null_err = null_err;
+%             [~, session(count).rest2.bayesP] = ass.bayes_infer;
             
-%             [~,~,session(count).rest2.err,session(count).rest2.err_sem]=bayes_infer(analysis,.05,r2_clust);
-%             [~,~,session(count).rest2.err_all,session(count).rest2.err_sem_all]=bayes_infer(analysis,.05,{cell2mat(r2_clust)});
-%             [~,~,session(count).rest2.err_no_clust,session(count).rest2.err_sem_no_clust]=bayes_infer(analysis,.05,{setxor(cell2mat(r2_clust), 1:length(analysis.psth))});
+            [~,~,session(count).rest2.err,session(count).rest2.err_sem]=bayes_infer(analysis,.05,r2_clust, 5);
+            [~,~,session(count).rest2.err_all,session(count).rest2.err_sem_all]=bayes_infer(analysis,.05,{cell2mat(r2_clust)}, 5);
+            [~,~,session(count).rest2.err_no_clust,session(count).rest2.err_sem_no_clust]=bayes_infer(analysis,.05,{setxor(cell2mat(r2_clust), 1:length(analysis.psth))}, 5);
             width = analysis.width(cell2mat(r2_clust));
             idx = ~cellfun(@isempty, width);
             width = cell2mat(width(idx)');
@@ -329,7 +330,7 @@ for f = 1:length(list)
             session(count).rest1.frac_pc_diff = length(intersect(analysis.pc_list, setdiff(cell2mat(r1_clust), cell2mat(r2_clust)))) / length(setdiff(cell2mat(r1_clust), cell2mat(r2_clust)));
             session(count).rest2.frac_pc_diff = length(intersect(analysis.pc_list, setdiff(cell2mat(r2_clust), cell2mat(r1_clust)))) / length(setdiff(cell2mat(r2_clust), cell2mat(r1_clust)));
             
-            [session(count).EV, session(count).REV] = ev(ass1, analysis.original_deconv, ass3);
+            [session(count).EV, session(count).REV, session(count).e1, session(count).e2] = ev(ass1, analysis.original_deconv, ass3);
             
             width = analysis.width(setdiff(cell2mat(r1_clust), cell2mat(r2_clust)));
             idx = ~cellfun(@isempty, width);
@@ -339,6 +340,12 @@ for f = 1:length(list)
             idx = ~cellfun(@isempty, width);
             width = cell2mat(width(idx)');
             session(count).rest2.width_diff = width;
+            
+            width = analysis.width(intersect(cell2mat(r2_clust), cell2mat(r1_clust)));
+            idx = ~cellfun(@isempty, width);
+            width = cell2mat(width(idx)');
+            session(count).rest1.width_overlap = width;
+            session(count).rest2.width_overlap = width;
             
             session(count).num_laps = size(analysis.raw_psth, 1);
             session(count).num_cells = length(analysis.psth);
@@ -694,8 +701,8 @@ stack=[ arrayfun(@(x) session(x).rest2.stack_clust_pc, 1:length(session), 'unifo
 
 stack=cell2mat(stack);
 stack = (stack - min(stack)) ./ range(stack);
-% [~,idx]=max(stack);
-[~,idx]=min(stack);
+[~,idx]=max(stack);
+% [~,idx]=min(stack);
 [~,idx]=sort(idx);
 imagesc(stack(:,idx)');
 colormap jet

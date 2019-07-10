@@ -6,8 +6,10 @@ function [decoded, P] = bayes_infer(obj,varargin)
 %   tau         size of time window for decoding is seconds (default - sampling interval)
 %   trainer     deconv for training (default - analysis.original_dconv)
 %   tester      resting state deconv (default - obj.twop.deconv)
+%   plotFlag
 % Outputs:
 %   decoded     decoded position
+%   P           probability matrix
 
 ops = []; trainer = []; tester = []; behavior = []; %declare and initialize global vars (I don't care what you tell me dad! I'm gonna use global variables!)
 parse_inputs;
@@ -40,8 +42,8 @@ trainer=fast_smooth(trainer,ops.sig);
 tester=fast_smooth(tester,ops.sig);
 tester = movmean(tester,round(tau),1);
 
-trainer= (trainer-min(trainer)) ./ range(trainer);
-tester = (tester-min(tester)) ./ range(tester);
+trainer= (trainer-min(trainer)) ./ range(trainer); % normalize between 0 and 1
+tester = (tester-min(tester)) ./ range(tester); %DO NOT zscore normalize, since negative firing rates are not acceptable
 
 [~,~,stack]=getStack(ops.bins,ops.sd,obj.analysis.vr_length,trainer,unit_pos,unit_vel,frame_ts,trials);
 
@@ -54,18 +56,23 @@ decode(1:length(obj.analysis.psth));
 %     decode(obj.clust{i});
 % end
 
-% figure;
-% h(1)=subplot(2,1,1); imagesc(tester(:,obj.order)');
-% colormap jet
-% % h(1)=subplot(2,1,1); imagesc(zscore(tester(:,obj.analysis.order))');
-% h(2)=subplot(2,1,2); imagesc(P(:,:,1));
-% linkaxes(h, 'x');
+if ops.plotFlag
+    figure;
+    h(1)=subplot(2,1,1); imagesc('xdata', obj.twop.ts, 'cdata',tester(:,obj.order)');
+    rbmap(h(1), 'cmap',hot, 'caxis', [0 max(tester(:))]);
+    ylim(h(1), [1 length(obj.order)]);
+    h(2)=subplot(2,1,2); imagesc('xdata', obj.twop.ts, 'cdata',P(:,:,1));
+    rbmap(h(2), 'cmap',hot, 'caxis', [0 1]);
+    ylim(h(2), [1 size(P,1)]);
+    linkaxes(h, 'x');
+end
 
 
     function decode(cluster)
         pr = prod(stack(:,cluster).^permute(tester(:,cluster),[3 2 1]), 2) .* exp(-tau .* sum(stack(:,cluster),2));
 %         pr = prod(stack(:,cluster).^permute(tester(:,randperm(length(cluster))),[3 2 1]), 2) .* exp(-tau .* sum(stack(:,cluster),2));
         pr = squeeze(pr);
+        P = pr;
         P = pr ./ sum(pr,1);
         [~,decoded] = max(pr);
 %         P(:,:,count) = pr ./ sum(pr,1);
@@ -77,6 +84,7 @@ decode(1:length(obj.analysis.psth));
         ops.sd = 4;
         ops.tau = 1 / obj.twop.fs;
         ops.sig = 5;
+        ops.plotFlag = true;
         
         trainer = obj.analysis.original_deconv;
         tester = obj.twop.deconv;
@@ -97,6 +105,8 @@ decode(1:length(obj.analysis.psth));
                     tester = varargin{count+1};
                 case {'behaviour', 'behavior'}
                     behavior = varargin{count+1};
+                case {'plot', 'plotflag'}
+                    ops.plotFlag= varargin{count+1};
                 otherwise
                     error(['''' varargin{count} ''' is not a valid parameter']);
             end

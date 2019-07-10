@@ -174,32 +174,41 @@ set(gca, 'position', p);
 
 r1_overlap = [];
 r2_overlap = [];
+empty_ass = [];
+count1 = 1;
+count2 = 1;
+bad = {'2017_08_11', '2017_08_18', '2017_09_18'};
 for f = 1:length(list)
     
     root = dir(list{f});
     root(1:2) = [];
     
     for i = 1:length(root)
-        full = fullfile(root(i).folder, root(i).name)
-        
-        clear lfp
-        load(fullfile(full, 'lfp1.mat'));
-        ass1 = lfp.clust;
-        
-        clear lfp
-        load(fullfile(full, 'lfp3.mat'));
-        ass3 = lfp.clust;
-        
-        for ii = 1:length(ass1)
-            idx = cellfun( @(x) length( intersect(ass1{ii}, x) ) ./ ( length(x) + length(ass1{ii}) - length( intersect(ass1{ii}, x) ) ), ass3 );
-            [l, idx] = max(idx);
-            r1_overlap = [r1_overlap; [l idx] ];
-        end
-        
-        for ii = 1:length(ass3)
-            idx = cellfun( @(x) length( intersect(ass3{ii}, x) ) ./ ( length(x) + length(ass3{ii}) - length( intersect(ass3{ii}, x) ) ), ass1 );
-            [l, idx] = max(idx);
-            r2_overlap = [r2_overlap; [l idx] ];
+        if ~any(strcmp( fullfile(root(i).folder, root(i).name) , fullfile('E:\HaoRan\RRR\RSC038', bad)))
+            full = fullfile(root(i).folder, root(i).name)
+
+            clear lfp
+            load(fullfile(full, 'lfp1.mat'));
+            ass1 = lfp.clust;
+
+            clear lfp
+            load(fullfile(full, 'lfp3.mat'));
+            ass3 = lfp.clust;
+
+            for ii = 1:length(ass1)
+                idx = cellfun( @(x) length( intersect(ass1{ii}, x) ) ./ ( length(x) + length(ass1{ii}) - length( intersect(ass1{ii}, x) ) ), ass3 );
+                [l, idx] = max(idx);
+                r1_overlap = [r1_overlap; [l idx] ];
+                count1 = count1+1;
+            end
+
+            for ii = 1:length(ass3)
+                idx = cellfun( @(x) length( intersect(ass3{ii}, x) ) ./ ( length(x) + length(ass3{ii}) - length( intersect(ass3{ii}, x) ) ), ass1 );
+                [l, idx] = max(idx);
+                r2_overlap = [r2_overlap; [l idx] ];
+                if isempty(ass1); empty_ass = [empty_ass count2]; end
+                count2 = count2+1;
+            end
         end
     end
 end
@@ -252,8 +261,17 @@ linkaxes(h, 'y')
 
 
 %% pc width
-P1 = [];
-P2 = [];
+% P1 = [];
+% P2 = [];
+sce_rate1 = []; %sce events / second
+sce_rate2 = [];
+sce_isi1 = [];
+sce_isi2 = [];
+mu_r1 = []; %mean cell-pair corr. coef. across ensembles
+mu_r2 = [];
+
+num_cells1 = [];
+num_cells2 = [];
 stack_shuff = [];
 width = [];
 SI = [];
@@ -262,6 +280,13 @@ SI_clust1 = [];
 SI_clust2 = [];
 SI_no_clust1 = [];
 SI_no_clust2 = [];
+SI_gained = [];
+SI_lost = [];
+SI_stable = [];
+stack_clust1 = [];
+stack_clust2 = [];
+stack_no_clust1 = [];
+stack_no_clust2 = [];
 trials_stack = {};
 trials_width_clust1 = {};
 trials_width_no_clust1 = {};
@@ -291,34 +316,68 @@ for f = 1:length(list)
                 cellfun(@(x) any( ismember( x(:,2), find(belt_num == 3) ) ), analysis.width(analysis.pc_list));...
                 cellfun(@(x) any( ismember( x(:,2), find(belt_num == 4) ) ), analysis.width(analysis.pc_list)) ];
             SI = [SI, temp.*idx];
-            idx = cellfun(@(x) arrayfun(@(y) any(ismember( x(:,2), y )), 1:50 ), analysis.width(analysis.pc_list), 'uniformoutput',false);
-            idx = cell2mat(idx')';
-            SI_all = [SI_all temp.*idx];
+%             idx = cellfun(@(x) arrayfun(@(y) any(ismember( x(:,2), y )), 1:50 ), analysis.width(analysis.pc_list), 'uniformoutput',false);
+%             idx = cell2mat(idx')';
+%             SI_all = [SI_all temp.*idx];
+            SI_all = [SI_all, analysis.SI_marge];
             trials_stack = [trials_stack {analysis.stack(:,analysis.pc_list)}];
             vel_stack = [vel_stack mean(analysis.vel_stack)'];
             stack_shuff = [stack_shuff mean( analysis.shuff_stack(:,analysis.pc_list,:), 3)];
             
             clear lfp
             load(fullfile(full, 'lfp1.mat'));
-            trials_width_clust1 = [trials_width_clust1 cell2mat( analysis.width( intersect(analysis.pc_list, cell2mat(lfp.clust) ) )' )];
+            ass1 = lfp.clust;
+%             trials_width_clust1 = [trials_width_clust1 cell2mat( analysis.width( intersect(analysis.pc_list, cell2mat(lfp.clust) ) )' )];
+            trials_width_clust1 = [trials_width_clust1 cellfun(@(x) cell2mat(analysis.width(intersect(analysis.pc_list, x))'), lfp.clust, 'uniformoutput',false )];
             trials_width_no_clust1 = [trials_width_no_clust1 cell2mat( analysis.width( intersect(analysis.pc_list, setxor( 1:length(analysis.psth), cell2mat(lfp.clust) ) ) )' )];
-            temp = analysis.SI_marge(:, intersect(analysis.pc_list, cell2mat(lfp.clust) ) );
+            num_cells1 = [ num_cells1 cellfun(@length, lfp.clust) ];
+%             stack_clust1 = [stack_clust1 {analysis.stack(:, intersect(analysis.pc_list, cell2mat(lfp.clust) ))}];
+            stack_clust1 = [stack_clust1 cellfun(@(x) analysis.stack(:,x), lfp.clust, 'uniformoutput',false )];
+            stack_no_clust1 = [stack_no_clust1 {analysis.stack(:, intersect(analysis.pc_list, setxor( 1:length(analysis.psth), cell2mat(lfp.clust) ) ))}];
+%             temp = analysis.SI_marge(:, intersect(analysis.pc_list, cell2mat(lfp.clust) ) );
+            temp = analysis.SI_marge(:, cell2mat(lfp.clust) );
             SI_clust1 = [SI_clust1, temp];
-            temp = analysis.SI_marge(:, intersect(analysis.pc_list, setxor( 1:length(analysis.psth), cell2mat(lfp.clust) ) ) );
+%             temp = analysis.SI_marge(:, intersect(analysis.pc_list, setxor( 1:length(analysis.psth), cell2mat(lfp.clust) ) ) );
+            temp = analysis.SI_marge(:, setxor( 1:length(analysis.psth), cell2mat(lfp.clust) ) );
             SI_no_clust1 = [SI_no_clust1, temp];
-            [~,P] = lfp.bayes_infer;
-            P1 = [P1 mean(P(:,:,1),2)];
+%             [~,P] = lfp.bayes_infer;
+%             P1 = [P1 mean(P(:,:,1),2)];
+            idx = find( arrayfun(@(x) ~isempty( lfp.clust_SCE(x).SCE ), 1:length(lfp.clust_SCE) ) );
+            sce_rate1 = [sce_rate1 arrayfun(@(x) length( lfp.clust_SCE(x).SCE.on ), idx ) ./ range(lfp.twop.ts) ./ ( sum(any(~isnan(lfp.twop.deconv) ,2)) ./ size(lfp.twop.deconv,1) ) ];
+            sce_isi1 = [sce_isi1 cell2mat( arrayfun(@(x) diff( lfp.clust_SCE(x).SCE.on ), idx, 'uniformoutput',false )' )'];
+            mu_r1 = [mu_r1 cellfun(@(x) sum(sum( triu(lfp.R(x, x),1) )) ./ (length(x)*(length(x)-1)/2), lfp.clust)];
             
             clear lfp
             load(fullfile(full, 'lfp3.mat'));
-            trials_width_clust2 = [trials_width_clust2 cell2mat( analysis.width( intersect(analysis.pc_list, cell2mat(lfp.clust) ) )' )];
+            ass3 = lfp.clust;
+%             trials_width_clust2 = [trials_width_clust2 cell2mat( analysis.width( intersect(analysis.pc_list, cell2mat(lfp.clust) ) )' )];
+            trials_width_clust2 = [trials_width_clust2 cellfun(@(x) cell2mat(analysis.width(intersect(analysis.pc_list, x))'), lfp.clust, 'uniformoutput',false )];
             trials_width_no_clust2 = [trials_width_no_clust2 cell2mat( analysis.width( intersect(analysis.pc_list, setxor( 1:length(analysis.psth), cell2mat(lfp.clust) ) ) )' )];
-            temp = analysis.SI_marge(:, intersect(analysis.pc_list, cell2mat(lfp.clust) ) );
+            num_cells2 = [ num_cells2 cellfun(@length, lfp.clust) ];
+%             stack_clust2 = [stack_clust2 {analysis.stack(:, intersect(analysis.pc_list, cell2mat(lfp.clust) ))}];
+            stack_clust2 = [stack_clust2 cellfun(@(x) analysis.stack(:,x), lfp.clust, 'uniformoutput',false )];
+            stack_no_clust2 = [stack_no_clust2 {analysis.stack(:, intersect(analysis.pc_list, setxor( 1:length(analysis.psth), cell2mat(lfp.clust) ) ))}];
+%             temp = analysis.SI_marge(:, intersect(analysis.pc_list, cell2mat(lfp.clust) ) );
+            temp = analysis.SI_marge(:, cell2mat(lfp.clust) );
             SI_clust2 = [SI_clust2, temp];
-            temp = analysis.SI_marge(:, intersect(analysis.pc_list, setxor( 1:length(analysis.psth), cell2mat(lfp.clust) ) ) );
+%             temp = analysis.SI_marge(:, intersect(analysis.pc_list, setxor( 1:length(analysis.psth), cell2mat(lfp.clust) ) ) );
+            temp = analysis.SI_marge(:, setxor( 1:length(analysis.psth), cell2mat(lfp.clust) ) );
             SI_no_clust2 = [SI_no_clust2, temp];
-            [~,P] = lfp.bayes_infer;
-            P2 = [P2 mean(P(:,:,1),2)];
+            
+%             temp = analysis.SI_marge(:, intersect(analysis.pc_list, setdiff( cell2mat(ass1), cell2mat(ass3) ) ) );
+            temp = analysis.SI_marge(:, setdiff( cell2mat(ass1), cell2mat(ass3) ) );
+            SI_lost = [SI_lost, temp];
+%             temp = analysis.SI_marge(:, intersect(analysis.pc_list, setdiff( cell2mat(ass3), cell2mat(ass1) ) ) );
+            temp = analysis.SI_marge(:, setdiff( cell2mat(ass3), cell2mat(ass1) ) );
+            SI_gained = [SI_gained, temp];
+%             temp = analysis.SI_marge(:, intersect(analysis.pc_list, intersect( cell2mat(ass3), cell2mat(ass1) ) ) );
+            temp = analysis.SI_marge(:, intersect( cell2mat(ass3), cell2mat(ass1) ) );
+            SI_stable = [SI_stable, temp];
+%             [~,P] = lfp.bayes_infer;
+%             P2 = [P2 mean(P(:,:,1),2)];
+            sce_rate2 = [sce_rate2 arrayfun(@(x) length( lfp.clust_SCE(x).SCE.on ), 1:length(lfp.clust_SCE) ) ./ range(lfp.twop.ts) ./ ( sum(any(~isnan(lfp.twop.deconv) ,2)) ./ size(lfp.twop.deconv,1) ) ];
+            sce_isi2 = [sce_isi2 cell2mat( arrayfun(@(x) diff( lfp.clust_SCE(x).SCE.on ), 1:length(lfp.clust_SCE), 'uniformoutput',false )' )'];
+            mu_r2 = [mu_r2 cellfun(@(x) sum(sum( triu(lfp.R(x, x),1) )) ./ (length(x)*(length(x)-1)/2), lfp.clust)];
             
             count = count+1
         end
@@ -326,16 +385,16 @@ for f = 1:length(list)
 end
 
 width = cell2mat(width');
-trials_width_clust1 = cell2mat(trials_width_clust1');
-trials_width_no_clust1 = cell2mat(trials_width_no_clust1');
-trials_width_clust2 = cell2mat(trials_width_clust2');
-trials_width_no_clust2 = cell2mat(trials_width_no_clust2');
-SI(~SI) = nan;
-SI_all(~SI_all) = nan;
-SI_clust1(~SI_clust1) = nan;
-SI_clust2(~SI_clust2) = nan;
-SI_no_clust1(~SI_no_clust1) = nan;
-SI_no_clust2(~SI_no_clust2) = nan;
+% trials_width_clust1 = cell2mat(trials_width_clust1');
+% trials_width_no_clust1 = cell2mat(trials_width_no_clust1');
+% trials_width_clust2 = cell2mat(trials_width_clust2');
+% trials_width_no_clust2 = cell2mat(trials_width_no_clust2');
+% SI(~SI) = nan;
+% SI_all(~SI_all) = nan;
+% SI_clust1(~SI_clust1) = nan;
+% SI_clust2(~SI_clust2) = nan;
+% SI_no_clust1(~SI_no_clust1) = nan;
+% SI_no_clust2(~SI_no_clust2) = nan;
 %% cont'd
 figure
 h(1) = subplot(2,2,2);
