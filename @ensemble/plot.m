@@ -16,13 +16,14 @@ switch lower(type)
 %         deconv=(obj.twop.deconv - mean(obj.twop.deconv,'omitnan'))./std(obj.twop.deconv,'omitnan');
 %         deconv=fast_smooth(deconv(:,order),obj.ops.sig*obj.twop.fs);
         deconv=fast_smooth(obj.twop.deconv(:,order),obj.ops.sig*obj.twop.fs);
-        deconv=(deconv - mean(deconv,'omitnan'))./std(deconv,'omitnan');
+%         deconv=(deconv - mean(deconv,'omitnan'))./std(deconv,'omitnan');
+        deconv = (deconv - min(deconv,[],'omitnan')) ./ range(deconv);
         idx = 1:3*wbins;
         idx( ~mod(1:3*wbins, wbins) ) = [];
         ax(1)=subplot(5,wbins,idx);
         imagesc('xdata',obj.twop.ts,'cdata',deconv');
 %         colormap(get_colour('black'));
-        colormap jet
+        colormap hot
         ylim([1 size(deconv,2)]);
         ylabel(lab);
         

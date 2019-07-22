@@ -31,7 +31,10 @@ if peaks_flag
         p_frame((i-1)*length(ordered)+1 : i*length(ordered)) = idx;
     end
     p_frame = behavior.frame_ts(p_frame)-min(behavior.frame_ts);
-    plot(p_frame, p_neurons, 'k.', 'markersize',20);
+    p_frame = repmat(p_frame,size(p_neurons,1),1);
+    h = scatter(p_frame(:), p_neurons(:), 'filled', 'markerfacecolor','k');
+    h.MarkerFaceAlpha = .5;
+    xticks([]); yticks([]);
     ylabel('neuron no.');
 else
     imagesc(-deconv(:, ordered(end:-1:1))','xdata',(behavior.frame_ts-min(behavior.frame_ts))./1);
