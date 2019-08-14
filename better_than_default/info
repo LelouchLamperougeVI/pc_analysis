@@ -1,0 +1,11 @@
+This folder contains a collection of improved built-in MATLAB functions.
+These functions are aimed at improving performance and/or expending usability.
+As a result, many are written in C/C++ or FORTRAN, and would need to be compiled before use.
+
+Compiled mex files are usually accompanied by a MATLAB function prefixed by 'b'.
+For example, the improved 'xcorr2' function is called 'bxcorr2', short for 'better xcorr2'.
+
+By HaoRan Chang, Ph.D. candidate
+Canadian Centre for Behavioural Neuroscience,
+Department of Neuroscience, University of Lethbridge,
+Lethbridge, Alberta, Canada

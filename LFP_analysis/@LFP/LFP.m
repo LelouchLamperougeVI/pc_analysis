@@ -26,13 +26,13 @@ classdef LFP < handle
 %         Channels = [1 2 3 5 8 6]';
 %         Channels = [1 2 3 7 8 5]';
 %         Channels = [1 2 3 6 5 5]';
-        Channels = [1 2 3 5 5 5]'; %old behavior for RSC RRR
+%         Channels = [1 2 3 5 5 5]'; %old behavior for RSC RRR (phil trans B)
 %         Channels = [1 2 3 5 5 6]'; %old old behavior for RSC RRR, also works for Ingrid's RRR
-%         Channels = [1 2 3 7 5 5]';
+        Channels = [1 2 3 7 5 5]';
 %         Channels = [1 2 3 5 5 6]';
 %         Channels = [1 2 3 6 8 7]'; %new behavior for RSC RRR
 %         Channels = [1 2 3 4 8 7]'; %new vr behavior for RSC RRR
-%         Channels = [1 3 2 6 5 5]';
+%         Channels = [1 3 2 6 5 5]'; % lesion across days
     end
     
     properties (GetAccess = 'private', SetAccess = 'private')
@@ -87,8 +87,18 @@ classdef LFP < handle
             obj.filter_bands;
             obj.extract_behaviour;
             
+            plane_case = dir(fullfile(obj.session.wd, obj.session.id));
+            plane_case = regexp( {plane_case([ plane_case.isdir ]).name}, '[Pp]lane\d+', 'match', 'once' );
+            plane_case( cellfun(@isempty, plane_case) ) = [];
+            if length(plane_case) > 1
+                disp('Multiplane recording detected!!!')
+                disp( ['The following planes are available: ' strjoin(plane_case, ' ') ] );
+            end
+            disp( ['loading ' plane_case{1} '...'] );
+            plane = plane_case{1};
+            
             try
-                deconv=load(fullfile(obj.session.wd, obj.session.id, 'plane1', 'deconv.mat'));
+                deconv=load(fullfile(obj.session.wd, obj.session.id, plane, 'deconv.mat'));
                 obj.import_deconv(deconv.deconv);
                 disp('Deconv loaded')
             catch
@@ -101,9 +111,9 @@ classdef LFP < handle
             else
                 disp('No analysis file found');
             end
-            if exist(fullfile(obj.session.wd, obj.session.id, 'plane1', 'masks_neurons.mat'), 'file')
-                maskNeurons = load(fullfile(obj.session.wd, obj.session.id, 'plane1', 'masks_neurons.mat'));
-                mimg = load(fullfile(obj.session.wd, obj.session.id, 'plane1', 'mean_img.mat'));
+            if exist(fullfile(obj.session.wd, obj.session.id, plane, 'masks_neurons.mat'), 'file')
+                maskNeurons = load(fullfile(obj.session.wd, obj.session.id, plane, 'masks_neurons.mat'));
+                mimg = load(fullfile(obj.session.wd, obj.session.id, plane, 'mean_img.mat'));
                 obj.topo.maskNeurons = maskNeurons.maskNeurons;
                 obj.topo.mimg = double(mimg.mimg);
                 disp('Topography loaded');

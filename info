@@ -1,0 +1,7 @@
+This folder contains a set of performance-oriented functions that provide better functionality than the MATLAB native equivalents.
+Some functions may be written in C or FORTRAN, and hence would require to be compiled first.
+
+by HaoRan Chang, Ph.D. candidate
+Canadian Centre for Behavioural Neuroscience,
+Department of Neuroscience, University of Lethbridge,
+Lethbridge, Alberta, Canada
