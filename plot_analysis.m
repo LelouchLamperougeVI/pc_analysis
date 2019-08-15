@@ -17,7 +17,7 @@ if plotFlag(1)
 
     [~,idx]=max(stack);
     [~,ordered]=sort(idx);
-    ordered=ordered(any(pc_list'==ordered));
+    ordered=ordered(ismember(ordered,pc_list));
     
     figure;
     count=1;

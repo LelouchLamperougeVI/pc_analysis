@@ -20,6 +20,12 @@ if nargin < 4
 end
 if nargin < 5
     numThreads = maxNumCompThreads*2;
+    if isunix
+        [~,numThreads] = system('grep -c ^processor /proc/cpuinfo');
+        numThreads = str2double(numThreads);
+        !uname -or
+        !echo "using" $(grep -c ^processor /proc/cpuinfo) "logical processing cores"
+    end
 end
 if size(maxlag) < 2
     maxlag = ones(1,2) .* maxlag;
@@ -43,11 +49,16 @@ switch lower(scaleopt)
     case 'none'
         return;
     case 'biased'
-        r = r ./ (numel(A) + numel(B));
+        r = r ./ prod(dims);
     case 'unbiased'
         r = r ./ ( (dims(1) - abs(lags.x)') * (dims(2) - abs(lags.y)) );
     case {'normalized','coeff'}
-        
+        if ~any(~lags.x) || ~any(~lags.y)
+            error("normalized coefficients cannot be obtained as the behaviour at lag = 0 is undefined for even-off matrix dimension pairs");
+        end
+        rxx = matxcorr2(A, A, int16([0 0]), numThreads);
+        ryy = matxcorr2(B, B, int16([0 0]), numThreads);
+        r = r ./ sqrt(rxx * ryy);
     otherwise
         error(['scaleopt ''' scaleopt ''' is undefined']);
 end

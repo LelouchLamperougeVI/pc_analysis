@@ -25,22 +25,22 @@ void correlate(int *index) {
   cap[1] = min(index[1], dims[1] - 1) - offset[2] + 1;
 
   double *A_pt = A + offset[0] + offset[2]*dims[0];
-  double *B_pt = A + offset[1] + offset[3]*dims[2];
+  double *B_pt = B + offset[1] + offset[3]*dims[2];
 
   __m128d A_store;
   __m128d B_store;
 
   __m128d buff = _mm_setzero_pd();
   for(j=0; j<cap[1]; j++){
-    for(i=0; i<cap[0]; i+=XMM_SIZE){
-      A_store = _mm_loadu_pd(A_pt+i);
-      B_store = _mm_loadu_pd(B_pt+i);
+    for(i=0; i<cap[0]/XMM_SIZE; i++){
+      A_store = _mm_loadu_pd(A_pt+i*2);
+      B_store = _mm_loadu_pd(B_pt+i*2);
       buff += _mm_dp_pd( A_store, B_store, 0xF1);
     }
     if(cap[0] % XMM_SIZE)
-      *ret += *(A_pt+i-1) * *(B_pt+i-1);
-    A_pt = A + offset[0] + (j+offset[2])*dims[0];
-    B_pt = A + offset[1] + (j+offset[3])*dims[2];
+      *ret_pt += *(A_pt+i*2) * *(B_pt+i*2);
+    A_pt += dims[0];
+    B_pt += dims[2];
   }
   *ret_pt += _mm_cvtsd_f64(buff);
 }
@@ -55,7 +55,7 @@ void fWorker() {
   };
   do{
     mute.lock();
-    if( shift[1] == mod[1] ) {
+    if( shift[1] >= mod[1] ) {
       mute.unlock();
       return;
     }
