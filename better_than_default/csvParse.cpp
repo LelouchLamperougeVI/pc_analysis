@@ -1,9 +1,30 @@
 /* csvParse.cpp
- * Takes a csv file, parse through it with the specified format identifier and save the results as a .mat file for use in MATLAB
+ * Takes a csv file, parse through it with the specified format identifier
+ * and save the results as a .mat file for use in MATLAB
  *
  * Compilation: g++ -lpthread csvParse.cpp -o csvParse
  * Compiled with g++ 9.1.0 and tested on Arch Linux kernel 5.2.8
  *
+ * Usage: csvParse [FILENAME] [FORMAT] [tokens...]
+ *  FILENAME    - Input CSV file, given with full path if not in pwd.
+ *  FORMAT      - The template of the lines to be parsed. Available identifiers
+ *                are 'd', 's' and 'x'.
+ *  [tokens]    - For each 'x' identifier, provide a search token.
+ *
+ * Output: a .mat file with the same name as the input file.
+ *
+ * e.g. In a typical two-photon imaging session, one might want to extract all the
+ * entries that are formatted as
+ *     'time-stamp,pin number,XX,pin-state,XX,object,"elephant"'.
+ * In this case, the format identifiers should be given as 'dxdxdxs', which inform
+ * the program to extract three 'doubles' and one string. 'x's dictate the locations
+ * of matching tokens. The location of each identifier is relative to tokens on a
+ * line separated by comma delimiters. The full command is
+ *     'csvParse example.csv dxdxdxs pin\ number pin-state object'.
+ *
+ * TODO: code is bloated... but it works... not the most elegant solution...
+ * TODO: Originally was gonna use threads, but the speed was so much faster than what
+ *       MATLAB could achieve. So no need for that functionality anymore. Remove.
  *
  * By HaoRan Chang, Ph.D. candidate
  * Canadian Centre for Behavioural Neuroscience,
@@ -66,15 +87,13 @@ void CSV::exit() {
 
 class CSV::data {
   public:
-    void *datum;
-
     data() {
       datum = malloc(d_size);
       write_head = datum;
       currPos = format;
     }
 
-    void free_mem() {
+    void free_mem() { //lol most pathetic memory leak ever...
       free(datum);
     }
 
@@ -108,16 +127,13 @@ class CSV::data {
     }
 
   private:
+    void *datum;
     void *write_head;
     char *currPos;
 };
 
 class CSV::parser {
   public:
-    char buff[BUFF_LEN];
-    std::vector<data> data_vect;
-    char *sp = format; //stack pointer, old habits from assembly will never change...
-
     parser() {
       while(*++sp != '\0') {}
     }
@@ -126,6 +142,10 @@ class CSV::parser {
       for(int i = 0; i < data_vect.size(); i++)
         data_vect[i].free_mem();
       data_vect.clear();
+    }
+
+    int size() {
+      return data_vect.size();
     }
 
     int readline() {
@@ -166,6 +186,10 @@ class CSV::parser {
     }
 
   private:
+    std::vector<data> data_vect;
+    char buff[BUFF_LEN];
+    char *sp = format; //old habits from assembly will never change...
+
     void parsel(char *line) { //parse line
       int pos = 0;
       double d;
@@ -237,7 +261,7 @@ int main (int argc, char *argv[]) {
   while( !temp.readline() ){ line_count++; }
 
   std::cout << "Finished reading CSV file. Took " << (double) (clock() - start_time) / CLOCKS_PER_SEC * 1000 << " milliseconds." << std::endl;
-  std::cout << "Found " << temp.data_vect.size() << " matches in " << line_count << " lines." << std::endl;
+  std::cout << "Found " << temp.size() << " matches in " << line_count << " lines." << std::endl;
   std::cout << "Consolidating CSV::data vector columns..." << std::endl;
   //char **test = (char **) temp.consolidate();
   //for(int i = 0; i < 3; i++)
