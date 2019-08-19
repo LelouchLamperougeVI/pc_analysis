@@ -2,8 +2,8 @@
  * Takes a csv file, parse through it with the specified format identifier
  * and save the results as a .mat file for use in MATLAB
  *
- * Compilation: g++ -lpthread csvParse.cpp -o csvParse
- * Compiled with g++ 9.1.0 and tested on Arch Linux kernel 5.2.8
+ * Compilation: mex -client engine csvParse.cpp CSV.cpp MATW.cpp
+ * Compiled with g++ 9.1.0 on MATLAB R2019a and tested on Arch Linux kernel 5.2.8
  *
  * Usage: csvParse [FILENAME] [FORMAT] [tokens...]
  *  FILENAME    - Input CSV file, given with full path if not in pwd.
@@ -18,13 +18,14 @@
  *     'time-stamp,pin number,XX,pin-state,XX,object,"elephant"'.
  * In this case, the format identifiers should be given as 'dxdxdxs', which inform
  * the program to extract three 'doubles' and one string. 'x's dictate the locations
- * of matching tokens. The location of each identifier is relative to tokens on a
+ * of search tokens. The location of each identifier is relative to tokens on a
  * line separated by comma delimiters. The full command is
  *     'csvParse example.csv dxdxdxs pin\ number pin-state object'.
  *
  * TODO: code is bloated... but it works... not the most elegant solution...
  * TODO: Originally was gonna use threads, but the speed was so much faster than what
- *       MATLAB could achieve. So no need for that functionality anymore. Remove.
+ *       MATLAB could achieve just off a single thread. So no need for that
+ *       functionality anymore. Remove.
  *
  * By HaoRan Chang, Ph.D. candidate
  * Canadian Centre for Behavioural Neuroscience,
@@ -32,200 +33,12 @@
  * Lethbridge, Alberta, Canada
  */
 
+#include "MATW.h"
+#include "CSV.h"
 #include <iostream>
 #include <ctime>
-#include <cctype>
-#include <cstring>
-#include <cstdlib>
-#include <fstream>
-#include <string>
-#include <vector>
-#include <thread>
-#include <mutex>
 
-#define CHAR_LEN 80
-#define BUFF_LEN 500
 #define ARGS_OFFSET 3
-
-namespace CSV {
-  std::ifstream stream; //file stream
-  char *format; //format identifier
-  char **tokens; //search tokens
-  std::mutex mute; //mutex guard
-  size_t d_size; //the size of each datum on memory
-  int d_len;
-
-  void initialize(char *fn, char *iformat, char **itokens);
-  void exit();
-
-  class parser;
-  class data;
-};
-
-void CSV::initialize(char *fn, char *iformat, char **itokens) {
-  format = iformat;
-  tokens = itokens;
-  stream.open(fn, std::ifstream::in);
-  int num_d = 0, num_s = 0;
-  char *id = format;
-  do {
-    switch(*id) {
-      case 'd':
-        num_d++;
-        break;
-      case 's':
-        num_s++;
-        break;
-    }
-  } while(*id++ != '\0');
-  d_size = num_d*sizeof(double) + num_s*CHAR_LEN*sizeof(char);
-  d_len = num_d + num_s;
-}
-void CSV::exit() {
-  stream.close();
-}
-
-class CSV::data {
-  public:
-    data() {
-      datum = malloc(d_size);
-      write_head = datum;
-      currPos = format;
-    }
-
-    void free_mem() { //lol most pathetic memory leak ever...
-      free(datum);
-    }
-
-    void push(void *new_data) {
-      SKIP: switch(*currPos++) {
-        case 'd':
-          *(double *) write_head = *(double *) new_data;
-          write_head = static_cast<double *>(write_head) + 1;
-          break;
-        case 's':
-          strcpy( (char *) write_head, (char *) new_data );
-          write_head = static_cast<char *>(write_head) + CHAR_LEN;
-          break;
-        case 'x':
-          goto SKIP; //so I used 'GOTO', big deal
-      }
-    }
-
-    void *pop() {
-      SKIP: switch(*--currPos) {
-        case 'd':
-          write_head = static_cast<double *>(write_head) - 1;
-          break;
-        case 's':
-          write_head = static_cast<char *>(write_head) - CHAR_LEN;
-          break;
-        case 'x':
-          goto SKIP;
-      }
-      return write_head;
-    }
-
-  private:
-    void *datum;
-    void *write_head;
-    char *currPos;
-};
-
-class CSV::parser {
-  public:
-    parser() {
-      while(*++sp != '\0') {}
-    }
-
-    ~parser() {
-      for(int i = 0; i < data_vect.size(); i++)
-        data_vect[i].free_mem();
-      data_vect.clear();
-    }
-
-    int size() {
-      return data_vect.size();
-    }
-
-    int readline() {
-      mute.lock();
-      stream.getline(buff, BUFF_LEN);
-      if(stream.eof() || stream.bad() || stream.fail()) {
-        mute.unlock();
-        return 1;
-      }
-      mute.unlock();
-      parsel(buff);
-      return 0;
-    }
-
-    void *consolidate() { //pop out column from last data element
-        SKIP: switch(*--sp) {
-        case 'd': {
-          double *column = new double[data_vect.size()];
-          for(int i = 0; i < data_vect.size(); i++) {
-            double *temp = (double *) data_vect[i].pop();
-            column[i] = *temp;
-          }
-          return column;
-        }
-        case 's': {
-          char **column = new char*[data_vect.size()];
-          for(int i = 0; i < data_vect.size(); i++) {
-            column[i] = new char[CHAR_LEN];
-            column[i] = (char *) data_vect[i].pop();
-          }
-          return column;
-        }
-        case 'x':
-          goto SKIP;
-        default:
-          return NULL;
-      }
-    }
-
-  private:
-    std::vector<data> data_vect;
-    char buff[BUFF_LEN];
-    char *sp = format; //old habits from assembly will never change...
-
-    void parsel(char *line) { //parse line
-      int pos = 0;
-      double d;
-      data temp;
-      char *tok = strtok(line, ","), **tokens_pt = tokens;
-      while(tok != NULL) {
-        switch(format[pos]) {
-          case 's':
-            temp.push(tok);
-            break;
-          case 'd':
-            d = strtod(tok, NULL);
-            temp.push(&d);
-            break;
-          case 'x':
-            if( strcmp(tok, *tokens_pt++) )
-              goto SKIPLINE;
-            break;
-          case '\0':
-            goto SKIPLINE;
-        }
-        tok = strtok(NULL, ",");
-        pos++;
-      }
-
-      if(pos < d_len) {
-        goto SKIPLINE;
-      }
-      data_vect.push_back(temp);
-      return;
-
-SKIPLINE:
-      temp.free_mem();
-      return;
-    }
-};
 
 int main (int argc, char *argv[]) {
   clock_t start_time = clock();
@@ -256,23 +69,64 @@ int main (int argc, char *argv[]) {
 
   CSV::initialize(fn, argv[2], tokens);
 
-  CSV::parser temp;
+  CSV::parser parser;
   int line_count = 0;
-  while( !temp.readline() ){ line_count++; }
+  while( !parser.readline() ){ line_count++; }
 
   std::cout << "Finished reading CSV file. Took " << (double) (clock() - start_time) / CLOCKS_PER_SEC * 1000 << " milliseconds." << std::endl;
-  std::cout << "Found " << temp.size() << " matches in " << line_count << " lines." << std::endl;
+  std::cout << "Found " << parser.size() << " matches in " << line_count << " lines." << std::endl;
   std::cout << "Consolidating CSV::data vector columns..." << std::endl;
-  //char **test = (char **) temp.consolidate();
-  //for(int i = 0; i < 3; i++)
-  //  std::cout << test[i] << std::endl;
 
-  temp.consolidate();
-  temp.consolidate();
+  char *tok = strtok(fn, "/\\");
+  char *of;
+  char extension[] = ".mat";
+  while(tok != NULL) {
+    of = tok;
+    tok = strtok(NULL, "/\\");
+  }
+  tok = strtok(of, ".");
+  of = new char[CHAR_LEN];
+  strcpy(of, tok);
+  strcpy(of + strlen(tok), extension);
+
+  int dims[2] = {parser.size(), CSV::d_len};
+  char *col_pt = CSV::format;
+  char varname[] = "CSV";
+  MATW::writer *writer;
+  while(*col_pt != '\0' && *col_pt != 's') {col_pt++;}
+  switch(*col_pt) {
+    case 's': {
+      writer = new MATW::writer(of, varname, mxCELL_CLASS, dims);
+      break;
+    }
+    default:
+      writer = new MATW::writer(of, varname, mxDOUBLE_CLASS, dims);
+      break;
+  }
+
+  char flag;
+  void *ret;
+  count = CSV::d_len-1;
+  do {
+    ret = parser.consolidate(flag);
+    switch(flag) {
+      case 'd': {
+        writer->write((double *) ret, flag, count--);
+        break;
+      }
+      case 's': {
+        writer->write((char **) ret, flag, count--);
+        break;
+      }
+    }
+  } while(count > -1);
 
   std::cout << "Consolidation complete. Total runtime was " << (double) (clock() - start_time) / CLOCKS_PER_SEC * 1000 << " milliseconds. Have a nice day!" << std::endl;
 
+  delete [] tokens;
   CSV::exit();
+  delete writer;
+  delete [] of;
 
   return 0;
 }
