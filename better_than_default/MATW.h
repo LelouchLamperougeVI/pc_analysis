@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <cstring>
+#include <string>
 #include "mat.h"
 
 namespace MATW { //mat file writer
@@ -11,7 +12,7 @@ namespace MATW { //mat file writer
 
 class MATW::writer {
   public:
-    writer(char *fn, char *of, mxClassID type, int *size);
+    writer(std::string &fn, char *of, mxClassID type, int *size);
     ~writer();
     void write(void *src, char type, int index);
 

@@ -1,7 +1,8 @@
 #include "MATW.h"
 
-MATW::writer::writer(char *fn, char *of, mxClassID type, int *size) {
-  matfile = matOpen(fn, "w");
+MATW::writer::writer(std::string &fn, char *of, mxClassID type, int *size) {
+  const char *fn_char = fn.c_str();
+  matfile = matOpen(fn_char, "w");
   if(matfile == NULL)
     throw "Failed to open .mat file for writing.";
 

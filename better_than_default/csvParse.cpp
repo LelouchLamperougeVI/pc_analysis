@@ -2,7 +2,7 @@
  * Takes a csv file, parse through it with the specified format identifier
  * and save the results as a .mat file for use in MATLAB
  *
- * Compilation: mex -client engine csvParse.cpp CSV.cpp MATW.cpp
+ * Compilation: mex -client engine csvParse.cpp CSV.cpp MATW.cpp -lstdc++fs
  * Compiled with g++ 9.1.0 on MATLAB R2019a and tested on Arch Linux kernel 5.2.8
  *
  * Usage: csvParse [FILENAME] [FORMAT] [tokens...]
@@ -37,6 +37,7 @@
 #include "CSV.h"
 #include <iostream>
 #include <ctime>
+#include <experimental/filesystem>
 
 #define ARGS_OFFSET 3
 
@@ -48,7 +49,14 @@ int main (int argc, char *argv[]) {
     return 1;
   }
 
-  char *fn = argv[1];
+  namespace fs = std::experimental::filesystem;
+  fs::path path (argv[1]);
+  std::string iF = fs::canonical(path);
+  if(!fs::exists(fs::canonical(path))) {
+    std::cerr << "The input file does not exist." << std::endl;
+    return 1;
+  }
+
   char *check = argv[2];
   int count = 0;
   do {
@@ -67,7 +75,7 @@ int main (int argc, char *argv[]) {
   for(int i = 0; i < count; i++)
     tokens[i] = argv[i + ARGS_OFFSET];
 
-  CSV::initialize(fn, argv[2], tokens);
+  CSV::initialize(iF, argv[2], tokens);
 
   CSV::parser parser;
   int line_count = 0;
@@ -77,17 +85,7 @@ int main (int argc, char *argv[]) {
   std::cout << "Found " << parser.size() << " matches in " << line_count << " lines." << std::endl;
   std::cout << "Consolidating CSV::data vector columns..." << std::endl;
 
-  char *tok = strtok(fn, "/\\");
-  char *of;
-  char extension[] = ".mat";
-  while(tok != NULL) {
-    of = tok;
-    tok = strtok(NULL, "/\\");
-  }
-  tok = strtok(of, ".");
-  of = new char[CHAR_LEN];
-  strcpy(of, tok);
-  strcpy(of + strlen(tok), extension);
+  std::string oF = iF.substr(0, iF.rfind(".")) + ".mat";
 
   int dims[2] = {parser.size(), CSV::d_len};
   char *col_pt = CSV::format;
@@ -96,11 +94,11 @@ int main (int argc, char *argv[]) {
   while(*col_pt != '\0' && *col_pt != 's') {col_pt++;}
   switch(*col_pt) {
     case 's': {
-      writer = new MATW::writer(of, varname, mxCELL_CLASS, dims);
+      writer = new MATW::writer(oF, varname, mxCELL_CLASS, dims);
       break;
     }
     default:
-      writer = new MATW::writer(of, varname, mxDOUBLE_CLASS, dims);
+      writer = new MATW::writer(oF, varname, mxDOUBLE_CLASS, dims);
       break;
   }
 
@@ -126,7 +124,6 @@ int main (int argc, char *argv[]) {
   delete [] tokens;
   CSV::exit();
   delete writer;
-  delete [] of;
 
   return 0;
 }

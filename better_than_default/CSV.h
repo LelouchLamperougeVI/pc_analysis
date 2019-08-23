@@ -21,7 +21,7 @@ namespace CSV {
   extern size_t d_size; //the size of each datum on memory
   extern int d_len; //number of elements stored in each datum
 
-  void initialize(char *fn, char *iformat, char **itokens);
+  void initialize(std::string &fn, char *iformat, char **itokens);
   void exit();
 
   class parser;

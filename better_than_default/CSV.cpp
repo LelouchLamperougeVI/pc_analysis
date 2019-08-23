@@ -7,7 +7,7 @@ std::mutex CSV::mute;
 size_t CSV::d_size;
 int CSV::d_len;
 
-void CSV::initialize(char *fn, char *iformat, char **itokens) {
+void CSV::initialize(std::string &fn, char *iformat, char **itokens) {
   format = iformat;
   tokens = itokens;
   stream.open(fn, std::ifstream::in);
