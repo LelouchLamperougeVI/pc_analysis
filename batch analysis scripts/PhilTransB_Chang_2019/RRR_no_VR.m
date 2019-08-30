@@ -196,12 +196,21 @@ for f = 1:length(list)
 %             end
 %             session(count).rest1.null_err = null_err;
 
+            % cell identity shuffle
 %             null_err = zeros(50, size(ass.twop.deconv, 1),shuffles);
 %             parfor ii = 1:shuffles
 %                 [~,null_err(:, :, ii)] = ass.bayes_infer('tester', ass.twop.deconv(:, randperm(length(ass.analysis.psth))));
 %             end
 %             session(count).rest1.null_err = null_err;
 %             [~, session(count).rest1.bayesP] = ass.bayes_infer;
+
+            % place field shuffle
+            null_err = zeros(50, size(ass.twop.deconv, 1),shuffles);
+            parfor ii = 1:shuffles
+                [~,null_err(:, :, ii)] = ass.bayes_infer('shuffle', true);
+            end
+            session(count).rest1.null_err = null_err;
+            [~, session(count).rest1.bayesP] = ass.bayes_infer;
             
             [~,~,session(count).rest1.err,session(count).rest1.err_sem]=bayes_infer(analysis,.05,r1_clust, 5);
             [~,~,session(count).rest1.err_all,session(count).rest1.err_sem_all]=bayes_infer(analysis,.05,{cell2mat(r1_clust)}, 5);
@@ -262,6 +271,14 @@ for f = 1:length(list)
 %             end
 %             session(count).rest2.null_err = null_err;
 %             [~, session(count).rest2.bayesP] = ass.bayes_infer;
+
+            % place field shuffle
+            null_err = zeros(50, size(ass.twop.deconv, 1),shuffles);
+            parfor ii = 1:shuffles
+                [~,null_err(:, :, ii)] = ass.bayes_infer('shuffle', true);
+            end
+            session(count).rest2.null_err = null_err;
+            [~, session(count).rest2.bayesP] = ass.bayes_infer;
             
             [~,~,session(count).rest2.err,session(count).rest2.err_sem]=bayes_infer(analysis,.05,r2_clust, 5);
             [~,~,session(count).rest2.err_all,session(count).rest2.err_sem_all]=bayes_infer(analysis,.05,{cell2mat(r2_clust)}, 5);

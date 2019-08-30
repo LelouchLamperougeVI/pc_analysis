@@ -73,7 +73,9 @@ end
 
 
     function decode(cluster)
-        pr = prod(stack(:,cluster) .^ permute(tester(:,cluster),[3 2 1]), 2) .* exp(-tau .* sum(stack(:,cluster),2));
+%         pr = prod(stack(:,cluster).^permute(tester(:,cluster),[3 2 1]), 2);
+        pr = zeros(size(stack,1), 1, size(tester,);
+        pr = pr .* exp(-tau .* sum(stack(:,cluster),2));
 %         pr = prod(stack(:,cluster).^permute(tester(:,randperm(length(cluster))),[3 2 1]), 2) .* exp(-tau .* sum(stack(:,cluster),2));
         pr = squeeze(pr);
         P = pr;
