@@ -1,3 +1,4 @@
+%%
 list = {'RSC036', 'RSC037', 'RSC038'};
 bad = {'2017_08_11', '2017_08_18', '2017_09_18'};
 
@@ -9,7 +10,7 @@ for f = 1:length(list)
     root(1:2) = [];
     
     for i = 1:length(root)
-        if ~any(strcmp( fullfile(root(i).folder, root(i).name) , fullfile('E:\HaoRan\RRR\RSC038', bad)))
+        if ~any(strcmp( fullfile(root(i).folder, root(i).name) , fullfile(pwd, 'RSC038', bad)))
             full = fullfile(root(i).folder, root(i).name)
             
             clear lfp
@@ -25,6 +26,16 @@ for f = 1:length(list)
     end
 end
 
+%%
+P1 = zeros(size(session(1).rest1.null_err, 1), size(session(1).rest1.null_err, 2), length(sce1)); P2 = P1;
+count = 1;
+for i = 1:length(sce)
+    while any(strcmp( fullfile(session(count).animal, session(count).date) , fullfile('RSC038', bad))) %in case all 16 sessions present in struct
+        count = count+1;
+    end
+    P1(:,:,i) = 1 - sum( session(count).rest1.bayesP > session(count).rest1.null_err, 3 ) ./ size(session(count).rest1.null_err, 3);
+    P2(:,:,i) = 1 - sum( session(count).rest2.bayesP > session(count).rest2.null_err, 3 ) ./ size(session(count).rest2.null_err, 3);
+end
 
 %%
 temp1 = []; for i = 1:length(sce1); for j = 1:size(sce1{i}, 2); temp1 = [temp1 sum( P1(:, sce1{i}(:,j), i) > P1_95(:, sce1{i}(:,j), i) , 2)]; temp1 = temp1./sum(temp1); end; end
