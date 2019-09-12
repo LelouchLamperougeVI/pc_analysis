@@ -407,7 +407,9 @@ axis square
 
 
 %% Distance from cue decoding correlation
-bins = size(session(1).rest1.err,2);
+% bins = size(session(1).rest1.err,2);
+bins = 50;
+belt;
 bins_idx = 1:bins;
 belt_indices = [find(belt_idx)-50 find(belt_idx) find(belt_idx)+50];
 distance_idx = knnsearch(belt_indices', bins_idx');

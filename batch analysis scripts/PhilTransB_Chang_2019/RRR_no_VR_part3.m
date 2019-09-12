@@ -59,13 +59,25 @@ for i = 1:length(null)
     ylim([0 .2])
 end
 
-%%
+%% Stack
 temp1 = []; for i = 1:length(sce1); for j = 1:size(sce1{i}, 2); temp1 = [temp1 P1(:, sce1{i}(:,j), i)]; end; end
 temp2 = []; for i = 1:length(sce2); for j = 1:size(sce2{i}, 2); temp2 = [temp2 P2(:, sce2{i}(:,j), i)]; end; end
+
+temp1 = []; for i = 1:length(sce1); temp1 = [temp1 P1(:, any(sce1{i},2), i)]; end
+temp2 = []; for i = 1:length(sce2); temp2 = [temp2 P2(:, any(sce2{i},2), i)]; end
+
+[~,idx]=min(temp1);
+[~,idx]=sort(idx);
+figure
+imagesc(temp1(:,idx)')
+colormap hot
+figure; imagesc(temp1(:,idx)' < .05);
 [~,idx]=min(temp2);
 [~,idx]=sort(idx);
 figure
 imagesc(temp2(:,idx)')
+colormap hot
+figure; imagesc(temp2(:,idx)' < .05);
 
 %%
 figure;
@@ -122,6 +134,9 @@ temp2 = cell2mat(temp2);
 temp1 = []; for i = 1:length(sce1); for j = 1:size(sce1{i}, 2); temp1 = [temp1 P1(:, sce1{i}(:,j), i)]; end; end
 temp2 = []; for i = 1:length(sce2); for j = 1:size(sce2{i}, 2); temp2 = [temp2 P2(:, sce2{i}(:,j), i)]; end; end
 
+temp1 = []; for i = 1:length(sce1); temp1 = [temp1 P1(:, any(sce1{i},2), i)]; end
+temp2 = []; for i = 1:length(sce2); temp2 = [temp2 P2(:, any(sce2{i},2), i)]; end
+
 edges = [ logspace( log10(.05), log10(.001), 20) 0 ]; %edge bins of alpha values in logarithmic scale
 idx = repmat( distance_idx', size(temp1,2), 1 );
 idx2 = discretize(temp1(:), edges(end:-1:1));
@@ -163,6 +178,9 @@ xlim([-2 10]); ylim([.06 .16]);
 temp1 = []; for i = 1:length(sce1); for j = 1:size(sce1{i}, 2); temp1 = [temp1 P1(:, sce1{i}(:,j), i)]; end; end
 temp2 = []; for i = 1:length(sce2); for j = 1:size(sce2{i}, 2); temp2 = [temp2 P2(:, sce2{i}(:,j), i)]; end; end
 
+temp1 = []; for i = 1:length(sce1); temp1 = [temp1 P1(:, any(sce1{i},2), i)]; end
+temp2 = []; for i = 1:length(sce2); temp2 = [temp2 P2(:, any(sce2{i},2), i)]; end
+
 edges = [ logspace( log10(.05), log10(.001), 20) 0 ];
 idx = repmat( (49:-1:0)', size(temp1,2), 1 );
 idx2 = discretize(temp1(:), edges(end:-1:1));
@@ -172,7 +190,7 @@ idx2(isnan(idx2))=[];
 m1 = accumarray( [idx2 idx+1], 1);
 figure;
 imagesc('xdata', min(idx):max(idx), 'ydata',edges(end:-1:1), 'cdata',m1);
-colormap bone
+colormap hot
 colorbar
 axis square
 
@@ -185,18 +203,27 @@ idx2(isnan(idx2))=[];
 m2 = accumarray( [idx2 idx+1], 1);
 figure;
 imagesc('xdata', min(idx):max(idx), 'ydata',edges(end:-1:1), 'cdata',m2);
-colormap bone
+colormap hot
 colorbar
 axis square
 
 clc
-figure
 lregress((49:-1:0), sum(m1) ./ sum(m1(:)));
 xlim([-10 60]); ylim([0 .05]);
 [r,p] = corr((min(idx):max(idx))', (sum(m1) ./ sum(m1(:)))' )
 lregress((49:-1:0), sum(m2) ./ sum(m2(:)));
 xlim([-10 60]); ylim([0 .05]);
 [r,p] = corr((min(idx):max(idx))', (sum(m2) ./ sum(m2(:)))' )
+
+%% Bivariate linear regression
+clc
+temp1 = []; for i = 1:length(sce1); temp1 = [temp1 P1(:, any(sce1{i},2), i)]; end
+temp2 = []; for i = 1:length(sce2); temp2 = [temp2 P2(:, any(sce2{i},2), i)]; end
+% i=12;
+% temp1 = []; temp1 = [temp1 P1(:, any(sce1{i},2), i)];
+% temp2 = []; temp2 = [temp2 P2(:, any(sce2{i},2), i)];
+fitlm([(-49:0)' distance_idx'], sum(temp1<.05,2), 'varnames', {'distance from reward','distance from cues','significant fraction'})
+fitlm([(-49:0)' distance_idx'], sum(temp2<.05,2), 'varnames', {'distance from reward','distance from cues','significant fraction'})
 
 
 %%
@@ -282,6 +309,7 @@ histogram(max(temp2),50,'normalization','probability');
 
 
 %% frac place cells
+sig = 5 / 150 * 50;
 thres= 50/3; thres = 100;
 temp1 = cell2mat( arrayfun(@(x) session(x).rest1.width, 1:length(session), 'uniformoutput',false)' );
 temp1(temp1(:,1)>thres,:)=[];
@@ -294,13 +322,25 @@ temp3(temp3(:,1)>thres,:)=[];
 temp3 = histcounts(temp3(:,2), 50);
 figure
 bar(temp1./sum(temp1)); title('R1');
+hold on
+plot(fast_smooth( temp1'./sum(temp1), sig));
 % ylim([0 .25]);
 figure
 bar(temp2./sum(temp2)); title('R2');
+hold on
+plot(fast_smooth( temp2'./sum(temp2), sig));
 % ylim([0 .25]);
 figure
 bar(temp3./sum(temp3)); title('pop');
+hold on
+plot(fast_smooth( temp3'./sum(temp3), sig));
 % ylim([0 .25]);
+
+figure
+plot(fast_smooth(temp2'./sum(temp2), sig) - fast_smooth(temp1'./sum(temp1), sig))
+hold on
+plot([1 50],[0 0])
+ylim([-.01 .01])
 
 
 temp1 = cell2mat( arrayfun(@(x) session(x).rest1.width_diff, 1:length(session), 'uniformoutput',false)' );
@@ -314,14 +354,25 @@ temp3(temp3(:,1)>thres,:)=[];
 temp3 = histcounts(temp3(:,2), 50);
 figure
 bar(temp1./sum(temp1)); title('lost');
+hold on
+plot(fast_smooth( temp1'./sum(temp1), sig));
 % ylim([0 .25]);
 figure
 bar(temp2./sum(temp2)); title('gained');
+hold on
+plot(fast_smooth( temp2'./sum(temp2), sig));
 % ylim([0 .25]);
 figure
 bar(temp3./sum(temp3)); title('stable');
+hold on
+plot(fast_smooth( temp3'./sum(temp3), sig));
 % ylim([0 .25]);
 
+figure
+plot(fast_smooth(temp2'./sum(temp2), sig) - fast_smooth(temp1'./sum(temp1), sig))
+hold on
+plot([1 50],[0 0])
+ylim([-.01 .01])
 
 %% SI
 clc

@@ -5,7 +5,7 @@
  *    mex -R2018a matcircshift.cpp
  *
  * Usage:
- *    Y = matcircshift(A, k, dim)
+ *    Y = matcircshift(A, k)
  *
  * Inputs:
  *    A:    matrix to shift

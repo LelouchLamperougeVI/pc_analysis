@@ -76,7 +76,7 @@ end
         pr = prod(stack(:,cluster) .^ permute(tester(:,cluster),[3 2 1]), 2) .* exp(-tau .* sum(stack(:,cluster),2));
 %         pr = prod(stack(:,cluster).^permute(tester(:,randperm(length(cluster))),[3 2 1]), 2) .* exp(-tau .* sum(stack(:,cluster),2));
         pr = squeeze(pr);
-        P = pr;
+%         P = pr;
         P = pr ./ sum(pr,1);
         [~,decoded] = max(pr);
 %         P(:,:,count) = pr ./ sum(pr,1);
