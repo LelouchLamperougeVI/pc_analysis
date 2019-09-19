@@ -9,10 +9,11 @@ if ts(1) == 0
 end
 
 if obj.twop.numplanes > 1
-    if mod(length(ts), size(deconv,1))
-        error('number of frames for single plane does not match total number of frames for all planes');
-    end
     ts = ts(obj.twop.plane: obj.twop.numplanes : end);
+    if length(ts) > size(deconv,1)
+        warning('Number of frames for single plane does not match total number of frames for all planes. Rounding to closest sample size...');
+        ts(end) = [];
+    end
 end
 
 obj.twop.ts = ts;

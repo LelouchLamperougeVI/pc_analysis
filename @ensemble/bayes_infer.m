@@ -8,6 +8,7 @@ function [decoded, P, pos, err] = bayes_infer(obj,varargin)
 %   tester      resting state deconv (default - obj.twop.deconv)
 %   shuffle     whether to use `place field shuffle' - (default false)
 %   validate    validation flag to test decoding performence on RUN data with even-odd trials - (default false; overrides trainer/tester)
+%   circ        whether to use circular error estimate - (default false)
 %   plotFlag
 % Outputs:
 %   decoded     decoded position
@@ -68,8 +69,20 @@ decode(1:length(obj.analysis.psth));
 % end
 
 if ops.validate
-    err = [arrayfun(@(x) mean(abs(decoded(pos==x) - pos(pos==x))), 1:ops.bins)
-           arrayfun(@(x) sem(abs(decoded(pos==x) - pos(pos==x))'), 1:ops.bins)];
+    if ops.circ
+        err = [arrayfun(@(x) mean(min(...
+                    [abs(decoded(pos == x) - pos(pos == x)) ; ...
+                    ops.bins - abs(decoded(pos == x) - pos(pos == x))] ...
+                    )), 1:ops.bins)
+               arrayfun(@(x) sem(min(...
+                    [abs(decoded(pos == x) - pos(pos == x)) ; ...
+                    ops.bins - abs(decoded(pos == x) - pos(pos == x))] ...
+                    )'), 1:ops.bins)
+              ];
+    else
+        err = [arrayfun(@(x) mean(abs(decoded(pos==x) - pos(pos==x))), 1:ops.bins)
+               arrayfun(@(x) sem(abs(decoded(pos==x) - pos(pos==x))'), 1:ops.bins)];
+    end
     err = err' .* obj.analysis.vr_length ./ ops.bins;
 end
 
@@ -104,6 +117,7 @@ end
         ops.plotFlag = false;
         ops.shuffle = false;
         ops.validate = false;
+        ops.circ = false;
         
         trainer = obj.analysis.original_deconv;
         tester = obj.twop.deconv;
@@ -128,6 +142,8 @@ end
                     behavior = varargin{count+1};
                 case {'validate','validation'}
                     ops.validate = varargin{count+1};
+                case {'circ', 'circular'}
+                    ops.circ = varargin{count+1};
                 case {'plot', 'plotflag'}
                     ops.plotFlag= varargin{count+1};
                 otherwise

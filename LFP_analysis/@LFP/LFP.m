@@ -54,13 +54,29 @@ classdef LFP < handle
             if ~isempty(varargin) && iscell(varargin{1})
                 varargin = varargin{1};
             end
-            [fn,path] = obj.parse_inputs(varargin);
+            [fn,path,mode] = obj.parse_inputs(varargin);
             if isempty(fn)
-                [fn,path]=uigetfile('*.abf');
+                [fn,path,mode] = uigetfile({'*.abf','abf file (*.abf)';'behavior.mat','behaviour file (behavior.mat)'});
+                switch mode
+                    case 1
+                        mode = 'abf';
+                    case 2
+                        mode = 'beh';
+                    otherwise
+                        error('need to select a valid file');
+                end
             end
-            obj.session.date = datetime( regexp(fn, '^\d{4}_(\d{2}_){2}', 'match','once'), 'inputformat', 'yyyy_MM_dd_' );
-            obj.session.id = regexp(fn, '_(\d+).abf$', 'tokens','once'); obj.session.id = obj.session.id{1};
+            
             path = strsplit(path, {'\\','/'});
+            if strcmp(mode, 'abf')
+                obj.session.date = datetime( regexp(fn, '^\d{4}_(\d{2}_){2}', 'match','once'), 'inputformat', 'yyyy_MM_dd_' );
+                obj.session.id = regexp(fn, '_(\d+)\.abf$', 'tokens','once'); obj.session.id = obj.session.id{1};
+            else
+                obj.session.date = datetime(path, 'inputformat', 'yyy_MM_dd');
+                idx = find(~isnat(obj.session.date), 1, 'last');
+                obj.session.date = obj.session.date(idx);
+                obj.session.id = path{idx+1};
+            end
             idx = strcmp( path, datestr(obj.session.date, 'yyyy_mm_dd') );
             path = path(1: find(idx));
             obj.session.animal = path{find(idx)-1};
@@ -86,12 +102,22 @@ classdef LFP < handle
             
             deconv=load(fullfile(obj.session.wd, obj.session.id, plane, 'deconv.mat'));
             obj.update_channels();
-            obj.load(fullfile(path,fn));
-            obj.two_photon_ts(deconv.deconv);
+            if strcmp(mode, 'abf')
+                obj.load(fullfile(path,fn));
+                obj.two_photon_ts(deconv.deconv);
+            else
+                tcs=load(fullfile(obj.session.wd, obj.session.id, plane, 'timecourses.mat'));
+                obj.twop.ts = tcs.tcs.tt';
+                obj.twop.fs = 1/median(diff(obj.twop.ts));
+                behavior=load(fullfile(obj.session.wd, obj.session.id, plane, 'behavior.mat'));
+                obj.behavior = behavior.behavior;
+            end
             try obj.irCam_ts; catch; end
-            obj.down_sample(obj.default_ops.down_fs);
-            obj.filter_bands;
-            obj.extract_behaviour;
+            if strcmp(mode, 'abf')
+                obj.down_sample(obj.default_ops.down_fs);
+                obj.filter_bands;
+                obj.extract_behaviour;
+            end
             
             try
                 obj.import_deconv(deconv.deconv);
@@ -303,17 +329,20 @@ classdef LFP < handle
             obj.chan = table(obj.Channels,'RowNames',obj.ChannelNames);
         end
         
-        function [fn, path] = parse_inputs(obj,inputs)
+        function [fn, path, mode] = parse_inputs(obj,inputs)
+            mode = 'abf';
             fn = []; path = [];
             count = 1;
-            while count < length(inputs)
+            while count <= length(inputs)
                 switch(lower(inputs{count}))
                     case {'channel','channels'}
                         obj.set_channels(inputs{count+1});
                     case 'plane'
                         obj.twop.plane = inputs{count+1};
                     otherwise
-                        if ~isempty(regexp(inputs{count}, '\.abf$', 'once'))
+                        exp = regexp(inputs{count}, {'\.abf$', 'behavior\.mat$'}, 'once');
+                        idx = ~cellfun(@isempty, exp);
+                        if any(idx)
                             path = strsplit(inputs{count}, {'\\','/'});
                             fn = path{end};
                             if isunix
@@ -322,6 +351,13 @@ classdef LFP < handle
                                 path = strjoin( path(1:end-1), '\');
                             end
                             count = count - 1;
+                            
+                            switch find(idx)
+                                case 1
+                                    mode = 'abf';
+                                case 2
+                                    mode = 'beh';
+                            end
                         else
                             error(['argument ''' inputs{count} ''' is undefined']);
                         end
