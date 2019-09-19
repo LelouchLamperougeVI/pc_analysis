@@ -109,7 +109,11 @@ classdef LFP < handle
                 tcs=load(fullfile(obj.session.wd, obj.session.id, plane, 'timecourses.mat'));
                 obj.twop.ts = tcs.tcs.tt';
                 obj.twop.fs = 1/median(diff(obj.twop.ts));
-                behavior=load(fullfile(obj.session.wd, obj.session.id, plane, 'behavior.mat'));
+                try
+                    behavior=load(fullfile(obj.session.wd, obj.session.id, plane, 'behavior.mat'));
+                catch
+                    behavior=load(fullfile(obj.session.wd, obj.session.id, 'behavior.mat'));
+                end
                 obj.behavior = behavior.behavior;
             end
             try obj.irCam_ts; catch; end
