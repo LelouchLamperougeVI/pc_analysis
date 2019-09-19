@@ -1,4 +1,4 @@
-function [decoded, P, pos, err] = bayes_infer(obj,varargin)
+function [decoded, P, pos] = bayes_infer(obj,varargin)
 % Use Bayesian decoding to infer position encoded during rest
 % name, value   pairs:
 %   bins        number of spatial bins to decode (default - whatever used for pc_batch_analysis)
@@ -13,9 +13,8 @@ function [decoded, P, pos, err] = bayes_infer(obj,varargin)
 %   decoded     decoded position
 %   P           probability matrix
 %   pos         actual animal position
-%   err         decoding error and SEM in centimetres
 
-ops = []; trainer = []; tester = []; behavior = []; pos = []; err = []; %declare and initialize global vars (I don't care what you tell me dad! I'm gonna use global variables!)
+ops = []; trainer = []; tester = []; behavior = []; %declare and initialize global vars (I don't care what you tell me dad! I'm gonna use global variables!)
 parse_inputs;
 
 unit_pos=behavior.unit_pos;
@@ -40,18 +39,14 @@ frame_ts=frame_ts(thres);
 trainer=ca_filt(trainer);
 trainer=trainer(thres,:);
 trainer=fast_smooth(trainer,ops.sig);
-trainer= (trainer-min(trainer)) ./ range(trainer); % normalize between 0 and 1
-%DO NOT zscore normalize, since negative firing rates are not acceptable
 
 % tester(any(isnan(tester), 2), :) = [];
 % tester=ca_filt(tester);
 tester=fast_smooth(tester,ops.sig);
 tester = movmean(tester,round(tau),1);
-tester = (tester-min(tester)) ./ range(tester);
 
-if ops.validate
-    evenodd;
-end
+trainer= (trainer-min(trainer)) ./ range(trainer); % normalize between 0 and 1
+tester = (tester-min(tester)) ./ range(tester); %DO NOT zscore normalize, since negative firing rates are not acceptable
 
 [~,~,stack]=getStack(ops.bins,ops.sd,obj.analysis.vr_length,trainer,unit_pos,unit_vel,frame_ts,trials);
 if ops.shuffle
@@ -66,12 +61,6 @@ decode(1:length(obj.analysis.psth));
 %     count = count + 1;
 %     decode(obj.clust{i});
 % end
-
-if ops.validate
-    err = [arrayfun(@(x) mean(abs(decoded(pos==x) - pos(pos==x))), 1:ops.bins)
-           arrayfun(@(x) sem(abs(decoded(pos==x) - pos(pos==x))'), 1:ops.bins)];
-    err = err' .* obj.analysis.vr_length ./ ops.bins;
-end
 
 if ops.plotFlag
     figure;
@@ -101,7 +90,7 @@ end
         ops.sd = 4;
         ops.tau = 1 / obj.twop.fs;
         ops.sig = 5;
-        ops.plotFlag = false;
+        ops.plotFlag = true;
         ops.shuffle = false;
         ops.validate = false;
         
@@ -127,7 +116,7 @@ end
                 case {'behaviour', 'behavior'}
                     behavior = varargin{count+1};
                 case {'validate','validation'}
-                    ops.validate = varargin{count+1};
+                    ops = true;
                 case {'plot', 'plotflag'}
                     ops.plotFlag= varargin{count+1};
                 otherwise
@@ -138,6 +127,14 @@ end
     end
 
     function evenodd
+        deconv=analysis.original_deconv;
+        
+        deconv=ca_filt(deconv);
+        deconv=deconv(thres,:);
+        
+        deconv=fast_smooth(deconv,sig);
+        deconv = (deconv - min(deconv)) ./ range(deconv);
+        
         trials_idx = knnsearch(frame_ts', trials');
         
         even_trials = trials(2:2:end);
@@ -161,16 +158,16 @@ end
             odd_trials = [odd_trials trials(i+3)];
         catch
         end
+        trainer = deconv(odd_idx,:);
+        odd_unit_pos = unit_pos(odd_idx);
+        odd_unit_vel = unit_vel(odd_idx);
+        odd_frame_ts = frame_ts(odd_idx);
         
-        tester = trainer(even_idx,:);
+        tester = deconv(even_idx,:);
         pos = movmedian(unit_pos,round(tau),1);
         pos = pos(even_idx);
-        pos = discretize(pos, linspace(min(pos), max(pos), ops.bins+1));
+        pos = discretize(pos, linspace(min(pos), max(pos), bins+1));
         
-        trainer = trainer(odd_idx,:);
-        unit_pos = unit_pos(odd_idx);
-        unit_vel = unit_vel(odd_idx);
-        frame_ts = frame_ts(odd_idx);
-        trials = odd_trials;
+        [~,~,stack]=getStack(bins,sd,vr_length,odd_deconv,odd_unit_pos,odd_unit_vel,odd_frame_ts,odd_trials);
     end
 end

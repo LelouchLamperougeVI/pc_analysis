@@ -34,6 +34,10 @@ classdef ensemble < LFP
             end
         end
         
+        function perform_analysis(obj)
+            perform_analysis@LFP(obj);
+        end
+        
         function duration(obj,thres) % remove SCEs outside duration threshold (thres = [lower_lim upper_lim])
             idx=obj.SCE.dur<thres(1) | obj.SCE.dur>thres(2);
             obj.SCE.dur(idx)=[];
@@ -56,7 +60,7 @@ classdef ensemble < LFP
         topography(obj);
         make_colours(obj);
         classi_swr(obj, wdw, p);
-        [decoded, P] = bayes_infer(obj, varargin);
+        [decoded, P, pos, err] = bayes_infer(obj, varargin);
         plot(obj,type,varargin);
     end
     
