@@ -26,13 +26,15 @@ classdef LFP < handle
         %         Channels = [1 2 3 5 8 6]';
         %         Channels = [1 2 3 7 8 5]';
         %         Channels = [1 2 3 6 5 5]';
-        Channels = [1 2 3 5 5 5]'; %old behavior for RSC RRR (phil trans B)
+%         Channels = [1 2 3 5 5 5]'; %old behavior for RSC RRR (phil trans B)
         %         Channels = [1 2 3 5 5 6]'; %old old behavior for RSC RRR, also works for Ingrid's RRR
         %         Channels = [1 2 3 7 5 5]';
         %         Channels = [1 2 3 5 5 6]';
         %         Channels = [1 2 3 6 8 7]'; %new behavior for RSC RRR
         %         Channels = [1 2 3 4 8 7]'; %new vr behavior for RSC RRR
         %         Channels = [1 3 2 6 5 5]'; % lesion across days
+                Channels = [1 2 3 4 5 5]'; % aubrey's data
+%         Channels = [1 2 3 5 5 5]'; % haoran's data
     end
     
     properties (GetAccess = 'private', SetAccess = 'private')
@@ -90,6 +92,7 @@ classdef LFP < handle
             plane_case = dir(fullfile(obj.session.wd, obj.session.id));
             plane_case = regexp( {plane_case([ plane_case.isdir ]).name}, '[Pp]lane\d+', 'match', 'once' );
             plane_case( cellfun(@isempty, plane_case) ) = [];
+            plane_case = strrank(plane_case);
             if length(plane_case) > 1
                 disp('Multiplane recording detected!!!')
                 disp( ['The following planes are available: ' strjoin(plane_case, ' ') ] );
@@ -121,6 +124,14 @@ classdef LFP < handle
                 obj.down_sample(obj.default_ops.down_fs);
                 obj.filter_bands;
                 obj.extract_behaviour;
+            end
+            
+            if size(obj.twop.deconv,2) < length(obj.behavior.speed_raw)
+                disp('resampling behaviour for multiplane...');
+                obj.behavior.speed_raw = obj.behavior.speed_raw(obj.twop.plane:obj.twop.numplanes:end);
+                if isfield(obj.behavior, 'speed_raw_noSmooth')
+                    obj.behavior.speed_raw_noSmooth = obj.behavior.speed_raw_noSmooth(obj.twop.plane:obj.twop.numplanes:end);
+                end
             end
             
             try
@@ -270,7 +281,19 @@ classdef LFP < handle
             obj.lfp.lfp=-(obj.lfp.lfp-m)+m;
         end
         
-        function remove_mvt(obj) % remove moving epochs from deconv detected by camera and belt encoder (whatever is available)
+        function remove_mvt(obj, mode) % remove moving epochs from deconv detected by camera and belt encoder (whatever is available)
+            if nargin < 2
+                mode = 'exclude';
+            end
+            switch mode
+                case 'exclude'
+                    mode = 0;
+                case 'include'
+                    mode = 1;
+                otherwise
+                    error('movement filtration mode unrecognised');
+            end
+            
             if isempty(obj.twop.deconv)
                 error('deconv needs to be loaded into current LFP object first');
             end
@@ -280,7 +303,11 @@ classdef LFP < handle
             elseif isempty(obj.cam.mvt)
                 warning('movement trace hasn''t been extracted from currently loaded irCam object; skipping cam movement removal');
             else
-                heads=get_head(obj.cam.mvt');
+                if ~mode
+                    heads=get_head(obj.cam.mvt');
+                else
+                    heads=get_head(~obj.cam.mvt');
+                end
                 heads=obj.ts_cam(heads);
                 tails=get_head(obj.cam.mvt(end:-1:1)');
                 tails=obj.ts_cam(tails(end:-1:1));
@@ -300,11 +327,19 @@ classdef LFP < handle
                 warning('no behavioural data loaded; skipping encoder movement removal');
             elseif ~isfield(obj.behavior,'unit_vel')
                 thres=noRun(obj.behavior.speed_raw);
-                thres=abs(obj.behavior.speed_raw)>thres;
+                if ~mode
+                    thres=abs(obj.behavior.speed_raw)>thres;
+                else
+                    thres=abs(obj.behavior.speed_raw)<thres;
+                end
                 obj.twop.deconv(thres,:)=nan;
             else
                 thres=noRun(obj.behavior.unit_vel);
-                thres=abs(obj.behavior.unit_vel)>thres;
+                if ~mode
+                    thres=abs(obj.behavior.unit_vel)>thres;
+                else
+                    thres=abs(obj.behavior.unit_vel)<thres;
+                end
                 obj.twop.deconv(thres,:)=nan;
             end
         end
