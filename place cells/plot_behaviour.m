@@ -4,7 +4,7 @@ if nargin < 3
     peaks_flag = false;
 end
 
-sig=3;
+sig=10;
 
 h=figure;
 ax1=subplot(4,1,1:2);
@@ -37,9 +37,15 @@ if peaks_flag
     xticks([]); yticks([]);
     ylabel('neuron no.');
 else
-    imagesc(-deconv(:, ordered(end:-1:1))','xdata',(behavior.frame_ts-min(behavior.frame_ts))./1);
-    colormap gray
+%     imagesc(-deconv(:, ordered(end:-1:1))','xdata',(behavior.frame_ts-min(behavior.frame_ts))./1);
+    imagesc(deconv(:, ordered(end:-1:1))','xdata',(behavior.frame_ts-min(behavior.frame_ts))./1);
+%     colormap gray
+    colormap hot
     ylabel('neuron no.');
+    x = get(ax1, 'Position');
+    c = colorbar;
+    c.Label.String = '\DeltaF/F';
+    set(ax1, 'Position',x);
 end
 
 ax2=subplot(4,1,3);

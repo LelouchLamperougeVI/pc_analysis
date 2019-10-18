@@ -59,14 +59,16 @@ if ~isempty(assemblies) && ~isempty(prob)
     assemblies=logical(assemblies);
     
     for i=1:size(assemblies,1)
-        events=nr_randi(m,1,round(m*prob(i)));
+%         events=nr_randi(m,1,round(m*prob(i)));
+        events=randperm(m, round(m*prob(i)));
         for j=1:length(events)
             nomembers=poissrnd(miss(i));
             idx=find(assemblies(i,:));
             if nomembers>length(idx)
                 nomembers=length(idx);
             end
-            idx(nr_randi(length(idx),nomembers,1))=[];
+%             idx(nr_randi(length(idx),nomembers,1))=[];
+            idx(randperm(length(idx),nomembers))=[];
             
             try
                 if strcmpi(jitter_type,'normal')

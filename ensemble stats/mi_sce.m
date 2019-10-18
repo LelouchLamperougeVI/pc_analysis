@@ -36,7 +36,7 @@ for i=1:length(assemblies)
         try
             [~,d]=get_mi(temp(1:count,:),precision);
             d=triu(d,1);
-            d=mean(d(d~=0));
+            d=mean(d(triu(true(length(d)),1)));
             d(isnan(d))=-inf;
             cost=[cost d];
             %         try

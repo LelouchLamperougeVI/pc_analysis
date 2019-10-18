@@ -16,7 +16,7 @@ function cmap = rbmap(varargin)
 
 cmap = interp1(1:size(cmap,1), cmap, linspace(1, size(cmap,1), ops.interp), 'spline');
 cmap = (cmap - min(cmap(:))) ./ range(cmap(:));
-idx = linspace(-1, 1, size(cmap,1));
+idx = linspace(-max(abs(ops.caxis)), max(abs(ops.caxis)), size(cmap,1));
 if ops.normalize
     cmap = cmap( idx > ops.caxis(1) & idx < ops.caxis(2), : );
 end
