@@ -26,14 +26,14 @@ classdef LFP < handle
         %         Channels = [1 2 3 5 8 6]';
         %         Channels = [1 2 3 7 8 5]';
         %         Channels = [1 2 3 6 5 5]';
-%         Channels = [1 2 3 5 5 5]'; %old behavior for RSC RRR (phil trans B)
+        Channels = [1 2 3 5 5 5]'; %old behavior for RSC RRR (phil trans B)
         %         Channels = [1 2 3 5 5 6]'; %old old behavior for RSC RRR, also works for Ingrid's RRR
         %         Channels = [1 2 3 7 5 5]';
         %         Channels = [1 2 3 5 5 6]';
         %         Channels = [1 2 3 6 8 7]'; %new behavior for RSC RRR
         %         Channels = [1 2 3 4 8 7]'; %new vr behavior for RSC RRR
         %         Channels = [1 3 2 6 5 5]'; % lesion across days
-                Channels = [1 2 3 4 5 5]'; % aubrey's data
+%                 Channels = [1 2 3 4 5 5]'; % aubrey's data
 %         Channels = [1 2 3 5 5 5]'; % haoran's data
     end
     
@@ -126,7 +126,14 @@ classdef LFP < handle
                 obj.extract_behaviour;
             end
             
-            if size(obj.twop.deconv,2) < length(obj.behavior.speed_raw)
+            try
+                obj.import_deconv(deconv.deconv);
+                disp('Deconv loaded')
+            catch
+                disp('Failed to autoload deconv :(');
+            end
+            
+            if size(obj.twop.deconv,1) < length(obj.behavior.speed_raw) && ~isempty(obj.twop.deconv)
                 disp('resampling behaviour for multiplane...');
                 obj.behavior.speed_raw = obj.behavior.speed_raw(obj.twop.plane:obj.twop.numplanes:end);
                 if isfield(obj.behavior, 'speed_raw_noSmooth')
@@ -134,12 +141,6 @@ classdef LFP < handle
                 end
             end
             
-            try
-                obj.import_deconv(deconv.deconv);
-                disp('Deconv loaded')
-            catch
-                disp('Failed to autoload deconv :(');
-            end
             if exist(fullfile(obj.session.wd, 'analysis.mat'), 'file')
                 analysis=load(fullfile(obj.session.wd, 'analysis.mat'));
                 obj.import_analysis(analysis.analysis);
