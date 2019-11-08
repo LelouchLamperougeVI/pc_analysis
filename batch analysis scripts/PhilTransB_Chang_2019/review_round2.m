@@ -47,4 +47,5 @@ ylabel('fraction SI_0 > SI_t');
 %%
 Aa = sum(ratio([1:500 502:end]));
 Ab = sum(ratio([1:250 end-250+1:end]));
-bias = [bias; 1 - ( Aa + Ab*11000/500 ) / ( Ab / 500 * 12000)];
+% bias = [bias; 1 - ( Aa + Ab*11000/500 ) / ( Ab / 500 * 12000)];
+bias = [bias; ( Ab / 500 ) - ( Aa + Ab*11000/500 )/12000];
