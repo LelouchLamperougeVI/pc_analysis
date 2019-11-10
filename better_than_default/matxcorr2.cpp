@@ -93,4 +93,4 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   for(i=0; i<numThreads; i++)
     workers[i].join();
 
-  }
+}
