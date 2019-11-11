@@ -1,9 +1,11 @@
 clear all
 % 
-maskA = load('/mnt/cluster/Ingrid/analysis/EE004/2019_06_03/1/plane1/masks_neurons.mat');
+maskA = load('/mnt/storage/data/EE004/2019_05_01/1/plane1/masks_neurons.mat');
 maskA = double(~~maskA.maskNeurons);
-maskB = load('/mnt/cluster/Ingrid/analysis/EE004/2019_06_19/1/plane1/masks_neurons.mat');
+maskB = load('/mnt/storage/data/EE004/2019_05_06/1/plane1/masks_neurons.mat');
 maskB = double(~~maskB.maskNeurons);
+figure;
+imshowpair(maskA,maskB)
 
 
 %%
