@@ -30,24 +30,13 @@ classdef multiplane < handle
             end
         end
         
-        function set_target(obj, varargin) % define the targets of analysis
-            obj.ops.target.range = []; % range of dates to analyze
-            obj.ops.target.sessions = NaN;
-            obj.ops.target.planes = NaN;
+        function set_target(obj, varargin)
+            obj.ops.target.range = NaN; % range of dates to analyze
+            obj.ops.target.session = NaN;
+            obj.ops.target.plane = NaN;
             
             count = 1;
-            while count <= length(varargin)
-                switch lower(varargin{count})
-                    case 'range'
-                        obj.ops.target.range = [varargin{count + 1} varargin{count + 2}];
-                        count = count + 1;
-                    case 'sessions'
-                        obj.ops.target.sessions = varargin{count + 1};
-                    case 'planes'
-                        obj.ops.target.planes = varargin{count + 1};
-                end
-                count = count + 1;
-            end
+            while count <=
         end
         
         function perform_analysis(obj, overwrite)

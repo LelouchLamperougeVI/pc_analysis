@@ -1,11 +1,13 @@
 clear all
-% 
-maskA = load('/mnt/storage/data/EE004/2019_05_01/1/plane1/masks_neurons.mat');
-maskA = double(~~maskA.maskNeurons);
-maskB = load('/mnt/storage/data/EE004/2019_05_06/1/plane1/masks_neurons.mat');
-maskB = double(~~maskB.maskNeurons);
-figure;
-imshowpair(maskA,maskB)
+
+% maskA = load('/mnt/storage/data/EE004/2019_05_01/1/plane1/masks_neurons.mat');
+% maskA = double(~~maskA.maskNeurons);
+% maskB = load('/mnt/storage/data/EE004/2019_05_06/1/plane1/masks_neurons.mat');
+% maskB = double(~~maskB.maskNeurons);
+maskA = load('/mnt/cluster/Ingrid/analysis/EE004/2019_06_03/1/plane1/masks_neurons.mat');
+maskA = maskA.maskNeurons;
+maskB = load('/mnt/cluster/Ingrid/analysis/EE004/2019_06_19/1/plane1/masks_neurons.mat');
+maskB = maskB.maskNeurons;
 
 
 %%
@@ -28,7 +30,7 @@ for theta = -rot_range:step:rot_range
     end
     
     r = bxcorr2(maskA, transformed, lag, 'unbiased');
-    lol = [lol; theta, max(r(:))]
+    lol = [lol; theta, max(r(:))];
 end
 
 %%
@@ -73,4 +75,30 @@ figure;
 imshowpair(maskA,transformed)
 
 bxcorr2(maskA, transformed, 3, 'unbiased')
+
+
+%% centroid
+A_centroids = zeros(max(maskA(:)), 2);
+for i = 1 : max(maskA(:))
+    props = regionprops(maskA==i);
+    A_centroids(i,:) = props.Centroid;
+end
+
+B_centroids = zeros(max(maskB(:)), 2);
+for i = 1 : max(maskB(:))
+    props = regionprops(maskB==i);
+    B_centroids(i,:) = props.Centroid;
+end
+
+d = B_centroids - permute(A_centroids, [3 2 1]);
+d = sqrt(sum(d.^2, 2));
+d = min(d, [], 3);
+
+idx = find( d < 5 );
+
+imshowpair( ~~maskA, ismember(maskB, idx) )
+
+
+
+
 

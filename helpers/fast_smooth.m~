@@ -43,8 +43,7 @@ data(isnan(data))=0;
 
 smoothed=conv(data,kernel,'same');
 smoothed=reshape(smoothed,dataSize+kernelSize*2,[]);
-% smoothed=smoothed./conv([taper; ~nan_idx; taper],kernel,'same'); %account for edge data underestimation
-smoothed = smoothed./ ( conv([taper; ~nan_idx; taper] - 1, kernel,'same') + sum(kernel) ); % new performance oriented (^old)
+smoothed=smoothed./conv([taper; ~nan_idx; taper],kernel,'same'); %account for edge data underestimation
 smoothed([1:kernelSize end-kernelSize+1:end],:)=[];
 smoothed(nan_idx,:) = nan;
 

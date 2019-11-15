@@ -1,6 +1,10 @@
 function down_sample(obj,Fs)
 % Downsample
 
+if isempty(obj.lfp.lfp)
+    return
+end
+
 factor = floor(obj.lfp.fs/Fs);
 if ~factor
     error('requested sampling rate is too fast');

@@ -26,7 +26,8 @@ classdef LFP < handle
         %         Channels = [1 2 3 5 8 6]';
         %         Channels = [1 2 3 7 8 5]';
         %         Channels = [1 2 3 6 5 5]';
-        Channels = [1 2 3 5 5 5]'; %old behavior for RSC RRR (phil trans B)
+%         Channels = [1 2 3 5 5 5]'; %old behavior for RSC RRR (phil trans B)
+        Channels = [1 2 3 5 nan nan]'; %old behavior for RSC RRR (phil trans B)
         %         Channels = [1 2 3 5 5 6]'; %old old behavior for RSC RRR, also works for Ingrid's RRR
         %         Channels = [1 2 3 7 5 5]';
         %         Channels = [1 2 3 5 5 6]';
@@ -164,7 +165,11 @@ classdef LFP < handle
             obj.si=s;
             obj.lfp.fs = 1/s * 1e+6;
             obj.raw = d;
-            obj.lfp.lfp = d(:,obj.get_channel('lfp'));
+            try
+                obj.lfp.lfp = d(:,obj.get_channel('lfp'));
+            catch
+                warning('LFP channel is undefined or unavailable');
+            end
         end
         
         function import_cam(obj,cam) % import a camera object

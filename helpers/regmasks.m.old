@@ -1,0 +1,73 @@
+function transformed = regmasks(fixed, moving)
+% Custom rigid registration algorithm for ROI masks.
+% Based on spatial cross-correlation with mini-batch gradient descent
+% optimizer.
+
+lag = 10;
+gamma = 5;
+theta = 5;
+max_it = 1e3;
+precision = 1e-4;
+
+amat = @(theta) [ cosd(theta)   sind(theta)     0; % obtain affine transformation matrix given angle (degrees)
+                 -sind(theta)   cosd(theta)     0
+                            0             0     1 ];
+
+fixed = double(~~fixed); % convert template to binary image
+moving = double(~~moving);
+
+alpha = min([ sum(fixed(:)) sum(moving(:)) ]) / numel(fixed);
+
+r_max = max( bxcorr2(fixed, moving, lag, 'unbiased'), [], 'all' ) / alpha;
+step = theta;
+it = 0;
+figure; hold on;
+while it < max_it
+    tform = affine2d( amat(theta) );
+    transformed = imwarp(moving, tform, 'nearest');
+    coor = ( size(transformed) - size(fixed) ) ./ 2;
+    try
+        transformed = transformed(floor(coor(1)) : end - ceil(coor(1)) - 1, floor(coor(1)) : end - ceil(coor(1)) - 1);
+    catch
+    end
+    r = max( bxcorr2(fixed, transformed, lag, 'unbiased'), [], 'all' ) / alpha;
+    step = gamma * ( r - r_max ) / step;
+    plot(it, r, 'ko')
+    theta = theta + step;
+    r_max = r;
+    
+    it = it + 1;
+    disp([ 'next theta: ' num2str(theta) ' r_max:' num2str(r_max) ' step:' num2str(step) ]);
+    if abs(step) < precision
+        break;
+    end
+end
+
+%%% step 3: final translation transform %%%
+[r, lags] = bxcorr2(fixed, transformed, 30, 'unbiased');
+m = max(r(:));
+[x, y] = find(r == m);
+
+if lags.x(x) > 0
+    transformed = padarray(transformed, [lags.x(x) 0], 'pre');
+    transformed(end-lags.x(x)+1 : end, :) = [];
+elseif lags.x(x) < 0
+    transformed = padarray(transformed, [-lags.x(x) 0], 'post');
+    transformed(1 : -lags.x(x), :) = [];
+end
+
+if lags.y(y) > 0
+    transformed = padarray(transformed, [0 lags.y(y)], 'pre');
+    transformed(:, end-lags.y(y)+1 : end) = [];
+elseif lags.y(y) < 0
+    transformed = padarray(transformed, [0 -lags.y(y)], 'post');
+    transformed(:, 1 : -lags.y(y)) = [];
+end
+
+figure;
+subplot(1,2,1);
+title('before')
+imshowpair(~~fixed,~~moving)
+subplot(1,2,2);
+title('after')
+imshowpair(~~fixed,~~transformed)

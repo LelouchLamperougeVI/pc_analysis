@@ -1,5 +1,9 @@
 function filter_bands(obj,filt_60)
 
+if isempty(obj.lfp.lfp)
+    return
+end
+
 if nargin < 2
     filt_60 = true;
 end

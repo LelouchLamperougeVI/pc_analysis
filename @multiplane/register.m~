@@ -15,7 +15,6 @@ if ( obj.planes(a).session.date == obj.planes(b).session.date ) && ( size(obj.pl
     disp(['Planes ' num2str(a) ' and ' num2str(b) ' were acquired on the same day']);
     overlap.roi = num2cell( 1:size(obj.planes(a).twop.deconv, 2) );
     overlap.score = num2cell( ones(1, size(obj.planes(a).twop.deconv, 2)) );
-    overlap.maskReg = obj.planes(a).topo.maskNeurons;
     return;
 end
 
@@ -31,8 +30,8 @@ maskB = obj.planes(b).topo.maskNeurons;
 % transform = imregtform(moving, fixed, 'rigid', optimizer, metric);
 % maskReg = imwarp(maskB, transform, 'nearest', 'outputview', imref2d(size(fixed)), 'fillvalues', 0);
 
-[overlap.maskReg, overlap.regStats] = regmasks(maskA, maskB);
-maskReg = overlap.maskReg;
+[overlap.maskReg, overlap.regStats] = = regmasks(maskA, maskB);
+[overlap.maskReg, overlap.regStats] = maskReg;
 
 stack = maskReg == permute(1:max(maskReg(:)), [1 3 2]); % tried to be lazy, ended up overcomplicating things...
 stack = maskA .* stack;

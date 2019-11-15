@@ -1,4 +1,4 @@
-function [registered, stats] = regmasks(fixed, moving, varargin)
+function transformed = regmasks(fixed, moving, varargin)
 % Custom rigid registration algorithm for ROI masks.
 % Based on spatial cross-correlation with mini-batch gradient descent
 % optimizer. Mini-batch was mainly used to prevent converging onto local
@@ -59,10 +59,10 @@ r_max = max(temp(:)) / sum(mask(:)) * numel(mask);
 if ops.verbose; figure; hold on; end
 
 step = ops.theta;
-stats.theta = ops.theta;
-stats.it = 0;
-while stats.it < ops.max_it
-    tform = affine2d( amat(stats.theta) );
+theta = ops.theta;
+it = 0;
+while it < ops.max_it
+    tform = affine2d( amat(theta) );
     transformed = imwarp(mask, tform, 'nearest');
     coor = ( size(transformed) - size(fixed) ) ./ 2;
 %         transformed = transformed(floor(coor(1)) : end - ceil(coor(1)) - 1, floor(coor(1)) : end - ceil(coor(1)) - 1);
@@ -71,42 +71,42 @@ while stats.it < ops.max_it
     temp = bxcorr2(fixed, transformed, ops.lag, 'unbiased');
     r = max(temp(:)) / sum(transformed(:)) * numel(transformed);
     step = ops.gamma * ( r - r_max ) / step;
-    stats.theta = stats.theta + step;
+    theta = theta + step;
     r_max = r;
     
-    stats.it = stats.it + 1;
+    it = it + 1;
     if abs(step) < ops.precision
         break;
     end
     
-    if ops.verbose; plot3(stats.it, r, stats.theta, 'ko'); disp([ 'next theta: ' num2str(stats.theta) ' r_max:' num2str(r_max) ' step:' num2str(step) ]); end
+    if ops.verbose; plot3(it, r, theta, 'ko'); disp([ 'next theta: ' num2str(theta) ' r_max:' num2str(r_max) ' step:' num2str(step) ]); end
 end
 
 if ops.verbose; xlabel('iteration'); ylabel('r_{max} (mask \mu overlap)'); zlabel('\theta'); title(['learning rate \gamma = ' num2str(ops.gamma)]); view(3); end
 
 %% step 3: final translation transform %%
-tform = affine2d( amat(stats.theta) );
+tform = affine2d( amat(theta) );
 registered = imwarp(moving, tform, 'nearest');
 coor = ( size(registered) - size(fixed) ) ./ 2;
 registered = registered( floor(coor(1)) + 1 : end - ceil(coor(1)), floor(coor(2)) + 1 : end - ceil(coor(2)));
 [r, lags] = bxcorr2(fixed, registered, 30, 'unbiased');
-stats.r = max(r(:));
-[x, y] = find(r == stats.r);
+m = max(r(:));
+[x, y] = find(r == m);
 
 if lags.x(x) > 0
-    registered = padarray(registered, [lags.x(x) 0], 'pre');
-    registered(end-lags.x(x)+1 : end, :) = [];
+    transformed = padarray(transformed, [lags.x(x) 0], 'pre');
+    transformed(end-lags.x(x)+1 : end, :) = [];
 elseif lags.x(x) < 0
-    registered = padarray(registered, [-lags.x(x) 0], 'post');
-    registered(1 : -lags.x(x), :) = [];
+    transformed = padarray(transformed, [-lags.x(x) 0], 'post');
+    transformed(1 : -lags.x(x), :) = [];
 end
 
 if lags.y(y) > 0
-    registered = padarray(registered, [0 lags.y(y)], 'pre');
-    registered(:, end-lags.y(y)+1 : end) = [];
+    transformed = padarray(transformed, [0 lags.y(y)], 'pre');
+    transformed(:, end-lags.y(y)+1 : end) = [];
 elseif lags.y(y) < 0
-    registered = padarray(registered, [0 -lags.y(y)], 'post');
-    registered(:, 1 : -lags.y(y)) = [];
+    transformed = padarray(transformed, [0 -lags.y(y)], 'post');
+    transformed(:, 1 : -lags.y(y)) = [];
 end
 
 if ops.verbose
@@ -115,7 +115,7 @@ if ops.verbose
     imshowpair(~~fixed,~~moving)
     title('before')
     subplot(1,3,2);
-    imshowpair(~~fixed,~~registered)
+    imshowpair(~~fixed,~~transformed)
     title('after')
     subplot(1,3,3);
     imshow(mask)
