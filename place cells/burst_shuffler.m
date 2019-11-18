@@ -7,13 +7,17 @@ function deconv=burst_shuffler(deconv,fs,thres)
 %
 % The proposed method preserves ISI for burst events, but shuffle
 % everything else randomly.
-% Pseudo-code:
-%   get histogram of ISI between
 %
 % Inputs: 
 %   deconv (assume filtered)
 %   fs: sampling frequency
 %   thres: single/burst threshold (default 1s ~fall time of GCaMP6s)
+%
+% Update (2019-11-14): this shit needed some insane optimization; the code
+% is really convoluted now... to the future me that identified a bug: I'm
+% sorry. Check version history to gain an understanding of the original
+% concept.
+
 if nargin<2
     fs=19;
 end
@@ -23,29 +27,33 @@ end
 thres=fs*thres;
 
 for i=1:size(deconv,2)
-    idx=find(deconv(:,i)>0);
-    if isempty(idx)
+    spk=find(deconv(:,i)>0);
+    if isempty(spk)
         continue;
     end
-    ISI=diff(idx);
+    ISI=diff(spk);
     single=ISI>thres;
     single=find([true;single]);
     
-    dt=max([idx(single(2:end)-1)-idx(single(1:end-1)); idx(end)-idx(single(end))])+1;
-    if floor(size(deconv,1)/dt) > length(single)
-        samples=randsample(floor(size(deconv,1)/dt),length(single));
-    else
-        dt=1;
-        single=1:length(idx);
-        samples=randsample(size(deconv,1),length(single));
+    burst_ind = [ spk(single), spk([single(2:end) - 1; end]) ];
+    burst_frames = size(deconv,1) - sum( diff(burst_ind, 1, 2) + 1 ); % number of frames to pad
+    pad = rand(length(single) + 1,1);
+    pad = pad ./ sum(pad) .* (burst_frames - (length(single) + 1) * thres) + thres;
+    pad = round(pad);
+    pad(end-1) = pad(end-1) + burst_frames - sum(pad);
+    pad(end) = [];
+    
+    rorder = randperm(length(single));
+    single = [single; length(spk)+1];
+    
+    rspk = zeros(length(spk), 1);
+    rspk(single(rorder(1)) : single(rorder(1) + 1) - 1) = spk(single(rorder(1)) : single(rorder(1) + 1) - 1) - spk(single(rorder(1))) + pad(1) + 1;
+    for ii = 2:length(single) - 1
+        rspk(single(rorder(ii)) : single(rorder(ii) + 1) - 1) = ...
+            spk(single(rorder(ii)) : single(rorder(ii) + 1) - 1) - spk(single(rorder(ii))) + pad(ii) + rspk(single(rorder(ii-1) + 1) - 1) + 1;
     end
-        
-    temp=zeros(size(deconv,1),1);
-    for j=1:length(samples)-1
-        ind=idx(single(j)):idx(single(j+1)-1);
-        temp(((samples(j)-1)*dt+1):((samples(j)-1)*dt+1)+length(ind)-1)=deconv(ind,i);
-    end
-    ind=idx(single(end)):idx(end);
-    temp(((samples(end)-1)*dt+1):((samples(end)-1)*dt+1)+length(ind)-1)=deconv(ind,i);
-    deconv(:,i)=temp;
+    
+    temp = zeros(size(deconv,1),1);
+    temp(rspk) = deconv(spk,i);
+    deconv(:,i) = temp;
 end
