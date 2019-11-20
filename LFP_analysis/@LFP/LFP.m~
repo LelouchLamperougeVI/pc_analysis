@@ -90,13 +90,6 @@ classdef LFP < handle
             end
             obj.session.wd = path;
             
-            if exist(fullfile(obj.session.wd, ['lfp' num2str(obj.session.id) '_plane' num2str(obj.twop.plane) '.mat']), 'file')
-                lfp = load(fullfile(obj.session.wd, ['lfp' num2str(obj.session.id) '_plane' num2str(obj.twop.plane) '.mat']));
-                obj = lfp.lfp;
-                disp(['loaded existing: ' fullfile(obj.session.wd, ['lfp' num2str(obj.session.id) '_plane' num2str(obj.twop.plane) '.mat'])]);
-                return
-            end
-            
             plane_case = dir(fullfile(obj.session.wd, obj.session.id));
             plane_case = regexp( {plane_case([ plane_case.isdir ]).name}, '[Pp]lane\d+', 'match', 'once' );
             plane_case( cellfun(@isempty, plane_case) ) = [];
@@ -149,11 +142,7 @@ classdef LFP < handle
                 end
             end
             
-            if exist(fullfile(obj.session.wd, ['analysis_' num2str(obj.session.id) '_plane' num2str(obj.twop.plane) '.mat']), 'file')
-                analysis=load(fullfile(obj.session.wd, ['analysis_' num2str(obj.session.id) '_plane' num2str(obj.twop.plane) '.mat']));
-                obj.import_analysis(analysis.analysis);
-                disp('Analysis loaded');
-            elseif exist(fullfile(obj.session.wd, 'analysis.mat'), 'file')
+            if exist(fullfile(obj.session.wd, 'analysis.mat'), 'file')
                 analysis=load(fullfile(obj.session.wd, 'analysis.mat'));
                 obj.import_analysis(analysis.analysis);
                 disp('Analysis loaded');
@@ -355,7 +344,7 @@ classdef LFP < handle
         reference60(obj,len);
         filter_bands(obj);
         extract_behaviour(obj);
-        enregistrer(obj);
+        enregistrer(obj, fn);
         topography(obj, FOV);
     end
     
@@ -379,7 +368,7 @@ classdef LFP < handle
             count = 1;
             while count <= length(inputs)
                 switch(lower(inputs{count}))
-                    case {'ch', 'chan', 'channel', 'channels'}
+                    case {'channel','channels'}
                         obj.set_channels(inputs{count+1});
                     case 'plane'
                         obj.twop.plane = inputs{count+1};

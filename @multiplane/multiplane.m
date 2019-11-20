@@ -25,50 +25,70 @@ classdef multiplane < handle
                 for jj = 1:length(list)
                     obj.tree.child(ii-2).child(jj).name = list(jj).name;
                     obj.planes(count) = LFP({ fullfile(path, root(ii).name, list(jj).name) });
+                    obj.planes(count).enregistrer();
                     count = count + 1;
                 end
             end
+            obj.set_target();
         end
         
         function set_target(obj, varargin) % define the targets of analysis
-            obj.ops.target.range = []; % range of dates to analyze
-            obj.ops.target.sessions = NaN;
-            obj.ops.target.planes = NaN;
+            if ~isfield(obj.ops, 'target')
+                obj.ops.target.range = [datetime('1900-01-01') datetime('2233-03-22')]; % I don't think James Kirk will be analysing place cells...
+                obj.ops.target.sessions = NaN;
+                obj.ops.target.planes = NaN;
+            end
             
             count = 1;
             while count <= length(varargin)
                 switch lower(varargin{count})
                     case 'range'
-                        obj.ops.target.range = [varargin{count + 1} varargin{count + 2}];
+                        if ischar(varargin{count + 1}) && ischar(varargin{count + 2})
+                            obj.ops.target.range = [datetime(varargin{count + 1}) datetime(varargin{count + 2})];
+                        elseif isdatetime(varargin{count + 1}) && isdatetime(varargin{count + 2})
+                            obj.ops.target.range = [varargin{count + 1} varargin{count + 2}];
+                        else
+                            error('range input is neither a string nor a datetime object')
+                        end
                         count = count + 1;
-                    case 'sessions'
+                    case {'session', 'sessions'}
                         obj.ops.target.sessions = varargin{count + 1};
-                    case 'planes'
+                    case {'plane', 'planes'}
                         obj.ops.target.planes = varargin{count + 1};
+                    otherwise
+                        error(['''' varargin{count} ''' is not a valid parameter']);
                 end
-                count = count + 1;
+                count = count + 2;
             end
+            
+            obj.ops.target.index = false(length(obj.planes), 1);
+            for ii = 1:length(obj.planes)
+                obj.ops.target.index(ii) = (obj.planes(ii).session.date >= obj.ops.target.range(1) && obj.planes(ii).session.date <= obj.ops.target.range(2)) && ...
+                                           (ismember(str2double(obj.planes(ii).session.id), obj.ops.target.sessions) || isnan(obj.ops.target.sessions)) && ...
+                                           (ismember(obj.planes(ii).twop.plane, obj.ops.target.planes) || isnan(obj.ops.target.planes));
+            end
+            obj.ops.target.index = find(obj.ops.target.index)';
         end
         
-        function perform_analysis(obj, overwrite)
-            if nargin < 2
-                overwrite = false;
-            end
-            for ii = 1:length(obj.planes)
-                if isempty(obj.planes(ii).analysis) || overwrite
-                    obj.planes(ii).perform_analysis;
-                end
+        function perform_analysis(obj)
+            for ii = obj.ops.target.index
+                obj.planes(ii).perform_analysis;
+                obj.planes(ii).enregistrer();
             end
         end
         
         function intersect(obj) %find overlapping/non-overlapping ROIs
-            obj.ROI.overlap = cell(length(obj.planes));
+            if isempty(obj.ROI.overlap)
+                obj.ROI.overlap = cell(length(obj.planes));
+            end
             
             count = 1;
-            for ii = 1:length(obj.planes)
-                for jj = 1:length(obj.planes)
-                    obj.ROI.overlap{ii,jj} = obj.register(ii, jj);
-                    disp(['Done ' num2str(count) '/' num2str(length(obj.planes)^2)])
+            for ii = obj.ops.target.index
+                for jj = obj.ops.target.index
+                    if isempty(obj.ROI.overlap{ii,jj})
+                        obj.ROI.overlap{ii,jj} = obj.register(ii, jj);
+                    end
+                    disp(['Done ' num2str(count) '/' num2str(length(obj.ops.target.index)^2)])
                     count = count + 1;
                 end
             end
