@@ -4,7 +4,7 @@ classdef multiplane < handle
         tree        % tree structure used for dirTree
         ROI = struct('overlap',[])  % overlapping/non-overlapping ROIs
         
-        ops
+        ops = struct('target', [], 'lfp_ops', []);
     end
     
     methods
@@ -16,6 +16,13 @@ classdef multiplane < handle
             
             root = dir(path);
             temp = strsplit(path, {'\\','/'});
+            if isunix
+                obj.tree.parent = strjoin(temp(1:end-1), '/');
+            elseif ispc
+                obj.tree.parent = strjoin(temp(1:end-1), '\\');
+            else
+                error('What kind of weird operating system are you using?');
+            end
             obj.tree.name = temp{end};
             obj.planes = LFP.empty(0);
             count = 1;
@@ -24,17 +31,27 @@ classdef multiplane < handle
                 list = dir(fullfile(path, root(ii).name, '*.abf'));
                 for jj = 1:length(list)
                     obj.tree.child(ii-2).child(jj).name = list(jj).name;
-                    obj.planes(count) = LFP({ fullfile(path, root(ii).name, list(jj).name) });
-                    obj.planes(count).enregistrer();
+%                     obj.planes(count) = LFP({ fullfile(path, root(ii).name, list(jj).name) });
+%                     obj.planes(count).enregistrer();
+                    obj.planes{count} = LFP.empty(0);
                     count = count + 1;
                 end
             end
-            obj.set_target();
+%             obj.set_target();
+        end
+        
+        function LFP(obj, x)
+            obj.planes{x} = LFP([ { fullfile(obj.tree.parent, obj.tree.name, obj.tree.child(x)) } obj.lfp_ops]);
+        end
+        
+        function set_lfp_ops(obj, varargin)
+            obj.ops.lfp_ops = varargin;
         end
         
         function set_target(obj, varargin) % define the targets of analysis
+            % {'date', 'dates'} - dates to process as an array of datetime
             if ~isfield(obj.ops, 'target')
-                obj.ops.target.range = [datetime('1900-01-01') datetime('2233-03-22')]; % I don't think James Kirk will be analysing place cells...
+                obj.ops.target.dates = [];
                 obj.ops.target.sessions = NaN;
                 obj.ops.target.planes = NaN;
             end
@@ -42,15 +59,8 @@ classdef multiplane < handle
             count = 1;
             while count <= length(varargin)
                 switch lower(varargin{count})
-                    case 'range'
-                        if ischar(varargin{count + 1}) && ischar(varargin{count + 2})
-                            obj.ops.target.range = [datetime(varargin{count + 1}) datetime(varargin{count + 2})];
-                        elseif isdatetime(varargin{count + 1}) && isdatetime(varargin{count + 2})
-                            obj.ops.target.range = [varargin{count + 1} varargin{count + 2}];
-                        else
-                            error('range input is neither a string nor a datetime object')
-                        end
-                        count = count + 1;
+                    case {'date', 'dates'}
+                        obj.ops.target.dates = varargin{count + 1};
                     case {'session', 'sessions'}
                         obj.ops.target.sessions = varargin{count + 1};
                     case {'plane', 'planes'}
@@ -63,11 +73,16 @@ classdef multiplane < handle
             
             obj.ops.target.index = false(length(obj.planes), 1);
             for ii = 1:length(obj.planes)
-                obj.ops.target.index(ii) = (obj.planes(ii).session.date >= obj.ops.target.range(1) && obj.planes(ii).session.date <= obj.ops.target.range(2)) && ...
+                obj.ops.target.index(ii) = (ismember(obj.planes{ii}.session.date, obj.ops.target.dates) || isempty(obj.ops.target.dates)) && ...
                                            (ismember(str2double(obj.planes(ii).session.id), obj.ops.target.sessions) || isnan(obj.ops.target.sessions)) && ...
                                            (ismember(obj.planes(ii).twop.plane, obj.ops.target.planes) || isnan(obj.ops.target.planes));
             end
             obj.ops.target.index = find(obj.ops.target.index)';
+        end
+        
+        function choose_days(obj)
+            dates = {obj.tree.child.name};
+            idx = listdlg('liststring', dates);
         end
         
         function perform_analysis(obj)
