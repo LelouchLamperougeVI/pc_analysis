@@ -1,4 +1,4 @@
-classdef dirTree < handle
+classdef dirTree < matlab.mixin.Copyable
     properties (GetAccess = 'public', SetAccess = 'protected')
         name % name of current folder
         parent % parent path
@@ -16,7 +16,7 @@ classdef dirTree < handle
             obj.name = strcat(name, ext);
             
             obj.filter;
-            if isempty(obj)
+            if isempty(obj.name)
                 return
             end
             
@@ -29,11 +29,35 @@ classdef dirTree < handle
             count = 1;
             for ii = 1:length(subs)
                 child = dirTree(fullfile(subs(ii).folder, subs(ii).name), 'isdir', obj.filters.isdir(2:end), 're', obj.filters.regex(2:end), 'fcn', obj.fcn(2:end));
-                if ~isempty(child)
+                if ~isempty(child.name)
                     obj.children(count) = child;
                     count = count + 1;
                 end
             end
+        end
+        
+        function names = lsnames(obj, lvl)
+            if nargin < 2
+                lvl = inf;
+            end
+            if isempty(obj.children) || ~lvl
+                names = {obj.name};
+                return
+            end
+            names = arrayfun(@(x) obj.children(x).lsnames(lvl-1), 1:length(obj.children), 'uniformoutput',false);
+            names = vertcat(names{:});
+        end
+        
+        function path = fullfile(obj, lvl)
+            if nargin < 2
+                lvl = inf;
+            end
+            if isempty(obj.children) || ~lvl
+                path = {fullfile(obj.parent, obj.name)};
+                return
+            end
+            path = arrayfun(@(x) obj.children(x).fullfile(lvl-1), 1:length(obj.children), 'uniformoutput',false);
+            path = vertcat(path{:});
         end
         
         function [nodes, txtlist] = tree(obj, parent, child)
@@ -60,6 +84,8 @@ classdef dirTree < handle
                 camroll(90);
             end
         end
+        
+        ui(obj);
     end
     
     methods (Access = private)
@@ -74,11 +100,11 @@ classdef dirTree < handle
             
             while count <= length(inputs)
                 switch lower(inputs{count})
-                    case 'isdir'
+                    case {'dir','isdir'}
                         obj.filters.isdir = inputs{count + 1};
                     case {'re', 'regex', 'regexp'}
                         obj.filters.regex = inputs{count + 1};
-                    case 'fcn'
+                    case {'fcn','function'}
                         obj.fcn = inputs{count + 1};
                     otherwise
                         error(['''' inputs{count} ''' is not a valid parameter']);
@@ -100,10 +126,10 @@ classdef dirTree < handle
             elseif isnan(obj.filters.regex{1})
                 re = true;
             else
-                re = regexp(obj.name, obj.filters.regex{1}, 'once');
+                re = ~isempty(regexp(obj.name, obj.filters.regex{1}, 'once'));
             end
-            if ~( isd && ~isempty(re) )
-                obj = obj.empty(0);
+            if ~( isd && re )
+                obj.name = [];
                 return
             end
             if isa(obj.fcn{1}, 'function_handle')

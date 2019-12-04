@@ -9,17 +9,16 @@ isdir = 1;
 regex = {'^\d\d\d\d_\d\d_\d\d$'};
 fcn = {@(x) datetime(x, 'inputformat','yyyy_MM_dd')};
 animals = dirTree(ops.local, 'isdir',isdir, 'regex',regex, 'fcn',fcn);
-while isempty(animals.children)
+while ~xor(isempty(animals.children), isempty(animals.var))
     isdir = [NaN, isdir];
     regex = [NaN, regex];
     fcn = [NaN, fcn];
     animals = dirTree(ops.local, 'isdir',isdir, 'regex',regex, 'fcn',fcn);
 end
 
-animals.tree;
+paths = animals.fullfile;
 
-% animals = dircrawl(ops.local);
-% for ii = 1:length(animals)
+% for ii = 1:length(paths)
 %     abf = fullfile(ops.remote, animals(ii).name, [animals(ii).date '_*.abf']);
 %     try
 %         copyfile(abf, animals(ii).parent);
@@ -28,30 +27,6 @@ animals.tree;
 %         warning(['failed to copy: ' abf]);
 %     end
 % end
-
-function animals = dircrawl(path)
-directory = strsplit(path, {'/','\\'});
-try
-    date = datetime(directory{end}, 'inputformat', 'yyyy_MM_dd');
-catch
-    date = NaT;
-end
-if ~isnat(date)
-    animals = struct('dir',[],'name',[],'date',[]);
-    animals.parent = path;
-    temp = split(path, {'/', '\\'});
-    animals.name = temp{end-1};
-    animals.date = temp{end};
-    return
-end
-
-animals = [];
-directories = dir(path);
-directories(1:2) = [];
-isdir = [directories.isdir];
-for ii = find(isdir)
-    animals = [animals dircrawl(fullfile(path, directories(ii).name))];
-end
 
 function ops = parse_inputs(inputs)
 
