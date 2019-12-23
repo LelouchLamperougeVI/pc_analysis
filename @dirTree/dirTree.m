@@ -8,6 +8,11 @@ classdef dirTree < matlab.mixin.Copyable
         var % parsed variable
     end
     
+    properties(GetAccess = 'private', SetAccess = 'protected')
+        nodes
+        txtlist
+    end
+    
     methods
         function obj = dirTree(varargin)
             target = obj.parse_inputs(varargin);
@@ -34,6 +39,8 @@ classdef dirTree < matlab.mixin.Copyable
                     count = count + 1;
                 end
             end
+            
+            obj.tree;
         end
         
         function names = lsnames(obj, lvl)
@@ -60,29 +67,14 @@ classdef dirTree < matlab.mixin.Copyable
             path = vertcat(path{:});
         end
         
-        function [nodes, txtlist] = tree(obj, parent, child)
-            if nargin<2
-                parent = 0;
-                child = 1;
+        function pltTree(obj)
+            [x, y] = treelayout(obj.nodes);
+            figure;
+            treeplot(obj.nodes);
+            for ii = 1:length(obj.txtlist)
+                text(x(ii), y(ii) - .01, obj.txtlist{ii}, 'interpreter','none', 'fontweight','bold', 'backgroundcolor','w', 'edgecolor','k');
             end
-            nodes = parent;
-            txtlist = {obj.name};
-            parent = child;
-            for ii = 1:length(obj.children)
-                child = length(nodes) + parent;
-                [node, txt] = obj.children(ii).tree(parent, child);
-                nodes = [nodes node];
-                txtlist = [txtlist txt];
-            end
-            if nargin<2
-                [x, y] = treelayout(nodes);
-                figure;
-                treeplot(nodes);
-                for ii = 1:length(txtlist)
-                    text(x(ii), y(ii) - .01, txtlist{ii}, 'interpreter','none', 'fontweight','bold', 'backgroundcolor','w', 'edgecolor','k');
-                end
-                camroll(90);
-            end
+            camroll(90);
         end
         
         ui(obj);
@@ -135,6 +127,24 @@ classdef dirTree < matlab.mixin.Copyable
             if isa(obj.fcn{1}, 'function_handle')
                 obj.var = obj.fcn{1}(obj.name);
             end
+        end
+        
+        function [nodes, txtlist] = tree(obj, parent, child)
+            if nargin<2
+                parent = 0;
+                child = 1;
+            end
+            nodes = parent;
+            txtlist = {obj.name};
+            parent = child;
+            for ii = 1:length(obj.children)
+                child = length(nodes) + parent;
+                [node, txt] = obj.children(ii).tree(parent, child);
+                nodes = [nodes node];
+                txtlist = [txtlist txt];
+            end
+            obj.nodes = nodes;
+            obj.txtlist = txtlist;
         end
     end
 end
