@@ -35,8 +35,11 @@ alpha=(kernelSize-1)/sig/2;
 kernel=gausswin(kernelSize,alpha);
 kernel=kernel./sum(kernel);
 
-nan_idx = any(isnan(data),2); % TODO: this is not generalizable
+% nan_idx = any(isnan(data),2); % TODO: this is not generalizable
 taper=zeros(kernelSize,1);
+isnan_idx = isnan(data); % now generalized
+nan_idx = [repmat(taper,1,size(data,2)); ~isnan_idx; repmat(taper,1,size(data,2))];
+nan_idx = nan_idx(:);
 data=[repmat(taper,1,size(data,2));data;repmat(taper,1,size(data,2))];
 data=data(:);
 data(isnan(data))=0;
@@ -44,9 +47,11 @@ data(isnan(data))=0;
 smoothed=conv(data,kernel,'same');
 smoothed=reshape(smoothed,dataSize+kernelSize*2,[]);
 % smoothed=smoothed./conv([taper; ~nan_idx; taper],kernel,'same'); %account for edge data underestimation
-smoothed = smoothed./ ( conv([taper; ~nan_idx; taper] - 1, kernel,'same') + sum(kernel) ); % new performance oriented (^old)
+% smoothed = smoothed./ ( conv([taper; ~nan_idx; taper] - 1, kernel,'same') + sum(kernel) ); % new performance oriented (^old)
+smoothed = smoothed./ reshape( conv(nan_idx - 1, kernel,'same') + sum(kernel), dataSize+kernelSize*2, [] ); % new performance oriented (^old) with generalization
 smoothed([1:kernelSize end-kernelSize+1:end],:)=[];
-smoothed(nan_idx,:) = nan;
+% smoothed(nan_idx,:) = nan;
+smoothed(isnan_idx) = nan;
 
 % performance of conv() increases significantly with sparse arrays (lots of 0's)
 
