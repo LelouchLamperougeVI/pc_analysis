@@ -29,7 +29,8 @@ classdef LFP < handle
 %         Channels = [1 2 3 5 5 5]'; %old behavior for RSC RRR (phil trans B)
 %         Channels = [1 2 3 6 nan nan]'; %old behavior for RSC RRR (phil trans B)
 %         Channels = [1 2 3 6 nan nan 5]'; % licks
-        Channels = [1 2 3 5 nan nan nan]';
+        Channels = [1 2 3 5 nan nan nan]'; % Dun topography collab
+%         Channels = [1 2 3 5 nan nan]'; %old behavior for RSC RRR (phil trans B)
         %         Channels = [1 2 3 5 5 6]'; %old old behavior for RSC RRR, also works for Ingrid's RRR
         %         Channels = [1 2 3 7 5 5]';
         %         Channels = [1 2 3 5 5 6]';
@@ -37,6 +38,7 @@ classdef LFP < handle
         %         Channels = [1 2 3 4 8 7]'; %new vr behavior for RSC RRR
         %         Channels = [1 3 2 6 5 5]'; % lesion across days
 %                 Channels = [1 2 3 4 5 5]'; % aubrey's data
+%                 Channels = [1 4 5 6 nan nan]'; % aubrey's data
 %         Channels = [1 2 3 5 5 5]'; % haoran's data
     end
     
@@ -252,9 +254,9 @@ classdef LFP < handle
         end
         
         function perform_analysis(obj,varargin) %Run pc_batch_analysis
-            if ~isempty(obj.analysis)
-                return
-            end
+%             if ~isempty(obj.analysis)
+%                 return
+%             end
             if isempty(obj.behavior)
                 error('no behavioural data currently exists');
             end
