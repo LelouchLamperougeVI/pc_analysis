@@ -66,7 +66,11 @@ unit_vel=unit_vel(thres);
 unit_pos=unit_pos(thres);
 frame_ts=frame_ts(thres);
 
-deconv=ca_filt(deconv);
+try
+    deconv=ca_filt(deconv);
+catch
+    warning('Unable to filter deconv time-courses. This data likely came from the new Suite2P.');
+end
 deconv=deconv(thres,:);
 
 [psth,raw_psth,raw_stack,mu_fr,Pi,stack,vel_stack, zscore_stack]=getStack(bins,sd,vr_length,deconv,unit_pos,unit_vel,frame_ts,trials);

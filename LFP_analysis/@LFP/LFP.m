@@ -27,7 +27,9 @@ classdef LFP < handle
         %         Channels = [1 2 3 7 8 5]';
         %         Channels = [1 2 3 6 5 5]';
 %         Channels = [1 2 3 5 5 5]'; %old behavior for RSC RRR (phil trans B)
-        Channels = [1 2 3 5 nan nan]'; %old behavior for RSC RRR (phil trans B)
+%         Channels = [1 2 3 6 nan nan]'; %old behavior for RSC RRR (phil trans B)
+%         Channels = [1 2 3 6 nan nan 5]'; % licks
+        Channels = [1 2 3 5 nan nan nan]';
         %         Channels = [1 2 3 5 5 6]'; %old old behavior for RSC RRR, also works for Ingrid's RRR
         %         Channels = [1 2 3 7 5 5]';
         %         Channels = [1 2 3 5 5 6]';
@@ -39,7 +41,7 @@ classdef LFP < handle
     end
     
     properties (GetAccess = 'private', SetAccess = 'private')
-        ChannelNames = {'2p';'chA';'chB';'rwd';'cam';'lfp'};
+        ChannelNames = {'2p';'chA';'chB';'rwd';'cam';'lfp';'lck'};
         chan;
         raw
         si
@@ -108,8 +110,13 @@ classdef LFP < handle
             else
                 obj.twop.numplanes = 1;
             end
-            disp( ['loading ' plane_case{obj.twop.plane} '...'] );
-            plane = plane_case{obj.twop.plane};
+            if ~isempty(plane_case)
+                disp( ['loading ' plane_case{obj.twop.plane} '...'] );
+                plane = plane_case{obj.twop.plane};
+            else
+                disp('No planes folder. Loading from session root directory.');
+                plane = [];
+            end
             
             deconv=load(fullfile(obj.session.wd, obj.session.id, plane, 'deconv.mat'));
             obj.update_channels();

@@ -8,6 +8,13 @@ frame_ts=get_head(frame_ts);
 frame_ts=find(frame_ts);
 frame_ts(1)=[];
 
+if ~isnan(obj.get_channel('lck'))
+    licks = signal(:, obj.get_channel('lck')) > 1;
+    licks = get_head(licks);
+    licks = find(licks);
+    licks = knnsearch(frame_ts, licks);
+end
+
 rwd=signal(:,obj.get_channel('rwd'));
 if median(rwd) > 2.5
     rwd=find(get_head(rwd<1))';
