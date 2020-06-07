@@ -13,6 +13,8 @@ if ~isnan(obj.get_channel('lck'))
     licks = get_head(licks);
     licks = find(licks);
     licks = knnsearch(frame_ts, licks);
+else
+    licks = [];
 end
 
 rwd=signal(:,obj.get_channel('rwd'));
@@ -117,5 +119,6 @@ behavior.trial = trial;
 behavior.speed = speed;
 behavior.pos_cum = pos_cum;
 behavior.pos_raw = pos_raw;
+behavior.licks = licks;
 
 obj.behavior=behavior;

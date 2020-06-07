@@ -98,5 +98,5 @@ hold on
 plot(linspace(min(behavior.unit_pos),max(behavior.unit_pos),bins),mean(vel,2),'k','linewidth',2);
 xlabel('position (cm)');
 ylabel('velocity (cm/s)');
-xlim([-100 0])
+xlim([round(min(behavior.unit_pos), -1) round(max(behavior.unit_pos), -1)])
 ylim([0 50])
