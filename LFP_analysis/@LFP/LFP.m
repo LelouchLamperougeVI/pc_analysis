@@ -219,7 +219,7 @@ classdef LFP < handle
             obj.abf.chan_tb = table(obj.abf.Channels,'RowNames',obj.abf.ChannelNames);
         end
         
-        function load(obj, fn)
+        function load_abf(obj, fn)
             [d,s] = abfload(fn);
             obj.abf.si=s;
             obj.lfp.fs = 1/s * 1e+6;
