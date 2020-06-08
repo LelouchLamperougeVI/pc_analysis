@@ -1,7 +1,7 @@
 function extract_behaviour(obj)
 
-signal=obj.raw;
-nSmooth = 1 / (obj.si * 1e-6);
+signal=obj.abf.raw;
+nSmooth = 1 / (obj.abf.si * 1e-6);
 
 frame_ts=signal(:,obj.get_channel('2p'))<1;
 frame_ts=get_head(frame_ts);
@@ -95,7 +95,7 @@ else
 end
 
 pos_raw=pos_raw(ts);
-ts=(ts-1).*(obj.si*1e-6);
+ts=(ts-1).*(obj.abf.si*1e-6);
 idx=find(get_head(pos_raw'<5));
 idx(find(pos_raw(idx(2:end)-1)-pos_raw(idx(2:end))<5)+1)=[];
 pos_norm=pos_raw;

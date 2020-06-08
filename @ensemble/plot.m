@@ -194,18 +194,15 @@ switch lower(type)
         plot_analysis(obj.analysis,[1 1 0],obj.clust{varargin{1}});
         
     case 'spec'
-        if isempty(obj.spec)
-            error('need to compute spectrum first')
-        end
         figure;
         subplot(1,2,1);
-        spec=(obj.spec.spectrum_on-mean(obj.spec.norm,2))./std(obj.spec.norm,0,2);
+        spec=(obj.lfp.spec.spectrum_on-mean(obj.lfp.spec.norm,2))./std(obj.lfp.spec.norm,0,2);
         spec=imgaussfilt(spec,1);
-        imagesc('xdata',obj.spec.t,'ydata',obj.spec.f,'cdata',spec);
+        imagesc('xdata',obj.lfp.spec.t,'ydata',obj.lfp.spec.f,'cdata',spec);
         colormap jet
         caxis([0 max(spec(:))]);
-        xlim([obj.spec.t(1) obj.spec.t(end)]);
-        ylim([obj.spec.f(1) obj.spec.f(end)]);
+        xlim([obj.lfp.spec.t(1) obj.lfp.spec.t(end)]);
+        ylim([obj.lfp.spec.f(1) obj.lfp.spec.f(end)]);
         c=colorbar;
         c.Label.String='zscore power';
         xlabel('time from SCE onset (sec)');
@@ -213,13 +210,13 @@ switch lower(type)
         title('SCE onset')
         
         subplot(1,2,2);
-        spec=(obj.spec.spectrum_peak-mean(obj.spec.norm,2))./std(obj.spec.norm,0,2);
+        spec=(obj.lfp.spec.spectrum_peak-mean(obj.lfp.spec.norm,2))./std(obj.lfp.spec.norm,0,2);
         spec=imgaussfilt(spec,1);
-        imagesc('xdata',obj.spec.t,'ydata',obj.spec.f,'cdata',spec);
+        imagesc('xdata',obj.lfp.spec.t,'ydata',obj.lfp.spec.f,'cdata',spec);
         colormap jet
         caxis([0 max(spec(:))]);
-        xlim([obj.spec.t(1) obj.spec.t(end)]);
-        ylim([obj.spec.f(1) obj.spec.f(end)]);
+        xlim([obj.lfp.spec.t(1) obj.lfp.spec.t(end)]);
+        ylim([obj.lfp.spec.f(1) obj.lfp.spec.f(end)]);
         c=colorbar;
         c.Label.String='zscore power';
         xlabel('time from SCE peak (sec)');

@@ -4,7 +4,7 @@ function topography(obj, FOV)
 % to positional bin number
 
 if nargin < 2
-    FOV = obj.default_ops.FOV;
+    FOV = obj.topo.FOV;
 end
 
 masks = arrayfun(@(x) obj.topo.maskNeurons == x, 1:size(obj.twop.deconv,2), 'uniformoutput', false);

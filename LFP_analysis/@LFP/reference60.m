@@ -6,4 +6,4 @@ if nargin < 2
 end
 f60=designfilt('bandpassiir','FilterOrder',4,'HalfPowerFrequency1',59.5,'HalfPowerFrequency2',60.5,'SampleRate',obj.lfp.fs);
 f60=filtfilt(f60,obj.lfp.lfp);
-obj.f60_env=envelope(f60,floor(obj.lfp.fs*len));
+obj.lfp.f60_env=envelope(f60,floor(obj.lfp.fs*len));

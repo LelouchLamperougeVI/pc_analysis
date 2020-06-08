@@ -24,7 +24,7 @@ if isempty(obj.ops) || nargin<2
     ops.order = 'pc';
     obj.order = obj.pc_order;
     
-    ops.FOV = obj.default_ops.FOV; % in microns
+    ops.FOV = obj.topo.FOV; % in microns
     
     obj.ops=ops;
     if nargin<2

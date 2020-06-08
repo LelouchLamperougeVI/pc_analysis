@@ -13,7 +13,7 @@ end
 
 wdw=win*obj.lfp.fs;
 nol=floor(.5*wdw);
-nfft = max([obj.nfft 2^nextpow2(wdw)]);
+nfft = max([obj.lfp.ops.nfft 2^nextpow2(wdw)]);
 f = 0:obj.lfp.fs/nfft:obj.lfp.fs/2; %estimate to Nyquist
 
 lfp=obj.lfp.lfp(obj.lfp.ts>=range(1) & obj.lfp.ts<=range(2));
@@ -21,6 +21,6 @@ lfp=obj.lfp.lfp(obj.lfp.ts>=range(1) & obj.lfp.ts<=range(2));
 [spec,~,t]=spectrogram(lfp,wdw,nol,nfft,obj.lfp.fs);
 spec=log(abs(spec));
 
-obj.spec.spectrum = spec;
-obj.spec.t = t;
-obj.spec.f = f;
+obj.lfp.spec.spectrum = spec;
+obj.lfp.spec.t = t;
+obj.lfp.spec.f = f;

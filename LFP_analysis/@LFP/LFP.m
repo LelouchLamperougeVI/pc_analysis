@@ -5,94 +5,61 @@ classdef LFP < handle
         lfp = struct('lfp',[], 'fs',[], 'ts',[], 'delta',[], 'theta',[], ...
             'gamma',[], 'swr',...
             struct('swr_env',[], 'swr_peaks',[], 'swr_dur',[], ...
-            'swr_on',[], 'swr_cyc',[], 'swr',[]) );
-        twop = struct( 'fs',[], 'ts',[], 'deconv',[], 'plane', 1, 'numplanes', 1 );
+            'swr_on',[], 'swr_cyc',[], 'swr',[]), ...
+            'spec', struct('spectrum',[],'t',[],'f',[]));
+        twop = struct( 'fs',[], 'ts',[], 'deconv',[], 'plane', [], 'numplanes', [] );
         behavior
-        ts_cam
-        cam % irCam object
+        camera = struct('ts_cam', [], 'cam', []); % clampex camera pulses and irCam object
         analysis
-        ensemble % basic_ensemble object
-        
-        lfp_mvt %500-1k Hz band signal for movement detection
-        
-        spec = struct('spectrum',[],'t',[],'f',[]);
-        
+        abf
         session % session information
         topo = struct('maskNeurons',[], 'mimg',[]);
-        
-        %         Channels = [1 2 3 6 8 7]';
-        %         Channels = [1 2 3 4 5 6]';
-        %         Channels = [1 2 3 5 4 6]';
-        %         Channels = [1 2 3 5 8 6]';
-        %         Channels = [1 2 3 7 8 5]';
-        %         Channels = [1 2 3 6 5 5]';
-%         Channels = [1 2 3 5 5 5]'; %old behavior for RSC RRR (phil trans B)
-%         Channels = [1 2 3 6 nan nan]'; %old behavior for RSC RRR (phil trans B)
-%         Channels = [1 2 3 6 nan nan 5]'; % licks
-        Channels = [1 2 3 5 nan nan nan]'; % Dun topography collab
-%         Channels = [1 2 3 5 nan nan]'; %old behavior for RSC RRR (phil trans B)
-        %         Channels = [1 2 3 5 5 6]'; %old old behavior for RSC RRR, also works for Ingrid's RRR
-        %         Channels = [1 2 3 7 5 5]';
-        %         Channels = [1 2 3 5 5 6]';
-        %         Channels = [1 2 3 6 8 7]'; %new behavior for RSC RRR
-        %         Channels = [1 2 3 4 8 7]'; %new vr behavior for RSC RRR
-        %         Channels = [1 3 2 6 5 5]'; % lesion across days
-%                 Channels = [1 2 3 4 5 5]'; % aubrey's data
-%                 Channels = [1 4 5 6 nan nan]'; % aubrey's data
-%         Channels = [1 2 3 5 5 5]'; % haoran's data
     end
     
     properties (GetAccess = 'private', SetAccess = 'private')
-        ChannelNames = {'2p';'chA';'chB';'rwd';'cam';'lfp';'lck'};
-        chan;
-        raw
-        si
-        f
-        f60_env = 1;
+        intern
     end
     
-    properties (GetAccess = 'protected', Constant)
-        nfft = 2^16;
-        default_ops = struct('down_fs',2e3,'spec_wdw',.5, 'swr_cyc',3, 'swr_gap', .25, 'FOV', 835.76 .* ones(2,1));
-    end
     
     methods
         function obj = LFP(varargin) %construct with passed abf file
             if ~isempty(varargin) && iscell(varargin{1})
                 varargin = varargin{1};
             end
-            [fn,path,mode] = obj.parse_inputs(varargin);
-            if isempty(fn)
-                [fn,path,mode] = uigetfile({'*.abf','abf file (*.abf)';'behavior.mat','behaviour file (behavior.mat)'});
-                switch mode
+            obj.set([]);
+            obj.set(varargin);
+            
+            if isempty(obj.intern.fn)
+                [obj.intern.fn, obj.intern.path, obj.intern.op_mode] = uigetfile({'*.abf','abf file (*.abf)';'behavior.mat','behaviour file (behavior.mat)'});
+                switch obj.intern.op_mode
                     case 1
-                        mode = 'abf';
+                        obj.intern.op_mode = 'abf';
                     case 2
-                        mode = 'beh';
+                        obj.intern.op_mode = 'beh';
                     otherwise
                         error('need to select a valid file');
                 end
             end
             
-            path = strsplit(path, {'\\','/'});
-            if strcmp(mode, 'abf')
-                obj.session.date = datetime( regexp(fn, '^\d{4}_(\d{2}_){2}', 'match','once'), 'inputformat', 'yyyy_MM_dd_' );
-                obj.session.id = regexp(fn, '_(\d+)\.abf$', 'tokens','once'); obj.session.id = obj.session.id{1};
+            obj.intern.path = strsplit(obj.intern.path, {'\\','/'});
+            if strcmp(obj.intern.op_mode, 'abf')
+                obj.session.date = datetime( regexp(obj.intern.fn, '^\d{4}_(\d{2}_){2}', 'match','once'), 'inputformat', 'yyyy_MM_dd_' );
+                obj.session.id = regexp(obj.intern.fn, '_(\d+)\.abf$', 'tokens','once'); obj.session.id = obj.session.id{1};
             else
-                obj.session.date = datetime(path, 'inputformat', 'yyy_MM_dd');
+                obj.session.date = datetime(obj.intern.path, 'inputformat', 'yyy_MM_dd');
                 idx = find(~isnat(obj.session.date), 1, 'last');
                 obj.session.date = obj.session.date(idx);
-                obj.session.id = path{idx+1};
+                obj.session.id = obj.intern.path{idx+1};
             end
-            idx = strcmp( path, datestr(obj.session.date, 'yyyy_mm_dd') );
-            path = path(1: find(idx));
-            obj.session.animal = path{find(idx)-1};
+            idx = strcmp( obj.intern.path, datestr(obj.session.date, 'yyyy_mm_dd') );
+            obj.intern.path = obj.intern.path(1: find(idx));
+            obj.session.animal = obj.intern.path{find(idx)-1};
             if isunix
-                path = strjoin( path, '/');
+                obj.intern.path = strjoin( obj.intern.path, '/');
             elseif ispc
-                path = strjoin( path, '\');
+                obj.intern.path = strjoin( obj.intern.path, '\');
             end
-            obj.session.wd = path;
+            obj.session.wd = obj.intern.path;
             
             if exist(fullfile(obj.session.wd, ['lfp' num2str(obj.session.id) '_plane' num2str(obj.twop.plane) '.mat']), 'file')
                 lfp = load(fullfile(obj.session.wd, ['lfp' num2str(obj.session.id) '_plane' num2str(obj.twop.plane) '.mat']));
@@ -122,8 +89,8 @@ classdef LFP < handle
             
             deconv=load(fullfile(obj.session.wd, obj.session.id, plane, 'deconv.mat'));
             obj.update_channels();
-            if strcmp(mode, 'abf')
-                obj.load(fullfile(path,fn));
+            if strcmp(obj.intern.op_mode, 'abf')
+                obj.load_abf(fullfile(obj.intern.path, obj.intern.fn));
                 obj.two_photon_ts(deconv.deconv);
             else
                 tcs=load(fullfile(obj.session.wd, obj.session.id, plane, 'timecourses.mat'));
@@ -137,8 +104,8 @@ classdef LFP < handle
                 obj.behavior = behavior.behavior;
             end
             try obj.irCam_ts; catch; end
-            if strcmp(mode, 'abf')
-                obj.down_sample(obj.default_ops.down_fs);
+            if strcmp(obj.intern.op_mode, 'abf')
+                obj.down_sample(obj.lfp.ops.down_fs);
                 obj.filter_bands;
                 obj.extract_behaviour;
             end
@@ -180,72 +147,11 @@ classdef LFP < handle
             end
         end
         
-        function load(obj, fn) % replace current data with another abf file
-            [d,s] = abfload(fn);
-            obj.si=s;
-            obj.lfp.fs = 1/s * 1e+6;
-            obj.raw = d;
-            try
-                obj.lfp.lfp = d(:,obj.get_channel('lfp'));
-            catch
-                warning('LFP channel is undefined or unavailable');
-            end
-        end
-        
         function import_cam(obj,cam) % import a camera object
             if ~isa(cam,'irCam')
                 error('object must be of class ''irCam''');
             end
-            obj.cam=cam;
-        end
-        
-        function import_deconv(obj,deconv) % import deconv
-            if exist(fullfile(obj.session.wd, 'fkd18k'), 'file')
-                fid = fopen(fullfile(obj.session.wd, 'fkd18k'), 'r');
-                if fscanf(fid, '%d')
-                    obj.twop.deconv = stupid_windows_fs(deconv);
-                    disp('18k correction applied');
-                else
-                    obj.twop.deconv = deconv;
-                    if size(deconv,1)>18000
-                        disp('18k correction unnecessary');
-                    end
-                end
-                fclose(fid);
-                return
-            end
-            if size(deconv,1)>18000 && ~isempty(obj.behavior)
-                tcs.tt=obj.twop.ts';
-                [vel,temp] = convert_behavior(obj.behavior,tcs,deconv);
-                vel = vel.unit_vel;
-                temp = fast_smooth(temp,obj.twop.fs*.5);
-                if size(temp,1) < length(vel); vel=vel(1:size(temp,1)); end
-                ori_r = corr(temp, vel');
-                
-                [vel,temp] = convert_behavior(obj.behavior,tcs,stupid_windows_fs(deconv));
-                vel = vel.unit_vel;
-                temp = fast_smooth(temp,obj.twop.fs*.5);
-                if size(temp,1) < length(vel); vel=vel(1:size(temp,1)); end
-                alt_r = corr(temp, vel');
-                
-                if prctile(abs(alt_r), 70) > prctile(abs(ori_r), 70)
-                    disp('DANGER! A rupture in Space-Time continuum has been detected!');
-                    uinp = input('Should I fix it for you? Y/N [Y] ', 's');
-                    if strcmpi(uinp,'y') || strcmpi(uinp,'yes') || isempty(uinp)
-                        obj.twop.deconv=stupid_windows_fs(deconv);
-                        disp('OK. I''ve fixed it for you. But know that this only works for behavioural data. It''s up to you to remember to correct it during rest.');
-                        fid = fopen(fullfile(obj.session.wd, 'fkd18k'), 'w');
-                        fprintf(fid, '%d', 1);
-                        fclose(fid);
-                        return
-                    end
-                    disp('I surely hope you know what you''re doing...');
-                end
-            end
-            obj.twop.deconv=deconv;
-            fid = fopen(fullfile(obj.session.wd, 'fkd18k'), 'w');
-            fprintf(fid, '%d', 0);
-            fclose(fid);
+            obj.camera.cam = cam;
         end
         
         function import_analysis(obj,analysis) % import pc_analysis obtained from run trials
@@ -254,9 +160,6 @@ classdef LFP < handle
         end
         
         function perform_analysis(obj,varargin) %Run pc_batch_analysis
-%             if ~isempty(obj.analysis)
-%                 return
-%             end
             if isempty(obj.behavior)
                 error('no behavioural data currently exists');
             end
@@ -269,16 +172,11 @@ classdef LFP < handle
             obj.analysis.order=get_order(obj.analysis);
         end
         
-        function set_channels(obj, ch) % change channels configuration from default
-            obj.Channels = ch;
-            obj.update_channels();
-        end
-        
         function chan = get_channel(obj,ch) % return currently listed channels
             if isa(ch,'char')
-                chan = obj.chan(ch,:).Variables;
+                chan = obj.abf.chan_tb(ch,:).Variables;
             elseif isa(ch,'double')
-                chan=obj.chan(obj.chan.Variables==ch,:).Row{1};
+                chan=obj.abf.chan_tb(obj.abf.chan_tb.Variables==ch,:).Row{1};
                 %                 chan = [num2str(obj.chan(ch,:).Variables) ' = ' obj.chan(ch,:).Row{1}];
             else
                 error('unrecognized input');
@@ -286,8 +184,8 @@ classdef LFP < handle
         end
         
         function reset(obj) % reset to original lfp from abf
-            obj.lfp.fs = 1/obj.si * 1e+6;
-            obj.lfp.lfp = obj.raw(:,obj.get_channel('lfp'));
+            obj.lfp.fs = 1/obj.abf.si * 1e+6;
+            obj.lfp.lfp = obj.abf.raw(:,obj.get_channel('lfp'));
         end
         
         function invert_pol(obj) % invert the polarities between electrode tips
@@ -295,69 +193,8 @@ classdef LFP < handle
             obj.lfp.lfp=-(obj.lfp.lfp-m)+m;
         end
         
-        function remove_mvt(obj, mode) % remove moving epochs from deconv detected by camera and belt encoder (whatever is available)
-            if nargin < 2
-                mode = 'exclude';
-            end
-            switch mode
-                case 'exclude'
-                    mode = 0;
-                case 'include'
-                    mode = 1;
-                otherwise
-                    error('movement filtration mode unrecognised');
-            end
-            
-            if isempty(obj.twop.deconv)
-                error('deconv needs to be loaded into current LFP object first');
-            end
-            
-            if isempty(obj.cam)
-                warning('no irCam object loaded; skipping cam movement removal');
-            elseif isempty(obj.cam.mvt)
-                warning('movement trace hasn''t been extracted from currently loaded irCam object; skipping cam movement removal');
-            else
-                if ~mode
-                    heads=get_head(obj.cam.mvt');
-                else
-                    heads=get_head(~obj.cam.mvt');
-                end
-                heads=obj.ts_cam(heads);
-                tails=get_head(obj.cam.mvt(end:-1:1)');
-                tails=obj.ts_cam(tails(end:-1:1));
-                
-                heads(tails<obj.twop.ts(1))=[];tails(tails<obj.twop.ts(1))=[];
-                tails(heads>obj.twop.ts(end))=[];heads(heads>obj.twop.ts(end))=[];
-                
-                for i=1:length(heads)
-                    idx=[find(obj.twop.ts>heads(i),1) find(obj.twop.ts<tails(i),1,'last')];
-                    idx(1)=~(idx(1)<1)*idx(1) + (idx(1)<1);
-                    idx(2)=~(idx(2)>length(obj.twop.ts)).*idx(2) + (idx(2)>length(obj.twop.ts))*length(obj.twop.ts);
-                    obj.twop.deconv(idx(1):idx(2),:)=nan;
-                end
-            end
-            
-            if isempty(obj.behavior)
-                warning('no behavioural data loaded; skipping encoder movement removal');
-            elseif ~isfield(obj.behavior,'unit_vel')
-                thres=noRun(obj.behavior.speed_raw);
-                if ~mode
-                    thres=abs(obj.behavior.speed_raw)>thres;
-                else
-                    thres=abs(obj.behavior.speed_raw)<thres;
-                end
-                obj.twop.deconv(thres,:)=nan;
-            else
-                thres=noRun(obj.behavior.unit_vel);
-                if ~mode
-                    thres=abs(obj.behavior.unit_vel)>thres;
-                else
-                    thres=abs(obj.behavior.unit_vel)<thres;
-                end
-                obj.twop.deconv(thres,:)=nan;
-            end
-        end
-        
+        remove_mvt(obj, mode);
+        import_deconv(obj,deconv);
         down_sample(obj,Fs);
         spectrum(obj,win,range);
         detrend(obj,wdw);
@@ -370,52 +207,27 @@ classdef LFP < handle
     
     methods (Access = private)
         function update_channels(obj)
-            if min(size(obj.Channels)) > 1
+            if min(size(obj.abf.Channels)) > 1
                 error('Channels must be a 1D vector');
             end
-            if length(obj.Channels) < length(obj.ChannelNames) || length(obj.Channels) < length(obj.ChannelNames)
-                error(['Channels must be defined as a vector of ' num2str(length(obj.ChannelNames)) ' integers']);
+            if length(obj.abf.Channels) < length(obj.abf.ChannelNames) || length(obj.abf.Channels) < length(obj.abf.ChannelNames)
+                error(['Channels must be defined as a vector of ' num2str(length(obj.abf.ChannelNames)) ' integers']);
             end
-            if size(obj.Channels,2)>1
-                obj.Channels = obj.Channels';
+            if size(obj.abf.Channels,2)>1
+                obj.abf.Channels = obj.abf.Channels';
             end
-            obj.chan = table(obj.Channels,'RowNames',obj.ChannelNames);
+            obj.abf.chan_tb = table(obj.abf.Channels,'RowNames',obj.abf.ChannelNames);
         end
         
-        function [fn, path, mode] = parse_inputs(obj,inputs)
-            mode = 'abf';
-            fn = []; path = [];
-            count = 1;
-            while count <= length(inputs)
-                switch(lower(inputs{count}))
-                    case {'ch', 'chan', 'channel', 'channels'}
-                        obj.set_channels(inputs{count+1});
-                    case 'plane'
-                        obj.twop.plane = inputs{count+1};
-                    otherwise
-                        exp = regexp(inputs{count}, {'\.abf$', 'behavior\.mat$'}, 'once');
-                        idx = ~cellfun(@isempty, exp);
-                        if any(idx)
-                            path = strsplit(inputs{count}, {'\\','/'});
-                            fn = path{end};
-                            if isunix
-                                path = strjoin( path(1:end-1), '/');
-                            elseif ispc
-                                path = strjoin( path(1:end-1), '\');
-                            end
-                            count = count - 1;
-                            
-                            switch find(idx)
-                                case 1
-                                    mode = 'abf';
-                                case 2
-                                    mode = 'beh';
-                            end
-                        else
-                            error(['argument ''' inputs{count} ''' is undefined']);
-                        end
-                end
-                count = count + 2;
+        function load(obj, fn)
+            [d,s] = abfload(fn);
+            obj.abf.si=s;
+            obj.lfp.fs = 1/s * 1e+6;
+            obj.abf.raw = d;
+            try
+                obj.lfp.lfp = d(:,obj.get_channel('lfp'));
+            catch
+                warning('LFP channel is undefined or unavailable');
             end
         end
         

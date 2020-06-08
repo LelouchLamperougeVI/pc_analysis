@@ -23,18 +23,18 @@ else
 end
 
 obj.spectrum(wdw_size,wdw+obj.SCE.on(idx(1)));
-spec_on=obj.spec.spectrum;
+spec_on=obj.lfp.spec.spectrum;
 for i=2:length(idx)
     obj.spectrum(wdw_size,wdw+obj.SCE.on(idx(i)));
-    spec_on=spec_on+obj.spec.spectrum;
+    spec_on=spec_on+obj.lfp.spec.spectrum;
 end
 spec_on=spec_on./length(idx);
 
 obj.spectrum(wdw_size,wdw+obj.SCE.peak(idx(1)));
-spec_peaks=obj.spec.spectrum;
+spec_peaks=obj.lfp.spec.spectrum;
 for i=2:length(idx)
     obj.spectrum(wdw_size,wdw+obj.SCE.peak(idx(i)));
-    spec_peaks=spec_peaks+obj.spec.spectrum;
+    spec_peaks=spec_peaks+obj.lfp.spec.spectrum;
 end
 spec_peaks=spec_peaks./length(idx);
 
@@ -42,18 +42,18 @@ rn=10;
 % idx=rand(rn,1).*obj.lfp.t(end);
 idx=linspace(0,obj.lfp.ts(end)-wdw_size,rn);
 obj.spectrum(wdw_size,wdw+idx(1));
-null=obj.spec.spectrum;
+null=obj.lfp.spec.spectrum;
 for i=2:rn
     obj.spectrum(wdw_size,wdw+idx(i));
 %     null=null+obj.lfp.spec.spectrum;
-    null=[null obj.spec.spectrum];
+    null=[null obj.lfp.spec.spectrum];
 end
 % null=null./rn;
 
-% obj.spec=spec;
-obj.spec.spectrum_on=spec_on(freq(1)<=obj.spec.f & freq(2)>=obj.spec.f, :);
-obj.spec.spectrum_peak=spec_peaks(freq(1)<=obj.spec.f & freq(2)>=obj.spec.f, :);
-obj.spec.f=obj.spec.f(freq(1)<=obj.spec.f & freq(2)>=obj.spec.f);
-obj.spec.t=linspace(obj.ops.wdw(1),obj.ops.wdw(2),size(obj.spec.spectrum_on,2));
+% obj.lfp.spec=spec;
+obj.lfp.spec.spectrum_on=spec_on(freq(1)<=obj.lfp.spec.f & freq(2)>=obj.lfp.spec.f, :);
+obj.lfp.spec.spectrum_peak=spec_peaks(freq(1)<=obj.lfp.spec.f & freq(2)>=obj.lfp.spec.f, :);
+obj.lfp.spec.f=obj.lfp.spec.f(freq(1)<=obj.lfp.spec.f & freq(2)>=obj.lfp.spec.f);
+obj.lfp.spec.t=linspace(obj.ops.wdw(1),obj.ops.wdw(2),size(obj.lfp.spec.spectrum_on,2));
 
-obj.spec.norm=null(freq(1)<=obj.spec.f & freq(2)>=obj.spec.f, :);
+obj.lfp.spec.norm=null(freq(1)<=obj.lfp.spec.f & freq(2)>=obj.lfp.spec.f, :);

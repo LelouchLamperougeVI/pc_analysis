@@ -7,7 +7,7 @@ function plot(obj,option)
 
 switch option
     case 'spectrum'
-        if isempty(obj.spec.spectrum)
+        if isempty(obj.lfp.spec.spectrum)
             warning('not spectrum was generated; attempting to generate spectrum');
             obj.spectrum;
         end
@@ -19,7 +19,7 @@ switch option
         if isempty(obj.lfp.theta)
             error('must filter bands first');
         end
-        %         if ~isempty(obj.cam.mvt)
+        %         if ~isempty(obj.camera.cam.mvt)
         %             k=k+1;
         %         end
         figure;
@@ -42,11 +42,11 @@ switch option
         hold on
         plot(obj.lfp.swr.swr_peaks,ones(length(obj.lfp.swr.swr_peaks),1),'k*');
         ylabel('SWR')
-        %         if ~isempty(obj.cam.mvt)
+        %         if ~isempty(obj.camera.cam.mvt)
         %             ax6=subplot(k,1,6);
-        %             plot(obj.ts_cam,obj.cam.traces);
+        %             plot(obj.camera.ts_cam,obj.camera.cam.traces);
         %             hold(ax6,'on');
-        %             plot(ax6,obj.ts_cam(obj.cam.mvt),obj.cam.traces(obj.cam.mvt),'.');
+        %             plot(ax6,obj.camera.ts_cam(obj.camera.cam.mvt),obj.camera.cam.traces(obj.camera.cam.mvt),'.');
         %             ylabel('movement')
         %         end
         xlabel('time (sec)')
@@ -70,10 +70,10 @@ switch option
         
     case 'channels' %plot all channels extracted from abf, useful for visualizing mixups
         figure;
-        k=size(obj.raw,2);
+        k=size(obj.abf.raw,2);
         for i=1:k
             ax(i)=subplot(k,1,i);
-            plot(obj.raw(1:1e6,i));
+            plot(obj.abf.raw(1:1e6,i));
             if ismember(i, obj.Channels)
                 ylabel([num2str(i) ' = ' obj.get_channel(i)]);
             else
@@ -131,15 +131,15 @@ end
 
     function plot_spec()
         if exist('ax1','var')
-            imagesc(ax1,'xdata',obj.spec.t,'ydata',obj.spec.f,'cdata',obj.spec.spectrum);
+            imagesc(ax1,'xdata',obj.lfp.spec.t,'ydata',obj.lfp.spec.f,'cdata',obj.lfp.spec.spectrum);
         else
-            imagesc('xdata',obj.spec.t,'ydata',obj.spec.f,'cdata',obj.spec.spectrum);
+            imagesc('xdata',obj.lfp.spec.t,'ydata',obj.lfp.spec.f,'cdata',obj.lfp.spec.spectrum);
         end
         colormap jet
         xlabel('time (sec)');
         ylabel('frequency (Hz)');
-        xlim([obj.spec.t(1) obj.spec.t(end)]);
-        ylim([obj.spec.f(1) obj.spec.f(end)]);
+        xlim([obj.lfp.spec.t(1) obj.lfp.spec.t(end)]);
+        ylim([obj.lfp.spec.f(1) obj.lfp.spec.f(end)]);
         c=colorbar;
         c.Label.String='log-normalized power';
     end
