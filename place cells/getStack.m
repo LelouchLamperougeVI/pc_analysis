@@ -1,8 +1,6 @@
-function [psth,raw_psth,raw_stack,mu_fr,Pi,stack,vel_stack, zscore_stack]=getStack(bins,sd,vr_length,deconv,pos,vel,ft,trials)
+function [psth,raw_psth,raw_stack,mu_fr,Pi,stack,vel_stack]=getStack(bins,sd,vr_length,deconv,pos,vel,ft,trials)
 
 sd=sd/vr_length*bins;
-
-zdeconv = zscore(deconv);
 
 raw_psth=zeros(length(trials)-1,bins,size(deconv,2));
 
@@ -11,16 +9,23 @@ edges=linspace(min(pos),max(pos),bins+1);
 pos_bins=discretize(pos,edges);
 if any(isnan(trial_bins)) || any(isnan(pos_bins)); error('yo dun goof''d'); end
 
-Pi = accumarray(pos_bins', 1);
+% Pi = accumarray(pos_bins', 1);
 [xx, yy] = ndgrid(pos_bins, 1:size(deconv,2));
-raw_stack = accumarray([xx(:) yy(:)], deconv(:)) ./ Pi;
-zscore_stack = accumarray([xx(:) yy(:)], zdeconv(:)) ./ Pi;
-mu_fr=mean(deconv);
+temp = deconv(:);
+Pi = accumarray([xx(:) yy(:)], ~isnan(temp));
+temp(isnan(temp)) = 0;
+raw_stack = accumarray([xx(:) yy(:)], temp) ./ Pi;
+raw_stack(isnan(raw_stack) | isinf(raw_stack)) = 0;
+mu_fr=mean(deconv, 1, 'omitnan');
 
-Pt = accumarray([trial_bins' pos_bins'], 1);
+% Pt = accumarray([trial_bins' pos_bins'], 1);
 for i = 1:size(deconv,2)
-    raw_psth(:,:,i) = accumarray([trial_bins' pos_bins'], deconv(:,i)) ./ Pt;
+    temp = deconv(:,i);
+    Pt = accumarray([trial_bins' pos_bins'], ~isnan(temp));
+    temp(isnan(temp)) = 0;
+    raw_psth(:,:,i) = accumarray([trial_bins' pos_bins'], temp) ./ Pt;
 end
+raw_psth(isnan(raw_psth) | isinf(raw_psth)) = 0;
 vel_stack = accumarray([trial_bins' pos_bins'], vel) ./ Pt;
 
 temp = reshape(permute(raw_psth, [2 1 3]), [bins, (length(trials)-1) * size(deconv,2)]);

@@ -49,7 +49,8 @@ behavior=varargin{1};
 deconv=varargin{2};
 original_deconv=deconv;
 
-[maskFlag,testFlag,parFlag,shuffles,bins,sd,sig,frac_trials,mad,width_thres,io_ratio,consecutive]=parse_input(varargin);
+ops = parse_input(varargin);
+shuffles= ops.shuffles;
 
 unit_pos=behavior.unit_pos;
 unit_vel=behavior.unit_vel;
@@ -73,24 +74,24 @@ catch
 end
 deconv=deconv(thres,:);
 
-[psth,raw_psth,raw_stack,mu_fr,Pi,stack,vel_stack, zscore_stack]=getStack(bins,sd,vr_length,deconv,unit_pos,unit_vel,frame_ts,trials);
+[psth,raw_psth,raw_stack,mu_fr,Pi,stack,vel_stack]=getStack(ops.bins,ops.sd,vr_length,deconv,unit_pos,unit_vel,frame_ts,trials);
 
-silent=sum(deconv)==0; %cell that don't firing during the running epochs
+silent=sum(deconv, 1, 'omitnan')==0; %cell that don't firing during the running epochs
 
 [SI, SI_marge]=get_si_skaggs(raw_stack,mu_fr,Pi);
-if testFlag==1 || testFlag==3
+if ops.testFlag==1 || ops.testFlag==3
     SI=[SI;zeros(shuffles,length(SI))];
-    shuff_stack = zeros(bins,size(SI,2), shuffles);
+    shuff_stack = zeros(ops.bins,size(SI,2), shuffles);
     h=waitbar(0,'permutation testing...');
     count=1;
-    if parFlag
+    if ops.parFlag
         dq=parallel.pool.DataQueue;
         afterEach(dq,@updateBar);
         parfor i=1:shuffles
             %             temp=randperm(size(deconv,1),size(deconv,2));
             %             temp=mat_circshift(deconv,temp);
             temp=burst_shuffler(deconv);
-            [~,~,shuff_raw_stack,shuff_mu,shuff_pi,shuff_stack(:,:,i)]=getStack(bins,sd,vr_length,temp,unit_pos,unit_vel,frame_ts,trials);
+            [~,~,shuff_raw_stack,shuff_mu,shuff_pi,shuff_stack(:,:,i)]=getStack(ops.bins,ops.sd,vr_length,temp,unit_pos,unit_vel,frame_ts,trials);
             SI(i+1,:)=get_si_skaggs(shuff_raw_stack,shuff_mu,shuff_pi);
             send(dq,i);
         end
@@ -100,7 +101,7 @@ if testFlag==1 || testFlag==3
             %             temp=randperm(size(deconv,1),size(deconv,2));
             %             temp=mat_circshift(deconv,temp);
             temp=burst_shuffler(deconv);
-            [~,~,shuff_raw_stack,shuff_mu,shuff_pi,shuff_stack(:,:,i)]=getStack(bins,sd,vr_length,temp,unit_pos,unit_vel,frame_ts,trials);
+            [~,~,shuff_raw_stack,shuff_mu,shuff_pi,shuff_stack(:,:,i)]=getStack(ops.bins,ops.sd,vr_length,temp,unit_pos,unit_vel,frame_ts,trials);
             SI(i+1,:)=get_si_skaggs(shuff_raw_stack,shuff_mu,shuff_pi);
             updateBar;
         end
@@ -108,7 +109,7 @@ if testFlag==1 || testFlag==3
     end
     
     pval=1-sum(SI(1,:)>SI(2:end,:))./shuffles;
-    pc_list=find(pval<sig);
+    pc_list=find(pval<ops.sig);
     %     SI=SI(1,pc_list);
     SI=SI(1,:);
 end
@@ -124,10 +125,10 @@ for i=1:size(raw_stack,2)
     end
     %     [pc_width,pc_loc]=ricker_test(stack(:,i),raw_psth(:,:,i),frac_trials,mad,width_thres,io_ratio);
     %     [pc_width,pc_loc,~,rick_rejects{i}]=ricker_test(stack(:,i),psth{i},frac_trials,mad,width_thres,io_ratio,consecutive);
-    [pc_width,pc_loc,~,rick_rejects{i}]=ricker_test(stack(:,i),raw_psth(:,:,i),frac_trials,mad,width_thres,io_ratio,consecutive);
+    [pc_width,pc_loc,~,rick_rejects{i}]=ricker_test(stack(:,i),raw_psth(:,:,i),ops.frac_trials,ops.mad,ops.width,ops.io_ratio,ops.consecutive);
     width{i}=[pc_width pc_loc];
 end
-if testFlag==2 || testFlag==3
+if ops.testFlag==2 || ops.testFlag==3
     pc_list2=arrayfun(@(x) isempty(width{x}),1:size(raw_stack,2));
     pc_list2=find(~pc_list2);
     if exist('pc_list','var')
@@ -146,12 +147,12 @@ sparsity=sum(Pi.*raw_stack).^2./sum(Pi.*raw_stack.^2);
 % sparsity=sparsity(pc_list);
 
 
-if maskFlag
-    maskNeurons=varargin{maskFlag+1};
-    mimg=varargin{maskFlag+2};
-    analysis=v2struct(vr_length,fs,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,original_deconv,behavior,silent,rick_rejects,maskNeurons,mimg, zscore_stack, shuff_stack, SI_marge);
+if ops.maskFlag
+    maskNeurons=varargin{ops.maskFlag+1};
+    mimg=varargin{ops.maskFlag+2};
+    analysis=v2struct(vr_length,fs,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,original_deconv,behavior,silent,rick_rejects,maskNeurons,mimg, shuff_stack, SI_marge);
 else
-    analysis=v2struct(vr_length,fs,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,original_deconv,behavior,silent,rick_rejects, zscore_stack, shuff_stack, SI_marge);
+    analysis=v2struct(vr_length,fs,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,original_deconv,behavior,silent,rick_rejects, shuff_stack, SI_marge);
 end
 
     function updateBar(~)
@@ -161,71 +162,60 @@ end
 end
 
 
-function [maskFlag,testFlag,parFlag,shuffles,bins,sd,sig,frac_trials,mad,width,io_ratio,consecutive]=parse_input(inputs)
-maskFlag=0;
-testFlag=3;
-parFlag=true;
-shuffles=1000;
-sd=4;
-bins=50;
-sig=0.05;
-frac_trials=1/3;
-mad=3;
-width=[.05 .8];
-io_ratio=2.5;
-consecutive=true;
+function ops = parse_input(inputs)
+ops.maskFlag=0;
+ops.testFlag=3;
+ops.parFlag=true;
+ops.shuffles=1000;
+ops.sd=4;
+ops.bins=50;
+ops.sig=0.05;
+ops.frac_trials=1/3;
+ops.mad=3;
+ops.width=[.05 .8];
+ops.io_ratio=2.5;
+ops.consecutive=true;
 
 idx=3;
 while(idx<length(inputs))
     switch lower(inputs{idx})
         case 'mask'
-            maskFlag=idx;
-            idx=idx+2;
-        case 'test'
+            ops.maskFlag=idx;
             idx=idx+1;
-            switch inputs{idx}
+        case 'test'
+            switch inputs{idx+1}
                 case 'si'
-                    testFlag=1;
+                    ops.testFlag=1;
                 case 'ricker'
-                    testFlag=2;
+                    ops.testFlag=2;
                 case 'mixed'
-                    testFlag=3;
+                    ops.testFlag=3;
                 otherwise
                     error('not a valid test');
             end
         case 'sig'
-            idx=idx+1;
-            sig=inputs{idx};
+            ops.sig=inputs{idx+1};
         case 'shuffles'
-            idx=idx+1;
-            shuffles=inputs{idx};
+            ops.shuffles=inputs{idx+1};
         case 'frac_trials'
-            idx=idx+1;
-            frac_trials=inputs{idx};
+            ops.frac_trials=inputs{idx+1};
         case 'mad'
-            idx=idx+1;
-            mad=inputs{idx};
+            ops.mad=inputs{idx+1};
         case 'width'
-            idx=idx+1;
-            width=inputs{idx};
+            ops.width=inputs{idx+1};
         case 'io_ratio'
-            idx=idx+1;
-            io_ratio=inputs{idx};
+            ops.io_ratio=inputs{idx+1};
         case 'consecutive'
-            idx=idx+1;
-            consecutive=inputs{idx};
+            ops.consecutive=inputs{idx+1};
         case 'bins'
-            idx=idx+1;
-            bins=inputs{idx};
+            ops.bins=inputs{idx+1};
         case 'sd'
-            idx=idx+1;
-            sd=inputs{idx};
+            ops.sd=inputs{idx+1};
         case 'par'
-            idx=idx+1;
-            parFlag=inputs{idx};
+            ops.parFlag=inputs{idx+1};
         otherwise
             error(['''' inputs{idx} ''' is not a valid parameter']);
     end
-    idx=idx+1;
+    idx=idx+2;
 end
 end

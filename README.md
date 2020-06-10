@@ -10,9 +10,15 @@ Collection of tools for analysing two-photon calcium imaging data in the McNaugh
 * Parallel Computing Toolbox (optional)
 * GCC or another compatible C/C++ compiler (not required for basic functionalities). All MEX functions were tested on a Linux machine; not sure whether they are cross-platform compatible.
 
+## System Requirements
+* A 64-bit Intel Processor with >=SSE4.2 instruction set is recommended to fully utilize the MEX functions
+* For multi-plane analysis, a minimum of 16 GB of memory is recommended
+* For general use, a minimum of 8 GB of memory is recommended
+* For best performance, a discrete graphics card with hardware OpenGL acceleration is recommended
+
 ## Installation
-1. Clone repository and add the local repository's directory path to the MATLAB path.
-1. (optional) Compile the MEX files under the `better_than_default` folder.
+1. Clone repository and add the local repository's directory path to the MATLAB path
+1. (optional) Compile the MEX files under the `better_than_default` folder
 
 ## Place cells analysis
 
@@ -78,7 +84,7 @@ The function `plot_analysis(analysis, [true true true], list)` allows for visual
 The `plot_behaviour(analysis, deconv, dot)` is used to visualise the neural time-series as a function of position and movement velocity. The first parameter is the output of `pc_batch_analysis()`. The second parameter is the original `deconv` matrix. The third parameter indicates whether the time-series should be plotted as the normalized dF/F (`false`) or the "peak-per-trial" (`true`).
 
 ## The `LFP` class
-If you don't like to work with scripts, but instead would like to have everything neatly organised inside one object, then the `LFP` class is for you! This class contains all the methods required to get you from loading and pre-processing your data to plotting figures for dissemination :sunglasses:
+If you don't like to work with scripts, but instead would like to have everything neatly organised inside one object, then the `LFP` class is for you! This class contains all the methods required to get you from loading and pre-processing your data to plotting figures for dissemination :sunglasses:.
 
 ### Data organization
 It is recommended for you to organise your data in the following manner:
@@ -102,7 +108,28 @@ If you only have a single plane, then simply store the data files under the sess
 There are two ways to create an object of the LFP class: with an `abf` file or with a `behavior.mat` file. The first option is highly recommended as it performs a more robust extraction of the animal behaviour than the earlier versions. Give the full path of the behavior file during creation of an object: e.g. `obj = LFP(fullfile(pwd, '2020_01_01.abf'))` or `obj = LFP(fullfile(pwd, '2020_01_01', '1', 'behavior.mat'))`. If no file is specified (i.e. `obj = LFP()`), then the user will be prompted to select a file. Properties may be set during this stage: `obj = LFP(file, 'name', value)`.
 
 ### Object properties
-Currently, it is highly advised to define all of the object properties during instantiation; changing the properties following creation may result in unpredictable behaviours.
+Various properties affect different stages of the analysis. In most cases, the default properties should be adequate as those are the same parameters used by Ingrid and Yours Truly. Currently, it is highly advised to define all of the object properties during instantiation; changing the properties following creation of the object may result in unpredictable behaviours. `obj = LFP(file, 'name', value)`
+
+### Animal movement
+For rest recordings, you may wish to remove all epochs during which the animal was moving, while for running data you may want to discard the frames during which the animal was idle. This can be achieved with the `LFP.rm_mvt(mode)` method, where `mode` is either `'exclude'` (rest only) or `'include'` (run only). This function __must__ be run as a preliminary step before executing the core analysis of the `ensemble` class (see below). The code __will not__ warn you if you omitted this step so please keep it in mind.
+
+### Multi-plane recordings
+Define the planes to be processed with the `'planes'` parameter. For example, given a dataset with 15 planes, where planes 0, 1, 12, 13 and 14 are flyback frames that should be discarded, the object should be instantiated as `obj = LFP(file, 'planes', 3:12)`. Notice that the plane indices start with 1, despite the fact that the plane folders' indices begin with 0.
+
+The step size between light sections is defined by the `'stepsize'` parameter. The method `LFP.rm_redund()` can be used to automatically remove overlapping neurons across planes (only preserving one with higher SNR). The parameter `'maxstep'` defines the maximum distance for two-neurons to be considered overlapping. The parameter `'ol'` sets the threshold for fraction of overlapping pixels.
+
+Alternatively, you can manually dictate which neurons are to be removed with the `LFP.rm_neurons()` method. Take a look at the property `LFP.twop.plane_members` to figure out which neuron corresponds with which plane.
+
+Below is a full example:
+```
+session = '/home/haoran/data/Emily/2020_01_01/2020_01_01_1.abf'; % session to be processed
+obj = LFP(session, 'planes', 3:12, 'stepsize', 35, 'maxstep', 50, 'ol', .8);
+% load plane2 through plane11
+% define step size as 35 um between consecutive light sections
+% set threshold for overlapping neurons to 50 um over the Z aspect and 80% overlapping pixels
+obj.rm_redund; % get rid of overlapping neurons
+obj.perform_analysis; % run place cells analysis
+```
 
 ## The `ensemble` class
 TODO

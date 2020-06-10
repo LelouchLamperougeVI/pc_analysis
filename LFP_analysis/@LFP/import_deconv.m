@@ -1,4 +1,9 @@
 function import_deconv(obj,deconv) % import deconv
+if any(deconv(:) < 0)
+    warning('Deconv contains negative firing rates. These would be set to 0.');
+    deconv(deconv < 0) = 0;
+end
+
 if exist(fullfile(obj.session.wd, 'fkd18k'), 'file')
     fid = fopen(fullfile(obj.session.wd, 'fkd18k'), 'r');
     if fscanf(fid, '%d')

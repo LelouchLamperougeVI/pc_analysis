@@ -4,7 +4,7 @@ if nargin<2
     plotFlag=[1 1 1];
 end
 
-bins=length(analysis.Pi);
+bins=size(analysis.stack, 1);
 if nargin < 3
     pc_list=analysis.pc_list;
 end
@@ -93,7 +93,7 @@ end
 
 if plotFlag(3)
     pc_width=vertcat(analysis.width{:});
-    pc_width=pc_width.*analysis.vr_length./length(analysis.Pi);
+    pc_width=pc_width.*analysis.vr_length./bins;
     
     figure;
     subplot(1,3,1);

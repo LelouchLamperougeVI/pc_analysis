@@ -73,26 +73,45 @@ classdef LFP < handle
             plane_case( cellfun(@isempty, plane_case) ) = [];
             plane_case = strrank(plane_case);
             if length(plane_case) > 1
-                disp('Multiplane recording detected!!!')
-                disp( ['The following planes are available: ' strjoin(plane_case, ' ') ] );
+                disp('Multiplane recording detected.')
+                disp( ['The following planes are available: ' strjoin(plane_case, ', ') ] );
                 obj.twop.numplanes = length(plane_case);
+                obj.twop.plane_names = plane_case;
             else
                 obj.twop.numplanes = 1;
             end
             if ~isempty(plane_case)
-                disp( ['loading ' plane_case{obj.twop.plane} '...'] );
+                disp( ['loading ' strjoin(plane_case(obj.twop.plane), ', ') '...'] );
                 plane = plane_case{obj.twop.plane};
             else
                 disp('No planes folder. Loading from session root directory.');
                 plane = [];
             end
             
-            deconv=load(fullfile(obj.session.wd, obj.session.id, plane, 'deconv.mat'));
+            temp = cell(1, length(obj.twop.plane));
+            for ii = 1:length(temp)
+                deconv = load(fullfile(obj.session.wd, obj.session.id, plane_case{obj.twop.plane(ii)}, 'deconv.mat'));
+                temp{ii} = deconv.deconv;
+            end
+            deconv = NaN( sum(cell2mat(cellfun(@size, temp, 'uniformoutput', false)'), 1) );
+            obj.twop.plane_members = zeros(1, size(deconv,2));
+            idx = 1;
+            for ii = 1:length(temp)
+                deconv(ii : length(obj.twop.plane) : end, idx : idx + size(temp{ii}, 2) - 1) = temp{ii};
+                obj.twop.plane_members(idx : idx + size(temp{ii}, 2) - 1) = ii;
+                idx = idx + size(temp{ii}, 2);
+            end
+            
+%             deconv=load(fullfile(obj.session.wd, obj.session.id, plane, 'deconv.mat'));
+%             deconv = deconv.deconv;
             obj.update_channels();
             if strcmp(obj.intern.op_mode, 'abf')
                 obj.load_abf(fullfile(obj.intern.path, obj.intern.fn));
-                obj.two_photon_ts(deconv.deconv);
+                obj.two_photon_ts(deconv);
             else
+                if length(obj.twop.plane) > 1
+                    error('The ability to load multiple planes is only available under the ''abf'' operating mode.');
+                end
                 tcs=load(fullfile(obj.session.wd, obj.session.id, plane, 'timecourses.mat'));
                 obj.twop.ts = tcs.tcs.tt';
                 obj.twop.fs = 1/median(diff(obj.twop.ts));
@@ -111,7 +130,7 @@ classdef LFP < handle
             end
             
             try
-                obj.import_deconv(deconv.deconv);
+                obj.import_deconv(deconv);
                 disp('Deconv loaded')
             catch
                 disp('Failed to autoload deconv :(');
@@ -119,9 +138,11 @@ classdef LFP < handle
             
             if size(obj.twop.deconv,1) < length(obj.behavior.speed_raw) && ~isempty(obj.twop.deconv)
                 disp('resampling behaviour for multiplane...');
-                obj.behavior.speed_raw = obj.behavior.speed_raw(obj.twop.plane:obj.twop.numplanes:end);
+                idx = repmat( (1:obj.twop.numplanes)', [length(obj.behavior.speed_raw)/obj.twop.numplanes 1]);
+                idx = ismember(idx, obj.twop.plane);
+                obj.behavior.speed_raw = obj.behavior.speed_raw(idx);
                 if isfield(obj.behavior, 'speed_raw_noSmooth')
-                    obj.behavior.speed_raw_noSmooth = obj.behavior.speed_raw_noSmooth(obj.twop.plane:obj.twop.numplanes:end);
+                    obj.behavior.speed_raw_noSmooth = obj.behavior.speed_raw_noSmooth(idx);
                 end
             end
             

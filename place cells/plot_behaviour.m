@@ -9,7 +9,7 @@ sig=10;
 h=figure;
 ax1=subplot(4,1,1:2);
 
-bins=length(analysis.Pi);
+bins=size(analysis.stack, 1);
 behavior=analysis.behavior;
 
 run_thres = noRun(behavior.unit_vel);
