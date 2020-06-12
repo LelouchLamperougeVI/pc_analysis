@@ -204,10 +204,18 @@ classdef LFP < handle
             if isempty(obj.twop.deconv)
                 error('no deconv data currently exists');
             end
-            tcs.tt=obj.twop.ts';
-            [beh,dec]=convert_behavior(obj.behavior,tcs,obj.twop.deconv);
-            obj.analysis=pc_batch_analysis(beh,dec,varargin);
-            obj.analysis.order=get_order(obj.analysis);
+            
+            anal = [];
+            for ii = 1:length(obj.twop.planes.planes)
+                disp(['Performing place cells analysis over ''' obj.twop.planes.plane_names{obj.twop.planes.planes(ii)} ''' (' num2str(ii) '/' num2str(length(obj.twop.planes.planes)) ')']);
+                tcs.tt = obj.twop.ts(ii:length(obj.twop.planes.planes):end)';
+                dec = obj.twop.deconv(ii:length(obj.twop.planes.planes):end, obj.twop.planes.plane_members == obj.twop.planes.planes(ii));
+                [beh, dec] = convert_behavior(obj.behavior, tcs, dec);
+                temp = pc_batch_analysis(beh, dec);
+                anal = combine_analysis(anal, temp);
+            end
+            obj.analysis = anal;
+            obj.analysis.order=get_order(anal);
         end
         
         function chan = get_channel(obj,ch) % return currently listed channels
