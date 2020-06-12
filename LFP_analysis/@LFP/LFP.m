@@ -7,7 +7,7 @@ classdef LFP < handle
             struct('swr_env',[], 'swr_peaks',[], 'swr_dur',[], ...
             'swr_on',[], 'swr_cyc',[], 'swr',[]), ...
             'spec', struct('spectrum',[],'t',[],'f',[]));
-        twop = struct( 'fs',[], 'ts',[], 'deconv',[], 'plane', [], 'numplanes', [] );
+        twop = struct( 'fs',[], 'ts',[], 'deconv',[]);
         behavior
         camera = struct('ts_cam', [], 'cam', []); % clampex camera pulses and irCam object
         analysis
@@ -61,10 +61,10 @@ classdef LFP < handle
             end
             obj.session.wd = obj.intern.path;
             
-            if exist(fullfile(obj.session.wd, ['lfp' num2str(obj.session.id) '_plane' num2str(obj.twop.plane) '.mat']), 'file')
-                lfp = load(fullfile(obj.session.wd, ['lfp' num2str(obj.session.id) '_plane' num2str(obj.twop.plane) '.mat']));
+            if exist(fullfile(obj.session.wd, ['lfp' num2str(obj.session.id) '_plane' num2str(obj.twop.planes.planes) '.mat']), 'file')
+                lfp = load(fullfile(obj.session.wd, ['lfp' num2str(obj.session.id) '_plane' num2str(obj.twop.planes.planes) '.mat']));
                 obj = lfp.lfp;
-                disp(['loaded existing: ' fullfile(obj.session.wd, ['lfp' num2str(obj.session.id) '_plane' num2str(obj.twop.plane) '.mat'])]);
+                disp(['loaded existing: ' fullfile(obj.session.wd, ['lfp' num2str(obj.session.id) '_plane' num2str(obj.twop.planes.planes) '.mat'])]);
                 return
             end
             
@@ -75,41 +75,39 @@ classdef LFP < handle
             if length(plane_case) > 1
                 disp('Multiplane recording detected.')
                 disp( ['The following planes are available: ' strjoin(plane_case, ', ') ] );
-                obj.twop.numplanes = length(plane_case);
-                obj.twop.plane_names = plane_case;
+                obj.twop.planes.numplanes = length(plane_case);
+                obj.twop.planes.plane_names = plane_case;
             else
-                obj.twop.numplanes = 1;
+                obj.twop.planes.numplanes = 1;
             end
             if ~isempty(plane_case)
-                disp( ['loading ' strjoin(plane_case(obj.twop.plane), ', ') '...'] );
-                plane = plane_case{obj.twop.plane};
+                disp( ['loading ' strjoin(plane_case(obj.twop.planes.planes), ', ') '...'] );
+                plane = plane_case{obj.twop.planes.planes};
             else
                 disp('No planes folder. Loading from session root directory.');
                 plane = [];
             end
             
-            temp = cell(1, length(obj.twop.plane));
+            temp = cell(1, length(obj.twop.planes.planes));
             for ii = 1:length(temp)
-                deconv = load(fullfile(obj.session.wd, obj.session.id, plane_case{obj.twop.plane(ii)}, 'deconv.mat'));
+                deconv = load(fullfile(obj.session.wd, obj.session.id, plane_case{obj.twop.planes.planes(ii)}, 'deconv.mat'));
                 temp{ii} = deconv.deconv;
             end
             deconv = NaN( sum(cell2mat(cellfun(@size, temp, 'uniformoutput', false)'), 1) );
-            obj.twop.plane_members = zeros(1, size(deconv,2));
+            obj.twop.planes.plane_members = zeros(1, size(deconv,2));
             idx = 1;
             for ii = 1:length(temp)
-                deconv(ii : length(obj.twop.plane) : end, idx : idx + size(temp{ii}, 2) - 1) = temp{ii};
-                obj.twop.plane_members(idx : idx + size(temp{ii}, 2) - 1) = ii;
+                deconv(ii : length(obj.twop.planes.planes) : end, idx : idx + size(temp{ii}, 2) - 1) = temp{ii};
+                obj.twop.planes.plane_members(idx : idx + size(temp{ii}, 2) - 1) = obj.twop.planes.planes(ii);
                 idx = idx + size(temp{ii}, 2);
             end
             
-%             deconv=load(fullfile(obj.session.wd, obj.session.id, plane, 'deconv.mat'));
-%             deconv = deconv.deconv;
             obj.update_channels();
             if strcmp(obj.intern.op_mode, 'abf')
                 obj.load_abf(fullfile(obj.intern.path, obj.intern.fn));
                 obj.two_photon_ts(deconv);
             else
-                if length(obj.twop.plane) > 1
+                if length(obj.twop.planes.planes) > 1
                     error('The ability to load multiple planes is only available under the ''abf'' operating mode.');
                 end
                 tcs=load(fullfile(obj.session.wd, obj.session.id, plane, 'timecourses.mat'));
@@ -138,16 +136,16 @@ classdef LFP < handle
             
             if size(obj.twop.deconv,1) < length(obj.behavior.speed_raw) && ~isempty(obj.twop.deconv)
                 disp('resampling behaviour for multiplane...');
-                idx = repmat( (1:obj.twop.numplanes)', [length(obj.behavior.speed_raw)/obj.twop.numplanes 1]);
-                idx = ismember(idx, obj.twop.plane);
+                idx = repmat( (1:obj.twop.planes.numplanes)', [length(obj.behavior.speed_raw)/obj.twop.planes.numplanes 1]);
+                idx = ismember(idx, obj.twop.planes.planes);
                 obj.behavior.speed_raw = obj.behavior.speed_raw(idx);
                 if isfield(obj.behavior, 'speed_raw_noSmooth')
                     obj.behavior.speed_raw_noSmooth = obj.behavior.speed_raw_noSmooth(idx);
                 end
             end
             
-            if exist(fullfile(obj.session.wd, ['analysis_' num2str(obj.session.id) '_plane' num2str(obj.twop.plane) '.mat']), 'file')
-                analysis=load(fullfile(obj.session.wd, ['analysis_' num2str(obj.session.id) '_plane' num2str(obj.twop.plane) '.mat']));
+            if exist(fullfile(obj.session.wd, ['analysis_' num2str(obj.session.id) '_plane' num2str(obj.twop.planes.planes) '.mat']), 'file')
+                analysis=load(fullfile(obj.session.wd, ['analysis_' num2str(obj.session.id) '_plane' num2str(obj.twop.planes.planes) '.mat']));
                 obj.import_analysis(analysis.analysis);
                 disp('Analysis loaded');
             elseif exist(fullfile(obj.session.wd, 'analysis.mat'), 'file')
@@ -158,13 +156,32 @@ classdef LFP < handle
                 disp('No analysis file found');
             end
             if exist(fullfile(obj.session.wd, obj.session.id, plane, 'masks_neurons.mat'), 'file')
-                maskNeurons = load(fullfile(obj.session.wd, obj.session.id, plane, 'masks_neurons.mat'));
-                mimg = load(fullfile(obj.session.wd, obj.session.id, plane, 'mean_img.mat'));
-                obj.topo.maskNeurons = maskNeurons.maskNeurons;
-                obj.topo.mimg = double(mimg.mimg);
+                for ii = 1:length(obj.twop.planes.planes)
+                    maskNeurons = load(fullfile(obj.session.wd, obj.session.id, plane_case{obj.twop.planes.planes(ii)}, 'masks_neurons.mat'));
+                    mimg = load(fullfile(obj.session.wd, obj.session.id, plane_case{obj.twop.planes.planes(ii)}, 'mean_img.mat'));
+                    obj.topo.maskNeurons = cat(3, obj.topo.maskNeurons, double(maskNeurons.maskNeurons) + logical(maskNeurons.maskNeurons) .* max([obj.topo.maskNeurons(:); 0]));
+                    obj.topo.mimg = cat(3, obj.topo.mimg, double(mimg.mimg));
+                end
+                disp('Topography loaded');
+            elseif exist(fullfile(obj.session.wd, obj.session.id, plane, 'masks.mat'), 'file')
+                for ii = 1:length(obj.twop.planes.planes)
+                    maskNeurons = load(fullfile(obj.session.wd, obj.session.id, plane_case{obj.twop.planes.planes(ii)}, 'masks.mat'));
+                    mimg = load(fullfile(obj.session.wd, obj.session.id, plane_case{obj.twop.planes.planes(ii)}, 'avgstack.mat'));
+                    obj.topo.maskNeurons = cat(3, obj.topo.maskNeurons, double(maskNeurons.maskNeurons) + logical(maskNeurons.maskNeurons) .* max([obj.topo.maskNeurons(:); 0]));
+                    obj.topo.mimg = cat(3, obj.topo.mimg, double(mimg.avg_stack));
+                end
                 disp('Topography loaded');
             else
                 disp('Failed to load topography');
+            end
+            if size(obj.topo.mimg, 1) < size(obj.topo.mimg, 2)
+                warning('Your Galvo axis spans a wider scanning range than your Resonance axis. I surely hope you didn''t record all of your sessions like this XD');
+            end
+            if exist(fullfile(obj.session.wd, obj.session.id, 'Experiment.xml'), 'file')
+                obj.readExp(fullfile(obj.session.wd, obj.session.id, 'Experiment.xml'));
+                disp('Experiment.xml loaded');
+            else
+                disp('Experiment.xml missing');
             end
         end
         
@@ -223,7 +240,8 @@ classdef LFP < handle
         filter_bands(obj);
         extract_behaviour(obj);
         enregistrer(obj);
-        topography(obj, FOV);
+        topography(obj);
+        rm_redund(obj);
     end
     
     methods (Access = private)
@@ -254,6 +272,7 @@ classdef LFP < handle
         
         two_photon_ts(obj, deconv)
         irCam_ts(obj)
+        readExp(obj, fn);
     end
     
 end

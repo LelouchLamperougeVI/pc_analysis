@@ -94,6 +94,7 @@ It is recommended for you to organise your data in the following manner:
     └── Date (yyyy_mm_dd)
         ├── yyyy_mm_dd_1.abf (abf file with session number appended after the date)
         └── Session number (integer)
+            ├── Experiment.xml
             ├── behavior.mat
             └── Plane (plane0, plane1, plane2, etc.)
                 ├── deconv.mat
@@ -112,6 +113,9 @@ Various properties affect different stages of the analysis. In most cases, the d
 
 ### Animal movement
 For rest recordings, you may wish to remove all epochs during which the animal was moving, while for running data you may want to discard the frames during which the animal was idle. This can be achieved with the `LFP.rm_mvt(mode)` method, where `mode` is either `'exclude'` (rest only) or `'include'` (run only). This function __must__ be run as a preliminary step before executing the core analysis of the `ensemble` class (see below). The code __will not__ warn you if you omitted this step so please keep it in mind.
+
+### Topographical analysis
+The FOV can be set manually through the `'FOV'` parameter. If `Experiment.xml` is available, the FOV will be detected automatically.
 
 ### Multi-plane recordings
 Define the planes to be processed with the `'planes'` parameter. For example, given a dataset with 15 planes, where planes 0, 1, 12, 13 and 14 are flyback frames that should be discarded, the object should be instantiated as `obj = LFP(file, 'planes', 3:12)`. Notice that the plane indices start with 1, despite the fact that the plane folders' indices begin with 0.

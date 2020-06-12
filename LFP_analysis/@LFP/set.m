@@ -28,8 +28,11 @@ if isempty(ops) % reset default properties
     
     obj.topo.FOV = 835.76 .* ones(2,1);
     
-    obj.twop.plane = 1;
-    obj.twop.numplanes = 1;
+    obj.twop.planes.planes = 1;
+    obj.twop.planes.numplanes = 1;
+    obj.twop.planes.ol = .8;
+    obj.twop.planes.maxStep = 100;
+    obj.twop.planes.maxR = .7;
     
     obj.intern.fn = [];
     obj.intern.path = [];
@@ -41,9 +44,15 @@ while count <= length(ops)
     switch lower(ops{count})
         case {'ch', 'chan', 'channel', 'channels'}
             obj.abf.Channels = ops{count + 1};
-            obj.update_channels;            
+            obj.update_channels;
         case {'plane', 'planes'}
-            obj.twop.plane = ops{count+1};
+            obj.twop.planes.planes = ops{count+1};
+        case {'ol', 'overlap'}
+            obj.twop.planes.ol = ops{count+1};
+        case 'maxstep'
+            obj.twop.planes.maxStep = ops{count+1};
+        case 'maxr'
+            obj.twop.planes.maxR = ops{count+1};
         otherwise
             exp = regexp(ops{count}, {'\.abf$', 'behavior\.mat$'}, 'once');
             idx = ~cellfun(@isempty, exp);
