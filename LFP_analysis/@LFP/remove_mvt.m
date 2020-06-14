@@ -49,6 +49,7 @@ elseif ~isfield(obj.behavior,'unit_vel')
     else
         thres=abs(obj.behavior.speed_raw)<thres;
     end
+    thres = mk_sync(thres, length(obj.twop.planes.planes));
     obj.twop.deconv(thres,:)=nan;
 else
     thres=noRun(obj.behavior.unit_vel);
@@ -57,5 +58,44 @@ else
     else
         thres=abs(obj.behavior.unit_vel)<thres;
     end
+    thres = mk_sync(thres, length(obj.twop.planes.planes));
     obj.twop.deconv(thres,:)=nan;
+end
+
+
+function mvt = mk_sync(mvt, numPlanes)
+% for multi-plane data, make sure that the number of frames to be removed
+% is a multiple of the number of planes analysed
+
+l = find(get_head(mvt));
+r = get_head(mvt(end:-1:1));
+r = find(r(end:-1:1));
+residual = mod(r - l + 1, numPlanes);
+residual(~~residual) = numPlanes - residual(~~residual);
+% MATLAB, for the love of fuck, please make it possible to have do-while loops...
+while any(~~residual)
+    for ii = find(~~residual)'
+        lidx = l(ii) - ceil(residual(ii) / 2);
+        ridx = r(ii) + floor(residual(ii) / 2);
+        if lidx < 1
+            mvt(1 : l(ii)) = 1;
+            mvt(r(ii) : ridx + (1 - lidx)) = 1;
+            continue
+        end
+        
+        if ridx > length(mvt)
+            mvt(r(ii) : end) = 1;
+            mvt(lidx - (ridx - length(mvt)) : l(ii)) = 1;
+            continue
+        end
+        
+        mvt(lidx : l(ii)) = 1;
+        mvt(r(ii) : ridx) = 1;
+    end
+    
+    l = find(get_head(mvt));
+    r = get_head(mvt(end:-1:1));
+    r = find(r(end:-1:1));
+    residual = mod(r - l + 1, numPlanes);
+    residual(~~residual) = numPlanes - residual(~~residual);
 end

@@ -8,15 +8,8 @@ if ~isfield(obj.topo, 'centroid')
     obj.topography;
 end
 
-obj.twop.planes.depth = (obj.twop.planes.planes - 1) .* obj.twop.planes.stepsize;
-
-depth = zeros(length(obj.twop.planes.plane_members), 1);
-for ii = 1:length(obj.twop.planes.planes)
-    depth(obj.twop.planes.plane_members == obj.twop.planes.planes(ii)) = obj.twop.planes.depth(ii);
-end
-
 % only across planes
-d = abs(depth - depth');
+d = abs(obj.twop.planes.depth - obj.twop.planes.depth');
 d = d < obj.twop.planes.maxStep & d > 0;
 
 % correlation between time-series

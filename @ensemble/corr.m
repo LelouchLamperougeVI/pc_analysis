@@ -5,8 +5,10 @@ deconv = obj.twop.deconv;
 % deconv=(deconv-mean(deconv,'omitnan'))./std(deconv,'omitnan'); %zscore
 % deconv(:, all(isnan(deconv))) = 0;
 deconv=fast_smooth(deconv,obj.ops.sig*obj.twop.fs);
-deconv=(deconv-mean(deconv,'omitnan'))./std(deconv,'omitnan'); %zscore
-deconv(isnan(sum(deconv,2)),:)=[];
+% deconv=(deconv-mean(deconv,'omitnan'))./std(deconv,'omitnan'); %zscore
+deconv = deconv(~isnan(deconv));
+deconv = reshape(deconv, [], size(obj.twop.deconv, 2));
+deconv=(deconv-mean(deconv))./std(deconv); %zscore
 
 obj.R=corr(deconv);
 

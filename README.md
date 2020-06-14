@@ -18,7 +18,7 @@ Collection of tools for analysing two-photon calcium imaging data in the McNaugh
 
 ## Installation
 1. Clone repository and add the local repository's directory path to the MATLAB path
-1. (optional) Compile the MEX files under the `better_than_default` folder
+1. (optional) Compile the MEX files under the `C` folder
 
 ## Place cells analysis
 
@@ -112,28 +112,48 @@ There are two ways to create an object of the LFP class: with an `abf` file or w
 Various properties affect different stages of the analysis. In most cases, the default properties should be adequate as those are the same parameters used by Ingrid and Yours Truly. Currently, it is highly advised to define all of the object properties during instantiation; changing the properties following creation of the object may result in unpredictable behaviours. `obj = LFP(file, 'name', value)`
 
 ### Animal movement
-For rest recordings, you may wish to remove all epochs during which the animal was moving, while for running data you may want to discard the frames during which the animal was idle. This can be achieved with the `LFP.rm_mvt(mode)` method, where `mode` is either `'exclude'` (rest only) or `'include'` (run only). This function __must__ be run as a preliminary step before executing the core analysis of the `ensemble` class (see below). The code __will not__ warn you if you omitted this step so please keep it in mind.
+For rest recordings, you may wish to remove all epochs during which the animal was moving, while for running data you may want to discard the frames during which the animal was idle. This can be achieved with the `LFP.remove_mvt(mode)` method, where `mode` is either `'exclude'` (rest only) or `'include'` (run only). This function __must__ be run as a preliminary step before executing the core analysis of the `ensemble` class (see below). The code __will not__ warn you if you omitted this step so please keep it in mind.
+
+### Place cells analysis
+`pc_batch_analysis()` can be invoked directly through the class method `LFP.perform_analysis()`. The parameters passed to `pc_batch_analysis()` are stored as a cell array (e.g. `ops = {'test', 'si', 'bins', 80}`) and can be set under the `'pcOps'` property (e.g. `obj.set('pcOps', ops)`).
 
 ### Topographical analysis
-The FOV can be set manually through the `'FOV'` parameter. If `Experiment.xml` is available, the FOV will be detected automatically.
+The FOV can be set manually through the `'FOV'` parameter. If `Experiment.xml` is available, the FOV will be detected automatically. By invoking the `LFP.topography()` method, the peak response locations of place fields are mapped to the spatial locations of neuronal ROIs. These neuronal masks are stored within the `LFP.topo.loc` field.
 
 ### Multi-plane recordings
 Define the planes to be processed with the `'planes'` parameter. For example, given a dataset with 15 planes, where planes 0, 1, 12, 13 and 14 are flyback frames that should be discarded, the object should be instantiated as `obj = LFP(file, 'planes', 3:12)`. Notice that the plane indices start with 1, despite the fact that the plane folders' indices begin with 0.
 
-The step size between light sections is defined by the `'stepsize'` parameter. The method `LFP.rm_redund()` can be used to automatically remove overlapping neurons across planes (only preserving one with higher SNR). The parameter `'maxstep'` defines the maximum distance for two-neurons to be considered overlapping. The parameter `'ol'` sets the threshold for fraction of overlapping pixels.
+The step size between light sections is defined by the `'stepsize'` parameter. The method `LFP.rm_redund()` can be used to automatically remove overlapping neurons across planes (the neuron with higher SNR is preserved). The parameter `'maxStep'` defines the maximum distance for two-neurons to be considered overlapping. The parameter `'ol'` sets the threshold for fraction of overlapping pixels. Finally, the parameter `'maxR'` sets the threshold for Pearson correlation coefficient over which the time-series of two neurons are considered to be the same. All criteria must be satisfied before an ROI is removed.
 
-Alternatively, you can manually dictate which neurons are to be removed with the `LFP.rm_neurons()` method. Take a look at the property `LFP.twop.plane_members` to figure out which neuron corresponds with which plane.
+Alternatively, you can manually remove neurons with the `LFP.rm_neurons()` method. Take a look at the property `LFP.twop.planes.plane_members` to figure out which neuron corresponds with which plane.
 
 Below is a full example:
 ```
 session = '/home/haoran/data/Emily/2020_01_01/2020_01_01_1.abf'; % session to be processed
-obj = LFP(session, 'planes', 3:12, 'stepsize', 35, 'maxstep', 50, 'ol', .8);
+obj = LFP(session, 'planes', 3:12, 'stepsize', 35, 'maxstep', 100, 'ol', .8, 'maxr', .7);
 % load plane2 through plane11
-% define step size as 35 um between consecutive light sections
-% set threshold for overlapping neurons to 50 um over the Z aspect and 80% overlapping pixels
+% define step size as 35 um between consecutive light sections (automatically set if Experiment.xml is available)
+% set threshold for overlapping neurons to 100 um over the Z aspect and 80% overlapping pixels
+% time-series between prospective overlapping neurons must have Pearson's Rho coefficient > .7
 obj.rm_redund; % get rid of overlapping neurons
 obj.perform_analysis; % run place cells analysis
 ```
 
 ## The `ensemble` class
-TODO
+The `ensemble` class is a subclass of the `LFP` class. Therefore, all methods and properties described in the previous section also apply here. The `ensemble` class contains useful methods for detecting groups of neurons that express synchronous patterns of activity and is therefore suitable for analysing reactivation-type data. Make sure to always remove movement epochs before proceeding with any analysis by running `obj.remove_mvt()`.
+
+### Agglomerative clustering
+Agglomerative clustering with average-linkage criterion is used to group neurons into synchronous ensembles. The `'thres'` parameter defines the threshold for average distance between cluster members ( distance metric defined as `1 - abs(Pearson correlation coefficient)`). The `'e_size'` parameter sets the minimum number of neurons required to form an ensemble. After defining these parameters, run agglomerative clustering with the `ensemble.hclust()` method.
+
+### SCE detection
+Synchronous calcium events (SCEs) are detected by invoking the `ensemble.detect_sce()` method. The range of durations of a SCE is set via the `'sce_dur'` parameter, where the value is given as a two-element array (e.g. `[0 .8] % from 0 to 800 msec`). Events falling short or ever this range are rejected.
+
+### Topographical analysis
+The `ensemble` class comes with its own `ensemble.topography()` method aimed at mapping synchronous ensemble clusters onto physical locations of neuronal ROIs.
+
+### Visualising the results
+The `ensemble.plot(type)` method is used visualize the results, where `type` dictates the plot to be shown:
+`'tree'` plots the results from agglomerative clustering as a dendrogram; `'sce'` plots the detected SCE events; `'clust_topo'` plots the topographical organisation of the detected ensemble.
+
+## Where to go next?
+The `pc_analysis` toolbox has much more to offer. Ask HaoRan about specifics.
