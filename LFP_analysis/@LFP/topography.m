@@ -19,7 +19,7 @@ obj.topo.centroid = cell2mat(centroids);
 obj.topo.centroid = obj.topo.centroid ./ [size(obj.topo.mimg, 1); size(obj.topo.mimg, 2)] .* obj.topo.FOV;
 
 obj.topo.distances = distance(obj.topo.centroid); % distance over only XY aspect
-obj.topo.zdistance = distance(cat(1, obj.topo.centroid, obj.twop.planes.depth));
+obj.topo.zdistances = distance(cat(1, obj.topo.centroid, obj.twop.planes.depth));
 
 if ~isempty(obj.analysis)
     [~, stack] = max( obj.analysis.stack );

@@ -152,8 +152,12 @@ Synchronous calcium events (SCEs) are detected by invoking the `ensemble.detect_
 The `ensemble` class comes with its own `ensemble.topography()` method aimed at mapping synchronous ensemble clusters onto physical locations of neuronal ROIs.
 
 ### Visualising the results
-The `ensemble.plot(type)` method is used visualize the results, where `type` dictates the plot to be shown:
-`'tree'` plots the results from agglomerative clustering as a dendrogram; `'sce'` plots the detected SCE events; `'clust_topo'` plots the topographical organisation of the detected ensemble.
+The `ensemble.plot(type, param)` method is used visualize the results, where `type` dictates the plot to be shown:
+* `'tree'` plots the results from agglomerative clustering as a dendrogram
+* `'sce'` plots the detected SCE events
+* `'clust_topo'` plots the topographical organisation of the detected ensemble, where `param` is an index array of ensembles to be plotted (e.g. `[2 5]` will only plot ensembles 2 and 5)
+* `'clust_topo_stack'` plots the topographical organisation of the detected ensemble across multiple planes, where `param` is an index array of ensembles to be plotted
+* `'clust_topo_stats'` plots summary statistics for "clusteredness"
 
 ## Where to go next?
 The `pc_analysis` toolbox has much more to offer. Ask HaoRan about specifics.

@@ -13,16 +13,16 @@ switch lower(type)
     case 'sce'
         wbins = 100;
         figure;
-%         deconv=(obj.twop.deconv - mean(obj.twop.deconv,'omitnan'))./std(obj.twop.deconv,'omitnan');
-%         deconv=fast_smooth(deconv(:,order),obj.ops.sig*obj.twop.fs);
+        %         deconv=(obj.twop.deconv - mean(obj.twop.deconv,'omitnan'))./std(obj.twop.deconv,'omitnan');
+        %         deconv=fast_smooth(deconv(:,order),obj.ops.sig*obj.twop.fs);
         deconv=fast_smooth(obj.twop.deconv(:,order),obj.ops.sig*obj.twop.fs);
-%         deconv=(deconv - mean(deconv,'omitnan'))./std(deconv,'omitnan');
+        %         deconv=(deconv - mean(deconv,'omitnan'))./std(deconv,'omitnan');
         deconv = (deconv - min(deconv,[],'omitnan')) ./ range(deconv);
         idx = 1:3*wbins;
         idx( ~mod(1:3*wbins, wbins) ) = [];
         ax(1)=subplot(5,wbins,idx);
         imagesc('xdata',obj.twop.ts,'cdata',deconv');
-%         colormap(get_colour('black'));
+        %         colormap(get_colour('black'));
         colormap hot
         ylim([1 size(deconv,2)]);
         ylabel(lab);
@@ -43,6 +43,7 @@ switch lower(type)
         idx = 4*wbins:5*wbins;
         idx( ~mod(4*wbins:5*wbins, wbins) ) = [];
         ax(3)=subplot(5,wbins,idx);
+        subset = gobjects(length(obj.clust_SCE), 1);
         for ii = 1:length(obj.clust_SCE)
             subset(ii)=plot(obj.twop.ts,obj.clust_MUA(ii).MUA, 'color', obj.colours(ii,:));
             hold on
@@ -79,7 +80,7 @@ switch lower(type)
         deconv=(deconv-mean(deconv,'omitnan'))./std(deconv,'omitnan');
         ax(1)=subplot(5,1,1:3);
         imagesc('xdata',obj.twop.ts,'cdata',deconv');
-%         colormap(get_colour('black'));
+        %         colormap(get_colour('black'));
         ylim([1 size(deconv,2)]);
         ylabel(lab);
         
@@ -259,6 +260,7 @@ switch lower(type)
         ylabel('sorted neuron no.');
         
         k=5;
+        h = gobjects(length(obj.clust), 1);
         for ii=1:length(obj.clust)
             if ~mod(ii-1, k^2)
                 figure;
@@ -275,16 +277,16 @@ switch lower(type)
             title(['Clust ' num2str(ii)]);
         end
         linkaxes(h, 'y');
-%         labels = arrayfun(@(x) ['clust ' num2str(x)], 1:length(obj.clust), 'uniformoutput',false);
-%         legend(labels);
-
+        %         labels = arrayfun(@(x) ['clust ' num2str(x)], 1:length(obj.clust), 'uniformoutput',false);
+        %         legend(labels);
+        
         for ii=1:length(obj.clust)
             if ~mod(ii-1, k^2)
                 figure;
             end
             h(ii) = subplot(k,k, mod(ii-1, k^2)+1);
             temp = mean(obj.swr_all(:, obj.clust{ii}, :), 2);
-%             imagesc(squeeze(temp)');
+            %             imagesc(squeeze(temp)');
             imagesc(fast_smooth(squeeze(temp),1)');
             title(['Clust ' num2str(ii)]);
         end
@@ -303,24 +305,96 @@ switch lower(type)
         ylabel('average silhouette width');
         
     case 'clust_topo'
-        figure;
-%         imagesc(ones(size(obj.topo.mimg)));
-        imagesc(obj.topo.mimg')
-%         colormap white;
-        colormap gray
-        set(gca,'visible','off')
-        hold on
-        for i =1:length(obj.clust)
-            for j=1:size(obj.topo.clust.vertices{i}, 3)
-                l=plot(obj.topo.clust.vertices{i}(2,:,j), obj.topo.clust.vertices{i}(1,:,j), 'color', obj.colours(i,:));
-                l.Color(4) = .25;
+        if isempty(varargin)
+            clusts = 1:length(obj.clust);
+        else
+            clusts = varargin{1};
+        end
+        k=2;
+        for plane = 1:size(obj.topo.mimg, 3)
+            if ~mod(plane-1, k^2)
+                figure;
             end
+            subplot(k, k, mod(plane-1, k^2) + 1);
+            
+            mimg = obj.topo.mimg(:, :, plane);
+            mimg = (mimg - min(mimg(:))) ./ range(mimg(:));
+            imshow(mimg)
+            hold on
+            
+            mask = zeros(size(obj.topo.maskNeurons, 1), size(obj.topo.maskNeurons, 2), 3);
+            for ii = clusts
+                idx = ismember(obj.topo.maskNeurons(:, :, plane), obj.clust{ii});
+                idx = repmat(idx, 1, 1, 3);
+                mask = mask + double(idx) .* permute(obj.colours(ii, :), [1 3 2]);
+            end
+            
+            h = imshow(mask);
+            set(h, 'alphadata', .5);
+            title(obj.twop.planes.plane_names{plane});
         end
-        for i=1:length(obj.clust)
-            [x,y]=find(obj.topo.clust.masks==i);
-            plot(x,y,'.', 'color', obj.colours(i,:));
+        
+    case 'clust_topo_stack'
+        if isempty(varargin)
+            clusts = 1:length(obj.clust);
+        else
+            clusts = varargin{1};
         end
-        axis square
+        
+        figure
+        hold on
+        x = linspace(0, obj.topo.FOV(1), size(obj.topo.mimg, 1));
+        y = linspace(0, obj.topo.FOV(2), size(obj.topo.mimg, 2));
+        sections = -unique(obj.twop.planes.depth);
+        [x, y, z] = meshgrid(y, x, sections);
+        slice(x, y, z, obj.topo.mimg, [], [], sections)
+        axis image
+        colormap gray
+        shading interp
+        alpha(.3)
+        
+        for ii = clusts
+            plot3(obj.topo.centroid(1, obj.clust{ii}), obj.topo.centroid(2, obj.clust{ii}), -obj.twop.planes.depth(obj.clust{ii}), '.', 'color', obj.colours(ii, :), 'markersize', 30);
+        end
+        
+        xlabel('galvo')
+        ylabel('resonant')
+        zlabel('piezo')
+        
+    case 'clust_topo_stats'
+        figure
+        subplot(2, 2, 1);
+        cdfplot(cell2mat(obj.topo.clust.zsilhouette));
+        xlim([-1 1]);
+        xlabel('silhouette score')
+        ylabel('cum. freq.')
+        xline(0);
+        
+        subplot(2, 2, 2);
+        violin(obj.topo.clust.zsilhouette');
+        ylim([-1 1]);
+        xlabel('ensemble');
+        ylabel('silhouette score')
+        yline(0);
+        
+        subplot(2, 2, 3);
+        d = cellfun(@(x) squareform(obj.topo.zdistances(x, x))', obj.clust, 'uniformoutput', false);
+        violin(d);
+        xlabel('ensemble');
+        ylabel('distance (\mum)')
+        d = squareform(obj.topo.zdistances);
+        yline(median(d));
+        title('line: sample median')
+        
+        subplot(2, 2, 4);
+        depth = obj.twop.planes.depth(cell2mat(obj.clust));
+        s = cell2mat(obj.topo.clust.zsilhouette);
+        s = arrayfun(@(x) s(depth == x), unique(depth), 'uniformoutput', false);
+        violin(s, 'xlabel', strsplit(num2str(unique(depth))));
+        ylim([-1 1]);
+        xlabel('plane depth');
+        ylabel('silhouette score')
+        yline(0);
         
     otherwise
         plot@LFP(obj, type);
