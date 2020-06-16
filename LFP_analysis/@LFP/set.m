@@ -48,12 +48,16 @@ while count <= length(ops)
             obj.update_channels;
         case {'plane', 'planes'}
             obj.twop.planes.planes = ops{count+1};
+        case 'fov'
+            obj.topo.FOV = ops{count+1};
         case {'ol', 'overlap'}
             obj.twop.planes.ol = ops{count+1};
         case 'maxstep'
             obj.twop.planes.maxStep = ops{count+1};
         case 'maxr'
             obj.twop.planes.maxR = ops{count+1};
+        case 'stepsize'
+            obj.twop.planes.stepsize = ops{count+1};
         otherwise
             exp = regexp(ops{count}, {'\.abf$', 'behavior\.mat$'}, 'once');
             idx = ~cellfun(@isempty, exp);
