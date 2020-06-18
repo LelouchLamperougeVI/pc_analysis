@@ -120,6 +120,7 @@ The Clampex channels are defined inside a vector in the following order:
 1. behaviour camera pulses
 1. LFP
 1. lick sensor.
+
 Missing channels may be substituted by `NaN`. Make sure the channels are properly defined during initialization: `obj = LFP(file, 'Channels', [1 2 3 5 NaN NaN 7])`. In the latter example, the two-photon frame pulses were acquired on channel 1, the treadmill encoder signals were captures on channels 2 and 3, the reward trigger was gathered on channel 5, and the lick sensor data was obtained on channel 7. The infrared camera and LFP signals were missing. Make sure that the channels are properly defined with `obj.plot('channels')`. The method `LFP.get_channel(chan)` allows you to either retreive the channel name given the channel number (e.g. `obj.get_channel(3)`), or to obtain the channel number given the name (e.g. `obj.get_channel('lfp')`).
 
 ### Animal movement
