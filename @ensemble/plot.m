@@ -371,15 +371,14 @@ switch lower(type)
         xline(0);
         
         subplot(2, 2, 2);
-        violin(obj.topo.clust.zsilhouette');
-        ylim([-1 1]);
+        violin(obj.topo.clust.zsilhouette, 'scatter');
         xlabel('ensemble');
         ylabel('silhouette score')
         yline(0);
         
         subplot(2, 2, 3);
-        d = cellfun(@(x) squareform(obj.topo.zdistances(x, x))', obj.clust, 'uniformoutput', false);
-        violin(d);
+        d = cellfun(@(x) squareform(obj.topo.zdistances(x, x)), obj.clust, 'uniformoutput', false);
+        violin(d, 'box');
         xlabel('ensemble');
         ylabel('distance (\mum)')
         d = squareform(obj.topo.zdistances);
@@ -390,7 +389,7 @@ switch lower(type)
         depth = obj.twop.planes.depth(cell2mat(obj.clust));
         s = cell2mat(obj.topo.clust.zsilhouette);
         s = arrayfun(@(x) s(depth == x), unique(depth), 'uniformoutput', false);
-        violin(s, 'xlabel', strsplit(num2str(unique(depth))));
+        violin(s, 'labels', strsplit(num2str(unique(depth))), 'box');
         ylim([-1 1]);
         xlabel('plane depth');
         ylabel('silhouette score')
