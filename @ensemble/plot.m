@@ -331,7 +331,7 @@ switch lower(type)
             
             h = imshow(mask);
             set(h, 'alphadata', .5);
-            title(obj.twop.planes.plane_names{plane});
+            title(obj.twop.planes.plane_names{obj.twop.planes.planes(plane)});
         end
         
     case 'clust_topo_stack'

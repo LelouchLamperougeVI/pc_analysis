@@ -2,11 +2,13 @@ function topography(obj)
 % Tales from Topographic Oceans :)
 % Obscure reference from the 70's...
 
-if isempty(obj.clust)
-    error('data either not clustered, or no ensemble detected');
-end
-
+disp('Running superclass topography method.');
 topography@LFP(obj);
+
+if isempty(obj.clust)
+    warning('Data either not clustered, or no ensemble detected. Skipping subclass subroutine.');
+    return
+end
 
 % obj.topo.clust.vertices = cellfun(@vertices, obj.topo.clust.centroid, 'uniformoutput',false);
 

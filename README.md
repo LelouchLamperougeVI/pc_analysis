@@ -111,6 +111,17 @@ There are two ways to create an object of the LFP class: with an `abf` file or w
 ### Object properties
 Various properties affect different stages of the analysis. In most cases, the default properties should be adequate as those are the same parameters used by Ingrid and Yours Truly. Currently, it is highly advised to define all of the object properties during instantiation; changing the properties following creation of the object may result in unpredictable behaviours. `obj = LFP(file, 'name', value)`
 
+### Clampex Channels definition
+The Clampex channels are defined inside a vector in the following order:
+1. two-photon frame pulses
+1. encoder channel A
+1. encoder channel B
+1. reward pulses
+1. behaviour camera pulses
+1. LFP
+1. lick sensor.
+Missing channels may be substituted by `NaN`. Make sure the channels are properly defined during initialization: `obj = LFP(file, 'Channels', [1 2 3 5 NaN NaN 7])`. In the latter example, the two-photon frame pulses were acquired on channel 1, the treadmill encoder signals were captures on channels 2 and 3, the reward trigger was gathered on channel 5, and the lick sensor data was obtained on channel 7. The infrared camera and LFP signals were missing. Make sure that the channels are properly defined with `obj.plot('channels')`. The method `LFP.get_channel(chan)` allows you to either retreive the channel name given the channel number (e.g. `obj.get_channel(3)`), or to obtain the channel number given the name (e.g. `obj.get_channel('lfp')`).
+
 ### Animal movement
 For rest recordings, you may wish to remove all epochs during which the animal was moving, while for running data you may want to discard the frames during which the animal was idle. This can be achieved with the `LFP.remove_mvt(mode)` method, where `mode` is either `'exclude'` (rest only) or `'include'` (run only). This function __must__ be run as a preliminary step before executing the core analysis of the `ensemble` class (see below). The code __will not__ warn you if you omitted this step so please keep it in mind.
 
