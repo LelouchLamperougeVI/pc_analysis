@@ -1,27 +1,7 @@
 classdef ensemble < LFP
-
-    properties (GetAccess = 'public', SetAccess = 'public')
-        order
-        pc_order
-    end
     properties (GetAccess = 'public', SetAccess = 'private')
         ops
-        SCE
-        MUA
-        clust_SCE
-        clust_MUA
-        R
-        null_R
-        tree % agglomerative tree
-        h_thres % threshold from clustering
-        clust % ensemble clusters
-        clust_order % order neurons by ensembles
-        swr_stack
-        swr_all
-        swr_null_all
-        swr_t
-        swr_class
-        colours
+        ensembles = struct('SCE', [], 'MUA', [], 'R', [], 'null_R', [], 'clust', [])
     end
     
     methods
@@ -29,20 +9,14 @@ classdef ensemble < LFP
             obj@LFP(varargin);
             if isempty(obj.analysis)
                 warning('no analysis available');
-            else
-                obj.pc_order = obj.analysis.order;
             end
         end
         
-        function perform_analysis(obj)
-            perform_analysis@LFP(obj);
-        end
-        
         function duration(obj,thres) % remove SCEs outside duration threshold (thres = [lower_lim upper_lim])
-            idx=obj.SCE.dur<thres(1) | obj.SCE.dur>thres(2);
-            obj.SCE.dur(idx)=[];
-            obj.SCE.on(idx)=[];
-            obj.SCE.peak(idx)=[];
+            idx=obj.ensembles.SCE.dur<thres(1) | obj.ensembles.SCE.dur>thres(2);
+            obj.ensembles.SCE.dur(idx)=[];
+            obj.ensembles.SCE.on(idx)=[];
+            obj.ensembles.SCE.peak(idx)=[];
         end
         
         function cluster(obj)

@@ -1,8 +1,8 @@
 function [clust, s, ticks] = silhouette_cluster(obj, Z, D, e_size)
 
 if nargin < 2
-    Z = obj.tree;
-    D=1-abs(obj.R);
+    Z = obj.ensembles.tree;
+    D=1-abs(obj.ensembles.R);
     D(1:length(D)+1:numel(D))=0;
     
     e_size = obj.ops.e_size;

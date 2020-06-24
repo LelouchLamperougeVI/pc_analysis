@@ -25,10 +25,10 @@ parfor ii = 1:shuffles
 end
 null_all = cell2mat(null_all);
 
-obj.swr_stack=stack;
-obj.swr_t=t;
-obj.swr_all = all;
-obj.swr_null_all = null_all;
+obj.ensembles.swr.stack=stack;
+obj.ensembles.swr.t=t;
+obj.ensembles.swr.all = all;
+obj.ensembles.swr.null_all = null_all;
 
 
 

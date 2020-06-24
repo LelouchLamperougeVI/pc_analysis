@@ -16,11 +16,11 @@ gaps=round(fs*gaps);
 deconv=fast_smooth(deconv,sig);
 deconv=(deconv-mean(deconv,'omitnan'))./std(deconv,'omitnan'); %zscore
 
-obj.clust_SCE=[]; obj.clust_MUA=[];
-for ii = 1:length(obj.clust)
-    [obj.clust_SCE(ii).SCE, obj.clust_MUA(ii).MUA, obj.clust_SCE(ii).idx] = detection(obj.clust{ii});
+obj.ensembles.clust_SCE=[]; obj.ensembles.clust_MUA=[];
+for ii = 1:length(obj.ensembles.clust)
+    [obj.ensembles.clust_SCE(ii).SCE, obj.ensembles.clust_MUA(ii).MUA, obj.ensembles.clust_SCE(ii).idx] = detection(obj.ensembles.clust{ii});
 end
-[obj.SCE, obj.MUA] = detection(1:size(deconv,2));
+[obj.ensembles.SCE, obj.ensembles.MUA] = detection(1:size(deconv,2));
 
 
     function [SCE, MUA, sce] = detection(cluster)

@@ -5,7 +5,7 @@ function topography(obj)
 disp('Running superclass topography method.');
 topography@LFP(obj);
 
-if isempty(obj.clust)
+if isempty(obj.ensembles.clust)
     warning('Data either not clustered, or no ensemble detected. Skipping subclass subroutine.');
     return
 end
@@ -13,13 +13,13 @@ end
 % obj.topo.clust.vertices = cellfun(@vertices, obj.topo.clust.centroid, 'uniformoutput',false);
 
 % get silhouette score between clusters
-X = obj.topo.centroid(:, cell2mat(obj.clust))';
-k = arrayfun(@(x) x .* ones(1, length(obj.clust{x})), 1:length(obj.clust), 'uniformoutput', false);
+X = obj.topo.centroid(:, cell2mat(obj.ensembles.clust))';
+k = arrayfun(@(x) x .* ones(1, length(obj.ensembles.clust{x})), 1:length(obj.ensembles.clust), 'uniformoutput', false);
 k = cell2mat(k)';
 s = silhouette(X, k, 'sqEuclidean');
 obj.topo.clust.silhouette = arrayfun(@(x) s(k==x), unique(k), 'uniformoutput', false );
 % silhouette over z-aspect as well
-X = [obj.topo.centroid(:, cell2mat(obj.clust))', obj.twop.planes.depth(cell2mat(obj.clust))'];
+X = [obj.topo.centroid(:, cell2mat(obj.ensembles.clust))', obj.twop.planes.depth(cell2mat(obj.ensembles.clust))'];
 s = silhouette(X, k, 'sqEuclidean');
 obj.topo.clust.zsilhouette = arrayfun(@(x) s(k==x), unique(k), 'uniformoutput', false );
 

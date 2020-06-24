@@ -59,13 +59,13 @@ if ops.shuffle
     stack = bcircshift(stack, randi(size(stack, 1), size(stack, 2), 1));
 end
 
-% decoded = zeros(1 + length(obj.clust), size(tester,1));
-% P = zeros(ops.bins, size(tester,1), 1 + length(obj.clust));
+% decoded = zeros(1 + length(obj.ensembles.clust), size(tester,1));
+% P = zeros(ops.bins, size(tester,1), 1 + length(obj.ensembles.clust));
 % count = 1;
 decode(1:length(obj.analysis.psth));
-% for i = 1:length(obj.clust)
+% for i = 1:length(obj.ensembles.clust)
 %     count = count + 1;
-%     decode(obj.clust{i});
+%     decode(obj.ensembles.clust{i});
 % end
 
 if ops.validate
@@ -88,9 +88,9 @@ end
 
 if ops.plotFlag
     figure;
-    h(1)=subplot(2,1,1); imagesc('xdata', obj.twop.ts, 'cdata',tester(:,obj.order)');
+    h(1)=subplot(2,1,1); imagesc('xdata', obj.twop.ts, 'cdata',tester(:,obj.intern.order)');
     rbmap(h(1), 'cmap',hot, 'caxis', [0 max(tester(:))]);
-    ylim(h(1), [1 length(obj.order)]);
+    ylim(h(1), [1 length(obj.intern.order)]);
     h(2)=subplot(2,1,2); imagesc('xdata', obj.twop.ts, 'cdata',P(:,:,1));
     rbmap(h(2), 'cmap',hot, 'caxis', [0 1]);
     ylim(h(2), [1 size(P,1)]);

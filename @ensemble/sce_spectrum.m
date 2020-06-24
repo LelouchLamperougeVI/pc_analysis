@@ -17,23 +17,23 @@ if isempty(obj.lfp.lfp)
 end
 
 if ~clust
-    idx=1:length(obj.SCE.on);
+    idx=1:length(obj.ensembles.SCE.on);
 else
-    idx=find(obj.SCE.clust==clust);
+    idx=find(obj.ensembles.SCE.clust==clust);
 end
 
-obj.spectrum(wdw_size,wdw+obj.SCE.on(idx(1)));
+obj.spectrum(wdw_size,wdw+obj.ensembles.SCE.on(idx(1)));
 spec_on=obj.lfp.spec.spectrum;
 for i=2:length(idx)
-    obj.spectrum(wdw_size,wdw+obj.SCE.on(idx(i)));
+    obj.spectrum(wdw_size,wdw+obj.ensembles.SCE.on(idx(i)));
     spec_on=spec_on+obj.lfp.spec.spectrum;
 end
 spec_on=spec_on./length(idx);
 
-obj.spectrum(wdw_size,wdw+obj.SCE.peak(idx(1)));
+obj.spectrum(wdw_size,wdw+obj.ensembles.SCE.peak(idx(1)));
 spec_peaks=obj.lfp.spec.spectrum;
 for i=2:length(idx)
-    obj.spectrum(wdw_size,wdw+obj.SCE.peak(idx(i)));
+    obj.spectrum(wdw_size,wdw+obj.ensembles.SCE.peak(idx(i)));
     spec_peaks=spec_peaks+obj.lfp.spec.spectrum;
 end
 spec_peaks=spec_peaks./length(idx);

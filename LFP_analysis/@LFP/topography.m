@@ -14,7 +14,7 @@ obj.twop.planes.depth = depth';
 
 mask = arrayfun(@(x) regionprops(any(obj.topo.maskNeurons == x, 3)), 1:size(obj.twop.deconv, 2), 'uniformoutput', false);
 area = cellfun(@(x) max([x.Area]), mask);
-centroids = arrayfun(@(x) reshape([mask{x}([mask{x}.Area] == area(x)).Centroid], 2, []), 1:length(mask), 'uniformoutput',false);
+centroids = arrayfun(@(x) reshape([mask{x}(find([mask{x}.Area] == area(x), 1)).Centroid], 2, []), 1:length(mask), 'uniformoutput',false);
 obj.topo.centroid = cell2mat(centroids);
 obj.topo.centroid = obj.topo.centroid ./ [size(obj.topo.mimg, 1); size(obj.topo.mimg, 2)] .* obj.topo.FOV;
 

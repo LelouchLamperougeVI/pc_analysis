@@ -22,7 +22,7 @@ if isempty(obj.ops) || nargin<2
     ops.shuffles = 100; % number of shuffles to obtain null corr matrix
     
     ops.order = 'pc';
-    obj.order = obj.pc_order;
+    obj.intern.order = obj.analysis.order;
     
     ops.FOV = obj.topo.FOV; % in microns
     
@@ -71,10 +71,10 @@ while(idx<length(varargin))
             switch lower(varargin{idx})
                 case 'pc'
                     obj.ops.order='pc';
-                    obj.order = obj.pc_order;
+                    obj.intern.order = obj.analysis.order;
                 case 'cluster'
                     obj.ops.order='cluster';
-                    obj.order = obj.clust_order;
+                    obj.intern.order = obj.ensembles.clust_order;
                 otherwise
                     error(['''' varargin{idx} ''' is not recognized as a valid input value for argument ''order''']);
             end

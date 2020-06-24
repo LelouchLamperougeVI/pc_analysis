@@ -144,8 +144,8 @@ classdef LFP < handle
                 end
             end
             
-            if exist(fullfile(obj.session.wd, ['analysis_' num2str(obj.session.id) '_plane' num2str(obj.twop.planes.planes) '.mat']), 'file')
-                analysis=load(fullfile(obj.session.wd, ['analysis_' num2str(obj.session.id) '_plane' num2str(obj.twop.planes.planes) '.mat']));
+            if exist(fullfile(obj.session.wd, ['analysis' num2str(obj.session.id) '_plane' strjoin(strsplit(num2str(obj.twop.planes.planes)), '_') '.mat']), 'file')
+                analysis=load(fullfile(obj.session.wd, ['analysis' num2str(obj.session.id) '_plane' strjoin(strsplit(num2str(obj.twop.planes.planes)), '_') '.mat']));
                 obj.import_analysis(analysis.analysis);
                 disp('Analysis loaded');
             elseif exist(fullfile(obj.session.wd, 'analysis.mat'), 'file')

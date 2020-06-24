@@ -3,8 +3,8 @@ function make_colours(obj)
 % function so there's a Pink Floyd reference for you instead :)
 % It's a good song!
 
-if isempty(obj.clust)
+if isempty(obj.ensembles.clust)
     error('you need to cluster the data first...');
 end
 
-obj.colours = distinguishable_colors(length(obj.clust), {'w','k'});
+obj.ensembles.colours = distinguishable_colors(length(obj.ensembles.clust), {'w','k'});

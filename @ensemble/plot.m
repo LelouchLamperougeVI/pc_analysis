@@ -1,8 +1,8 @@
 function plot(obj,type,varargin)
 %Plot results from detection
 
-if ~isempty(obj.order)
-    order=obj.order;
+if ~isempty(obj.intern.order)
+    order=obj.intern.order;
     lab='sorted neuron no.';
 else
     order=1:size(obj.twop.deconv,2);
@@ -30,12 +30,12 @@ switch lower(type)
         idx = 3*wbins:4*wbins;
         idx( ~mod(3*wbins:4*wbins, wbins) ) = [];
         ax(2)=subplot(5,wbins,idx);
-        plot(obj.twop.ts,obj.MUA);
+        plot(obj.twop.ts,obj.ensembles.MUA);
         hold on
-        plot(obj.SCE.on, min(obj.MUA).*ones(length(obj.SCE.on),1),'^k');
-        for i=1:length(obj.SCE.dur)
-            plot(obj.SCE.on(i):.01:obj.SCE.on(i)+obj.SCE.dur(i), min(obj.MUA).*ones(length(obj.SCE.on(i):.01:obj.SCE.on(i)+obj.SCE.dur(i)),1), 'r-');
-            text(obj.SCE.on(i)+obj.SCE.dur(i),min(obj.MUA),num2str(i));
+        plot(obj.ensembles.SCE.on, min(obj.ensembles.MUA).*ones(length(obj.ensembles.SCE.on),1),'^k');
+        for i=1:length(obj.ensembles.SCE.dur)
+            plot(obj.ensembles.SCE.on(i):.01:obj.ensembles.SCE.on(i)+obj.ensembles.SCE.dur(i), min(obj.ensembles.MUA).*ones(length(obj.ensembles.SCE.on(i):.01:obj.ensembles.SCE.on(i)+obj.ensembles.SCE.dur(i)),1), 'r-');
+            text(obj.ensembles.SCE.on(i)+obj.ensembles.SCE.dur(i),min(obj.ensembles.MUA),num2str(i));
         end
         ylabel('population mean dF/F');
         xlabel('time (sec)');
@@ -43,19 +43,19 @@ switch lower(type)
         idx = 4*wbins:5*wbins;
         idx( ~mod(4*wbins:5*wbins, wbins) ) = [];
         ax(3)=subplot(5,wbins,idx);
-        subset = gobjects(length(obj.clust_SCE), 1);
-        for ii = 1:length(obj.clust_SCE)
-            subset(ii)=plot(obj.twop.ts,obj.clust_MUA(ii).MUA, 'color', obj.colours(ii,:));
+        subset = gobjects(length(obj.ensembles.clust_SCE), 1);
+        for ii = 1:length(obj.ensembles.clust_SCE)
+            subset(ii)=plot(obj.twop.ts,obj.ensembles.clust_MUA(ii).MUA, 'color', obj.ensembles.colours(ii,:));
             hold on
-            plot(obj.clust_SCE(ii).SCE.on, min(obj.clust_MUA(ii).MUA).*ones(length(obj.clust_SCE(ii).SCE.on),1),'^k');
-            for i=1:length(obj.clust_SCE(ii).SCE.dur)
-                plot(obj.clust_SCE(ii).SCE.on(i):.01:obj.clust_SCE(ii).SCE.on(i)+obj.clust_SCE(ii).SCE.dur(i), min(obj.clust_MUA(ii).MUA).*ones(length(obj.clust_SCE(ii).SCE.on(i):.01:obj.clust_SCE(ii).SCE.on(i)+obj.clust_SCE(ii).SCE.dur(i)),1), 'r-');
-                text(obj.clust_SCE(ii).SCE.on(i)+obj.clust_SCE(ii).SCE.dur(i),min(obj.clust_MUA(ii).MUA),num2str(i));
+            plot(obj.ensembles.clust_SCE(ii).SCE.on, min(obj.ensembles.clust_MUA(ii).MUA).*ones(length(obj.ensembles.clust_SCE(ii).SCE.on),1),'^k');
+            for i=1:length(obj.ensembles.clust_SCE(ii).SCE.dur)
+                plot(obj.ensembles.clust_SCE(ii).SCE.on(i):.01:obj.ensembles.clust_SCE(ii).SCE.on(i)+obj.ensembles.clust_SCE(ii).SCE.dur(i), min(obj.ensembles.clust_MUA(ii).MUA).*ones(length(obj.ensembles.clust_SCE(ii).SCE.on(i):.01:obj.ensembles.clust_SCE(ii).SCE.on(i)+obj.ensembles.clust_SCE(ii).SCE.dur(i)),1), 'r-');
+                text(obj.ensembles.clust_SCE(ii).SCE.on(i)+obj.ensembles.clust_SCE(ii).SCE.dur(i),min(obj.ensembles.clust_MUA(ii).MUA),num2str(i));
             end
             ylabel('population mean dF/F');
             xlabel('time (sec)');
         end
-        legend(subset,strsplit(num2str(1:length(obj.clust_SCE))));
+        legend(subset,strsplit(num2str(1:length(obj.ensembles.clust_SCE))));
         
         linkaxes(ax,'x');
         
@@ -64,8 +64,8 @@ switch lower(type)
         ax(4) = subplot(5,wbins, idx);
         if strcmpi(obj.ops.order,'cluster')
             hold on
-            for ii = 1:length(obj.clust)
-                plot(zeros(1, length(obj.clust{ii})), arrayfun(@(x) find(obj.order == x), obj.clust{ii}), 'linewidth',8, 'color',obj.colours(ii,:));
+            for ii = 1:length(obj.ensembles.clust)
+                plot(zeros(1, length(obj.ensembles.clust{ii})), arrayfun(@(x) find(obj.intern.order == x), obj.ensembles.clust{ii}), 'linewidth',8, 'color',obj.ensembles.colours(ii,:));
             end
         end
         linkaxes([ax(1) ax(4)],'y');
@@ -85,12 +85,12 @@ switch lower(type)
         ylabel(lab);
         
         ax(2)=subplot(5,1,4);
-        plot(obj.twop.ts,obj.MUA);
+        plot(obj.twop.ts,obj.ensembles.MUA);
         hold on
-        plot(obj.SCE.on, min(obj.MUA).*ones(length(obj.SCE.on),1),'^k');
-        for i=1:length(obj.SCE.dur)
-            plot(obj.SCE.on(i):.01:obj.SCE.on(i)+obj.SCE.dur(i), min(obj.MUA).*ones(length(obj.SCE.on(i):.01:obj.SCE.on(i)+obj.SCE.dur(i)),1), 'r-');
-            text(obj.SCE.on(i)+obj.SCE.dur(i),min(obj.MUA),num2str(i));
+        plot(obj.ensembles.SCE.on, min(obj.ensembles.MUA).*ones(length(obj.ensembles.SCE.on),1),'^k');
+        for i=1:length(obj.ensembles.SCE.dur)
+            plot(obj.ensembles.SCE.on(i):.01:obj.ensembles.SCE.on(i)+obj.ensembles.SCE.dur(i), min(obj.ensembles.MUA).*ones(length(obj.ensembles.SCE.on(i):.01:obj.ensembles.SCE.on(i)+obj.ensembles.SCE.dur(i)),1), 'r-');
+            text(obj.ensembles.SCE.on(i)+obj.ensembles.SCE.dur(i),min(obj.ensembles.MUA),num2str(i));
         end
         ylabel('population mean dF/F');
         xlabel('time (sec)');
@@ -103,12 +103,12 @@ switch lower(type)
         linkaxes(ax,'x');
         
     case 'corr'
-        if isempty(obj.R)
+        if isempty(obj.ensembles.R)
             error('no correlation matrix available');
         end
         figure;
         subplot(1,2,1)
-        imagesc(obj.R(order,order));
+        imagesc(obj.ensembles.R(order,order));
         colormap jet
         axis square
         caxis([-.2 1]);
@@ -119,7 +119,7 @@ switch lower(type)
         title('SCE');
         
         subplot(1,2,2)
-        imagesc(obj.null_R(order,order));
+        imagesc(obj.ensembles.null_R(order,order));
         colormap jet
         axis square
         caxis([-.2 1]);
@@ -130,18 +130,18 @@ switch lower(type)
         title('outside detection');
         
     case 'clust_corr'
-        if isempty(obj.clust)
+        if isempty(obj.ensembles.clust)
             error('data not clustered');
         end
         k=3;
         count=1;
-        while(count<=length(obj.clust))
+        while(count<=length(obj.ensembles.clust))
             if ~mod(count-1,k^2)
                 figure;
             end
             subplot(k,k,mod(count-1,k^2)+1);
-            R=obj.R(order,order);
-            [~,idx]=intersect(order, setxor(order,obj.clust{count}));
+            R=obj.ensembles.R(order,order);
+            [~,idx]=intersect(order, setxor(order,obj.ensembles.clust{count}));
             R(idx,idx)=0;
             imagesc(R);
             colormap jet
@@ -151,33 +151,33 @@ switch lower(type)
             c.Label.String='Corr. Coef.';
             xlabel(lab);
             ylabel(lab);
-            title(['clust ' num2str(count)], 'color',obj.colours(count,:));
+            title(['clust ' num2str(count)], 'color',obj.ensembles.colours(count,:));
             count=count+1;
         end
         
     case 'tree'
-        if isempty(obj.tree)
+        if isempty(obj.ensembles.tree)
             error('You need to build linkage tree first by running @basic_ensemble/hclust');
         end
         figure;
         ax_u=subplot(2,2,2);
-        h = dendrogram(obj.tree,0,'reorder',order);
+        h = dendrogram(obj.ensembles.tree,0,'reorder',order);
         set(h, 'color', 'k');
-        for i = 1:length(obj.clust)
-            idx = dendro_colours(obj.tree, obj.clust{i});
-            set(h(idx), 'color', obj.colours(i,:));
+        for i = 1:length(obj.ensembles.clust)
+            idx = dendro_colours(obj.ensembles.tree, obj.ensembles.clust{i});
+            set(h(idx), 'color', obj.ensembles.colours(i,:));
         end
         axis square
         ax_l=subplot(2,2,3);
-        h = dendrogram(obj.tree,0,'reorder',order(end:-1:1),'orientation','left');
+        h = dendrogram(obj.ensembles.tree,0,'reorder',order(end:-1:1),'orientation','left');
         set(h, 'color', 'k');
-        for i = 1:length(obj.clust)
-            idx = dendro_colours(obj.tree, obj.clust{i});
-            set(h(idx), 'color', obj.colours(i,:));
+        for i = 1:length(obj.ensembles.clust)
+            idx = dendro_colours(obj.ensembles.tree, obj.ensembles.clust{i});
+            set(h(idx), 'color', obj.ensembles.colours(i,:));
         end
         axis square
         ax_m=subplot(2,2,4);
-        imagesc(obj.R(order,order));
+        imagesc(obj.ensembles.R(order,order));
         
         rbmap(ax_m, 'colorbar',true, 'caxis', [-.5 1], 'normalize',true, 'interp', 129);
         axis square
@@ -186,13 +186,13 @@ switch lower(type)
         linkaxes([ax_l ax_m], 'y');
         
     case 'pc'
-        if isempty(obj.clust)
+        if isempty(obj.ensembles.clust)
             error('data not clustered');
         end
         if nargin<3
             error('please give cluster number');
         end
-        plot_analysis(obj.analysis,[1 1 0],obj.clust{varargin{1}});
+        plot_analysis(obj.analysis,[1 1 0],obj.ensembles.clust{varargin{1}});
         
     case 'spec'
         figure;
@@ -225,32 +225,32 @@ switch lower(type)
         title('SCE peak');
         
     case 'swr_window'
-        if isempty(obj.swr_stack)
+        if isempty(obj.ensembles.swr.stack)
             error('need to run @basic_ensemble/swr_window first');
         end
         figure
-        [~,idx] = max(obj.swr_stack);
+        [~,idx] = max(obj.ensembles.swr.stack);
         [~,idx] = sort(idx);
-        imagesc('xdata',obj.swr_t,'cdata',zscore(fast_smooth(obj.swr_stack(:,idx),2))');
-        xlim([min(obj.swr_t) max(obj.swr_t)]);
-        ylim([1 size(obj.swr_stack,2)]);
+        imagesc('xdata',obj.ensembles.swr.t,'cdata',zscore(fast_smooth(obj.ensembles.swr.stack(:,idx),2))');
+        xlim([min(obj.ensembles.swr.t) max(obj.ensembles.swr.t)]);
+        ylim([1 size(obj.ensembles.swr.stack,2)]);
         colormap jet
         c = colorbar;
         c.Label.String = 'normalized mean dF/F';
         title('Cortical Response Sorted');
         
         figure
-        imagesc('xdata',obj.swr_t,'cdata',zscore(fast_smooth(obj.swr_stack(:,obj.order),2))');
-        xlim([min(obj.swr_t) max(obj.swr_t)]);
-        ylim([1 size(obj.swr_stack,2)]);
+        imagesc('xdata',obj.ensembles.swr.t,'cdata',zscore(fast_smooth(obj.ensembles.swr.stack(:,obj.intern.order),2))');
+        xlim([min(obj.ensembles.swr.t) max(obj.ensembles.swr.t)]);
+        ylim([1 size(obj.ensembles.swr.stack,2)]);
         colormap jet
         c = colorbar;
         c.Label.String = 'normalized mean dF/F';
         if strcmpi(obj.ops.order,'cluster')
             title('Cluster Sorted');
             hold on
-            for ii = 1:length(obj.clust)
-                plot(zeros(1, length(obj.clust{ii})), arrayfun(@(x) find(obj.order == x), obj.clust{ii}), 'linewidth',5, 'color',obj.colours(ii,:));
+            for ii = 1:length(obj.ensembles.clust)
+                plot(zeros(1, length(obj.ensembles.clust{ii})), arrayfun(@(x) find(obj.intern.order == x), obj.ensembles.clust{ii}), 'linewidth',5, 'color',obj.ensembles.colours(ii,:));
             end
         elseif strcmpi(obj.ops.order,'pc')
             title('Place Field Sorted');
@@ -260,32 +260,32 @@ switch lower(type)
         ylabel('sorted neuron no.');
         
         k=5;
-        h = gobjects(length(obj.clust), 1);
-        for ii=1:length(obj.clust)
+        h = gobjects(length(obj.ensembles.clust), 1);
+        for ii=1:length(obj.ensembles.clust)
             if ~mod(ii-1, k^2)
                 figure;
             end
             h(ii) = subplot(k,k, mod(ii-1, k^2)+1);
-            temp = mean(obj.swr_all(:, obj.clust{ii}, :), 2);
+            temp = mean(obj.ensembles.swr.all(:, obj.ensembles.clust{ii}, :), 2);
             err = sem(temp, 3);
             mu = mean(temp, 3);
-            errorshade(obj.swr_t, mu, err, 'colour', obj.colours(ii,:), 'target',h(ii));
-            temp = mean(obj.swr_null_all(:, obj.clust{ii}, :), 2);
+            errorshade(obj.ensembles.swr.t, mu, err, 'colour', obj.ensembles.colours(ii,:), 'target',h(ii));
+            temp = mean(obj.ensembles.swr.null_all(:, obj.ensembles.clust{ii}, :), 2);
             err = sem(temp, 3);
             mu = mean(temp, 3);
-            errorshade(obj.swr_t, mu, err, 'colour', 'k', 'target',h(ii));
+            errorshade(obj.ensembles.swr.t, mu, err, 'colour', 'k', 'target',h(ii));
             title(['Clust ' num2str(ii)]);
         end
         linkaxes(h, 'y');
-        %         labels = arrayfun(@(x) ['clust ' num2str(x)], 1:length(obj.clust), 'uniformoutput',false);
+        %         labels = arrayfun(@(x) ['clust ' num2str(x)], 1:length(obj.ensembles.clust), 'uniformoutput',false);
         %         legend(labels);
         
-        for ii=1:length(obj.clust)
+        for ii=1:length(obj.ensembles.clust)
             if ~mod(ii-1, k^2)
                 figure;
             end
             h(ii) = subplot(k,k, mod(ii-1, k^2)+1);
-            temp = mean(obj.swr_all(:, obj.clust{ii}, :), 2);
+            temp = mean(obj.ensembles.swr.all(:, obj.ensembles.clust{ii}, :), 2);
             %             imagesc(squeeze(temp)');
             imagesc(fast_smooth(squeeze(temp),1)');
             title(['Clust ' num2str(ii)]);
@@ -306,7 +306,7 @@ switch lower(type)
         
     case 'clust_topo'
         if isempty(varargin)
-            clusts = 1:length(obj.clust);
+            clusts = 1:length(obj.ensembles.clust);
         else
             clusts = varargin{1};
         end
@@ -324,9 +324,9 @@ switch lower(type)
             
             mask = zeros(size(obj.topo.maskNeurons, 1), size(obj.topo.maskNeurons, 2), 3);
             for ii = clusts
-                idx = ismember(obj.topo.maskNeurons(:, :, plane), obj.clust{ii});
+                idx = ismember(obj.topo.maskNeurons(:, :, plane), obj.ensembles.clust{ii});
                 idx = repmat(idx, 1, 1, 3);
-                mask = mask + double(idx) .* permute(obj.colours(ii, :), [1 3 2]);
+                mask = mask + double(idx) .* permute(obj.ensembles.colours(ii, :), [1 3 2]);
             end
             
             h = imshow(mask);
@@ -336,7 +336,7 @@ switch lower(type)
         
     case 'clust_topo_stack'
         if isempty(varargin)
-            clusts = 1:length(obj.clust);
+            clusts = 1:length(obj.ensembles.clust);
         else
             clusts = varargin{1};
         end
@@ -354,7 +354,7 @@ switch lower(type)
         alpha(.3)
         
         for ii = clusts
-            plot3(obj.topo.centroid(1, obj.clust{ii}), obj.topo.centroid(2, obj.clust{ii}), -obj.twop.planes.depth(obj.clust{ii}), '.', 'color', obj.colours(ii, :), 'markersize', 30);
+            plot3(obj.topo.centroid(1, obj.ensembles.clust{ii}), obj.topo.centroid(2, obj.ensembles.clust{ii}), -obj.twop.planes.depth(obj.ensembles.clust{ii}), '.', 'color', obj.ensembles.colours(ii, :), 'markersize', 30);
         end
         
         xlabel('galvo')
@@ -377,7 +377,7 @@ switch lower(type)
         yline(0);
         
         subplot(2, 2, 3);
-        d = cellfun(@(x) squareform(obj.topo.zdistances(x, x)), obj.clust, 'uniformoutput', false);
+        d = cellfun(@(x) squareform(obj.topo.zdistances(x, x)), obj.ensembles.clust, 'uniformoutput', false);
         violin(d, 'box');
         xlabel('ensemble');
         ylabel('distance (\mum)')
@@ -386,7 +386,7 @@ switch lower(type)
         title('line: sample median')
         
         subplot(2, 2, 4);
-        depth = obj.twop.planes.depth(cell2mat(obj.clust));
+        depth = obj.twop.planes.depth(cell2mat(obj.ensembles.clust));
         s = cell2mat(obj.topo.clust.zsilhouette);
         s = arrayfun(@(x) s(depth == x), unique(depth), 'uniformoutput', false);
         violin(s, 'labels', strsplit(num2str(unique(depth))), 'box');
