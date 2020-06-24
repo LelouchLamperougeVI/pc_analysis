@@ -3,7 +3,7 @@ clear all
 root = '/mnt/storage/rrr_magnum/M2';
 animal = 'EE001';
 date = '2018_12_28';
-session = '2';
+session = '3';
 
 % chan = [1 2 3 5 NaN 6 NaN];
 chan = [1 2 3 6 NaN 5 NaN];

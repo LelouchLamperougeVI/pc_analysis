@@ -247,7 +247,7 @@ classdef LFP < handle
         reference60(obj,len);
         filter_bands(obj);
         extract_behaviour(obj);
-        enregistrer(obj);
+        enregistrer(obj, overwrite, transferable);
         topography(obj);
         rm_redund(obj);
     end

@@ -4,6 +4,10 @@ classdef ensemble < LFP
         ensembles = struct('SCE', [], 'MUA', [], 'R', [], 'null_R', [], 'clust', [])
     end
     
+    properties (GetAccess = 'private', SetAccess = 'private')
+        intern
+    end
+    
     methods
         function obj = ensemble(varargin)
             obj@LFP(varargin);

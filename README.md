@@ -151,6 +151,9 @@ obj.rm_redund; % get rid of overlapping neurons
 obj.perform_analysis; % run place cells analysis
 ```
 
+### Saving the analysis
+Currently, the step that takes the most computing time is the detection of place cells. The output of `pc_batch_analysis()` can be saved in the session directory using the `LFP.enregistrer()` method. The analysis will be automatically loaded the next time you instantiate an `LFP` object for the same session and planes. To overwrite an existing analysis file, specify the first parameter as `true`: `obj.enregistrer(true)`. In certain situations, it may be desirable to share the same analysis across recordings within the same day. Recordings made during quiet wakefulness, for example, may benefit from knowing the activity during active behaviour. By specifying the second flag as `true`, the same analysis will be loaded when instantiating from any recording made within the same day/session: `obj.enregistrer(false, true)`. An `LFP` object may be saved by itself just like any other variable. However, as the present toolbox is still under active development, an `LFP` object created using an older code might run into compatibility issues with newer versions. Conversely, the `analysis` structure is much less likely to see changes in the future.
+
 ## The `ensemble` class
 The `ensemble` class is a subclass of the `LFP` class. Therefore, all methods and properties described in the previous section also apply here. The `ensemble` class contains useful methods for detecting groups of neurons that express synchronous patterns of activity and is therefore suitable for analysing reactivation-type data. Make sure to always remove movement epochs before proceeding with any analysis by running `obj.remove_mvt()`.
 
