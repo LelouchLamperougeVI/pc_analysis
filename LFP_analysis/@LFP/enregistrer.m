@@ -5,6 +5,8 @@ function enregistrer(obj, overwrite, transferable)
 % obj.enregistrer(false, true)
 % ^typically used for RRR
 
+% DEPRICATED
+
 if nargin < 2
     overwrite = false;
 end

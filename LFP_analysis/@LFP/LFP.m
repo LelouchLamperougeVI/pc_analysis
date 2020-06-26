@@ -102,7 +102,7 @@ classdef LFP < handle
                 idx = idx + size(temp{ii}, 2);
             end
             
-            obj.update_channels();
+            %             obj.update_channels();
             if strcmp(obj.intern.op_mode, 'abf')
                 obj.load_abf(fullfile(obj.intern.path, obj.intern.fn));
                 obj.two_photon_ts(deconv);
@@ -250,6 +250,7 @@ classdef LFP < handle
         enregistrer(obj, overwrite, transferable);
         topography(obj);
         rm_redund(obj);
+        chan = detect_channels(obj);
     end
     
     methods (Access = private)
@@ -271,6 +272,29 @@ classdef LFP < handle
             obj.abf.si=s;
             obj.lfp.fs = 1/s * 1e+6;
             obj.abf.raw = d;
+            
+            if ~obj.intern.usr_def_chan
+                fn1 = fullfile(obj.session.wd, ['channels' num2str(obj.session.id) '_plane' strjoin(strsplit(num2str(obj.twop.planes.planes)), '_') '.mat']);
+                fn2 = fullfile(obj.session.wd, 'channels.mat');
+                if exist(fn1, 'file')
+                    chan = load(fn1);
+                    obj.set({'chan', chan.chan});
+                    disp('Channels loaded')
+                elseif exist(fn2, 'file')
+                    chan = load(fn2);
+                    obj.set({'chan', chan.chan});
+                    disp('Channels loaded')
+                else
+                    try
+                        disp('Starting automatic channel detection routine...');
+                        chan = obj.detect_channels();
+                        obj.set({'channels', chan});
+                        disp(['Found the following channels definition: [' strjoin(strsplit(num2str(obj.abf.Channels')), ', ') ']']);
+                    catch
+                        warning('Failed to autodetect channels. Using default.');
+                    end
+                end
+            end
             try
                 obj.lfp.lfp = d(:,obj.get_channel('lfp'));
             catch

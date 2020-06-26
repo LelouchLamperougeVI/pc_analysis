@@ -17,6 +17,7 @@ function obj = set(obj, ops)
 
 if isempty(ops) % reset default properties
     obj.abf.Channels = [1 2 3 5 nan nan nan];
+    obj.intern.usr_def_chan = false;
     obj.abf.ChannelNames = {'2p';'chA';'chB';'rwd';'cam';'lfp';'lck'};
     
     obj.lfp.f60_env = 1;
@@ -45,6 +46,7 @@ while count <= length(ops)
     switch lower(ops{count})
         case {'ch', 'chan', 'channel', 'channels'}
             obj.abf.Channels = ops{count + 1};
+            obj.intern.usr_def_chan = true;
             obj.update_channels;
         case {'plane', 'planes'}
             obj.twop.planes.planes = ops{count+1};
