@@ -2,6 +2,9 @@
 
 Collection of tools for analysing two-photon calcium imaging data in the McNaughton Lab at the Canadian Centre for Behavioural Neuroscience at the University of Lethbridge.
 
+## UPDATES
+* 2010-06-27: Significant performance improvements for `pc_batch_analysis` following optimization
+
 ## Dependencies
 * MATLAB R2017b or later
 * Image Processing Toolbox
