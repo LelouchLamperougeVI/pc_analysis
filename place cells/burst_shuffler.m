@@ -1,4 +1,4 @@
-function deconv=burst_shuffler(deconv,fs,thres)
+function [ret_deconv, spk] = burst_shuffler(deconv,fs,thres, spk)
 % The rational behind the standard circular shuffling procedure is to
 % disrupt the relationship between spikes and animal behavior, while
 % preserving the temporal characteristics within the spike trains.
@@ -12,6 +12,7 @@ function deconv=burst_shuffler(deconv,fs,thres)
 %   deconv (assume filtered)
 %   fs: sampling frequency
 %   thres: single/burst threshold (default 1s ~fall time of GCaMP6s)
+%   spk: reuse spk in shuffle test for improved performance
 %
 % Update (2019-11-14): this shit needed some insane optimization; the code
 % is really convoluted now... to the future me that identified a bug: I'm
@@ -26,17 +27,26 @@ if nargin<3
 end
 thres=fs*thres;
 
+ret_deconv = zeros(size(deconv));
+
+if nargin < 4
+    spk = cell(size(deconv,2), 1);
+end
+
 for i=1:size(deconv,2)
-    spk=find(deconv(:,i)>0);
-    if isempty(spk)
+    if nargin < 4
+        spk{i} = find(deconv(:,i)>0);
+    end
+    if isempty(spk{i})
         continue;
     end
-    ISI=diff(spk);
+    ISI=diff(spk{i});
     single=ISI>thres;
     single=find([true;single]);
     
-    burst_ind = [ spk(single), spk([single(2:end) - 1; end]) ];
+    burst_ind = [ spk{i}(single), spk{i}([single(2:end) - 1; end]) ];
     burst_frames = size(deconv,1) - sum( diff(burst_ind, 1, 2) + 1 ); % number of frames to pad
+    burst_spks = [diff(single); length(spk{i}) - single(end) + 1]; % number of spks per burst
     pad = rand(length(single) + 1,1);
     pad = pad ./ sum(pad) .* (burst_frames - (length(single) + 1) * thres) + thres;
     pad = round(pad);
@@ -44,16 +54,13 @@ for i=1:size(deconv,2)
     pad(end) = [];
     
     rorder = randperm(length(single));
-    single = [single; length(spk)+1];
+    [~, reverse] = sort(rorder);
+
+    rburst_ind = burst_ind(rorder, :);
+    rburst_len = diff(rburst_ind, 1, 2);
+    ind = cumsum( [-1; rburst_len(1:end-1)] + 1 ) + cumsum(pad);
+
+    shift = repelem(ind(reverse) - burst_ind(:, 1), burst_spks);
     
-    rspk = zeros(length(spk), 1);
-    rspk(single(rorder(1)) : single(rorder(1) + 1) - 1) = spk(single(rorder(1)) : single(rorder(1) + 1) - 1) - spk(single(rorder(1))) + pad(1) + 1;
-    for ii = 2:length(single) - 1
-        rspk(single(rorder(ii)) : single(rorder(ii) + 1) - 1) = ...
-            spk(single(rorder(ii)) : single(rorder(ii) + 1) - 1) - spk(single(rorder(ii))) + pad(ii) + rspk(single(rorder(ii-1) + 1) - 1) + 1;
-    end
-    
-    temp = zeros(size(deconv,1),1);
-    temp(rspk) = deconv(spk,i);
-    deconv(:,i) = temp;
+    ret_deconv(spk{i} + shift, i) = deconv(spk{i}, i);
 end

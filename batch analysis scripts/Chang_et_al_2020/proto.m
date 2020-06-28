@@ -40,7 +40,7 @@ animal = 'EE001';
 dates = {'2018_12_18', '2018_12_20', '2018_12_28', '2019_01_07'}';
 
 for ii = 1:length(dates)
-    lfp = ensemble(fullfile(root, animal, dates{ii}, [dates{ii} '_2.abf']));
+    lfp = lfp(fullfile(root, animal, dates{ii}, [dates{ii} '_2.abf']));
     lfp.perform_analysis;
     lfp.save('analysis');
     lfp.save('chan');

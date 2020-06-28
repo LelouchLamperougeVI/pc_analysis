@@ -52,20 +52,21 @@ original_deconv=deconv;
 ops = parse_input(varargin);
 shuffles= ops.shuffles;
 
-unit_pos=behavior.unit_pos;
-unit_vel=behavior.unit_vel;
-frame_ts=behavior.frame_ts;
-trials=behavior.trials;
+ops.unit_pos=behavior.unit_pos;
+ops.unit_vel=behavior.unit_vel;
+ops.frame_ts=behavior.frame_ts;
+ops.trials=behavior.trials;
 
-vr_length=round(range(unit_pos));
-fs=1/median(diff(frame_ts));
+vr_length=round(range(ops.unit_pos));
+ops.vr_length = vr_length;
+fs=1/median(diff(ops.frame_ts));
 
-thres=noRun(unit_vel);
+thres=noRun(ops.unit_vel);
 
-thres=(unit_vel>thres | unit_vel<-thres) & (trials(1) < frame_ts & trials(end) > frame_ts);
-unit_vel=unit_vel(thres);
-unit_pos=unit_pos(thres);
-frame_ts=frame_ts(thres);
+thres=(ops.unit_vel>thres | ops.unit_vel<-thres) & (ops.trials(1) < ops.frame_ts & ops.trials(end) > ops.frame_ts);
+ops.unit_vel=ops.unit_vel(thres);
+ops.unit_pos=ops.unit_pos(thres);
+ops.frame_ts=ops.frame_ts(thres);
 
 try
     deconv=ca_filt(deconv);
@@ -74,14 +75,15 @@ catch
 end
 deconv=deconv(thres,:);
 
-[psth,raw_psth,raw_stack,mu_fr,Pi,stack,vel_stack]=getStack(ops.bins,ops.sd,vr_length,deconv,unit_pos,unit_vel,frame_ts,trials);
+[psth,raw_psth,raw_stack,mu_fr,Pi,stack,vel_stack]=getStack(ops, deconv);
 
 silent=sum(deconv, 1, 'omitnan')==0; %cell that don't firing during the running epochs
 
 [SI, SI_marge]=get_si_skaggs(raw_stack,mu_fr,Pi);
 if ops.testFlag==1 || ops.testFlag==3
+    [~, spk] = burst_shuffler(deconv, fs, 1);
     SI=[SI;zeros(shuffles,length(SI))];
-    shuff_stack = zeros(ops.bins,size(SI,2), shuffles);
+%     shuff_stack = zeros(ops.bins,size(SI,2), shuffles);
     h=waitbar(0,'permutation testing...');
     count=1;
     if ops.parFlag
@@ -90,8 +92,8 @@ if ops.testFlag==1 || ops.testFlag==3
         parfor i=1:shuffles
             %             temp=randperm(size(deconv,1),size(deconv,2));
             %             temp=mat_circshift(deconv,temp);
-            temp=burst_shuffler(deconv);
-            [~,~,shuff_raw_stack,shuff_mu,shuff_pi,shuff_stack(:,:,i)]=getStack(ops.bins,ops.sd,vr_length,temp,unit_pos,unit_vel,frame_ts,trials);
+            temp=burst_shuffler(deconv, fs, 1, spk);
+            [~,~,shuff_raw_stack,shuff_mu,shuff_pi]=getStack(ops, temp, false);
             SI(i+1,:)=get_si_skaggs(shuff_raw_stack,shuff_mu,shuff_pi);
             send(dq,i);
         end
@@ -100,8 +102,8 @@ if ops.testFlag==1 || ops.testFlag==3
         for i=1:shuffles
             %             temp=randperm(size(deconv,1),size(deconv,2));
             %             temp=mat_circshift(deconv,temp);
-            temp=burst_shuffler(deconv);
-            [~,~,shuff_raw_stack,shuff_mu,shuff_pi,shuff_stack(:,:,i)]=getStack(ops.bins,ops.sd,vr_length,temp,unit_pos,unit_vel,frame_ts,trials);
+            temp=burst_shuffler(deconv, fs, 1, spk);
+            [~,~,shuff_raw_stack,shuff_mu,shuff_pi]=getStack(ops, temp, false);
             SI(i+1,:)=get_si_skaggs(shuff_raw_stack,shuff_mu,shuff_pi);
             updateBar;
         end
@@ -150,9 +152,9 @@ sparsity=sum(Pi.*raw_stack).^2./sum(Pi.*raw_stack.^2);
 if ops.maskFlag
     maskNeurons=varargin{ops.maskFlag+1};
     mimg=varargin{ops.maskFlag+2};
-    analysis=v2struct(vr_length,fs,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,original_deconv,behavior,silent,rick_rejects,maskNeurons,mimg, shuff_stack, SI_marge);
+    analysis=v2struct(vr_length,fs,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,original_deconv,behavior,silent,rick_rejects,maskNeurons,mimg, SI_marge);
 else
-    analysis=v2struct(vr_length,fs,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,original_deconv,behavior,silent,rick_rejects, shuff_stack, SI_marge);
+    analysis=v2struct(vr_length,fs,psth,raw_psth,raw_stack,Pi,vel_stack,stack,SI,pval,pc_list,sparsity,width,deconv,original_deconv,behavior,silent,rick_rejects, SI_marge);
 end
 
     function updateBar(~)
