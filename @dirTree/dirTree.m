@@ -1,4 +1,7 @@
 classdef dirTree < matlab.mixin.Copyable
+% Utility for creating directory trees for efficient organisation of big
+% datasets. Imagine `grep` and `tree` had a baby :)
+    
     properties (GetAccess = 'public', SetAccess = 'protected')
         name % name of current folder
         parent % parent path

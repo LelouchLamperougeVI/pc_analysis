@@ -78,6 +78,12 @@ else
     for i = 1:length(spurious)
         temp = pos_raw(rwd(spurious(i)) : rwd(spurious(i) + 1));
         idx = round(range(temp) / spur_range);
+        if idx == 1 % this is a very unlikely outcome, and the following is a quick patch
+            idx = knnsearch(temp', spur_range);
+            temp(idx + 1 : end) = temp(idx + 1 : end) - temp(idx + 1);
+            pos_raw(rwd(spurious(i)) : rwd(spurious(i) + 1)) = temp;
+            continue
+        end
         idx = knnsearch(temp', range(temp) .* (1:(idx-1))' ./ idx);
 
         for j = 1:length(idx)-1

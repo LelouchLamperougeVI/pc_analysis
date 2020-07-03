@@ -212,6 +212,7 @@ classdef LFP < handle
                 dec = obj.twop.deconv(ii:length(obj.twop.planes.planes):end, obj.twop.planes.plane_members == obj.twop.planes.planes(ii));
                 [beh, dec] = convert_behavior(obj.behavior, tcs, dec);
                 temp = pc_batch_analysis(beh, dec);
+                disp(['Detected ' num2str(length(temp.pc_list)) '/' num2str(size(dec, 2)) ' place cells (' num2str(length(temp.pc_list)/size(dec, 2) * 100) '%)']);
                 anal = combine_analysis(anal, temp);
             end
             obj.analysis = anal;

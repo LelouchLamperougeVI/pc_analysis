@@ -50,12 +50,12 @@ end
 chan(2) = a;
 chan(3) = b;
 
-idx = abs(freq(guess) - step_count(guess) ./ (length(s) / Fs)) < 1e-3 & abs(median(s(:, guess))) < .1;
+idx = freq(guess) < .1 & abs(median(s(:, guess))) < .1; % usually, animales don't cover a lap under 10 seconds on average
 if sum(idx) == 0
     error('Failed to detect reward channel. Make sure this is not resting data. Or perhaps you just got a really lazy animal :P');
 end
-[~, rev] = min(bmratio(guess(idx)));
-chan(4) = guess(rev);
+rev = min(bmratio(guess(idx)));
+chan(4) = guess(bmratio(guess) == rev);
 guess(idx) = [];
 
 f200 = f(f < 200 & f > 0);
