@@ -106,7 +106,7 @@ switch option
         set(gca, 'position',p);
         
         centroid = false(size(obj.topo.mimg));
-        idx = round( obj.topo.centroid );
+        idx = round( obj.topo.centroid ./ obj.topo.FOV .* size(obj.topo.mimg)');
         idx = sub2ind( size(centroid), idx(2,:), idx(1,:) );
         centroid(idx) = true;
         centroid = centroid .* obj.topo.loc;

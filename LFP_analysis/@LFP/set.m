@@ -32,6 +32,7 @@ if isempty(ops) % reset default properties
     obj.twop.planes.planes = 1;
     obj.twop.planes.numplanes = 1;
     obj.twop.planes.plane_names = {'single plane'};
+    obj.twop.planes.stepsize = 0;
     obj.twop.planes.ol = .8;
     obj.twop.planes.maxStep = 100;
     obj.twop.planes.maxR = .7;
