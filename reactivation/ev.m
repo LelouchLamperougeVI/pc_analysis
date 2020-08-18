@@ -25,6 +25,9 @@ Rpre = triu(Rpre,1); Rpre = Rpre(Rpre~=0);
 Rexp = triu(Rexp,1); Rexp = Rexp(Rexp~=0);
 Rpost = triu(Rpost,1); Rpost = Rpost(Rpost~=0);
 
+nan_idx = isnan(Rpre) | isnan(Rexp) | isnan(Rpost);
+Rpre(nan_idx) = []; Rexp(nan_idx) = []; Rpost(nan_idx) = [];
+
 PrePost = corr(Rpre, Rpost);
 ExpPre = corr(Rexp, Rpre);
 ExpPost = corr(Rexp, Rpost);
@@ -92,10 +95,10 @@ issym = @(A) ( sum(sum( A == A' )) / numel(A) ) > .3; %computers are only as pre
 switch class(input)
     case 'ensemble'
         try
-            rval{1} = input.R;
+            rval{1} = input.ensembles.R;
             rval{2} = input.ops.sig;
             rval{3} = input.twop.fs;
-            rval{4} = input.clust;
+            rval{4} = input.ensembles.clust;
         catch
             if isempty(input.R)
                 error('The ''basic_ensemble'' does not have a correlation matrix constructed');

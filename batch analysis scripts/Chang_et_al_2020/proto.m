@@ -102,6 +102,7 @@ colormap jet
 
 
 %% Fig1C
+cd /home/loulou/Documents/my_docs/Manuscripts/Chang_et_al_2020/inkscape/MATLAB
 
 run = LFP('/mnt/storage/HaoRan/RRR_motor/M2/RSC037/2017_08_18/2017_08_18_2.abf');
 run.perform_analysis;
@@ -162,9 +163,175 @@ linkaxes(ax3, 'x')
 xlim([300 400])
 
 %% Fig1D
+mimg = rest2.topo.mimg;
+mimg = (mimg - min(mimg(:))) ./ range(mimg(:));
+mimg = mimg ./ .25; %adjust contrast
+mimg(mimg>1) = 1;
+mask = rest2.topo.maskNeurons;
+
+f = rest2.twop.deconv(rest2.twop.ts > 310.5 & rest2.twop.ts < 311.5, :);
+f = mean(f) ./ range(rest2.twop.deconv);
+im = repmat(mimg, 1, 1, 3);
+c = rbmap('caxis',[0 max(f)]);
+f = discretize(f, size(c, 1));
+for ii = 1:length(f)
+    [x, y] = find(mask == ii);
+    for jj = 1:length(x)
+        im(x(jj), y(jj), :) = permute(c(f(ii), :), [1 3 2]);
+    end
+end
+
+imwrite(im, 'fig1d_mask_react.png')
+% figure
+% imshow(im);
+
+[~, idx] = sort(f, 'descend');
+[~, idx] = max( run.analysis.stack(:, idx(1:5)), [], 1 );
+idx = round(median(idx));
+
+f = run.analysis.stack(idx-1:idx+1, :);
+f = mean(f);
+im = repmat(mimg, 1, 1, 3);
+c = rbmap('caxis',[0 max(f)]);
+f = discretize(f, size(c, 1));
+for ii = 1:length(f)
+    [x, y] = find(mask == ii);
+    for jj = 1:length(x)
+        im(x(jj), y(jj), :) = permute(c(f(ii), :), [1 3 2]);
+    end
+end
+
+imwrite(im, 'fig1d_mask_run.png')
+% figure
+% imshow(im);
+
+%% Fig2
 rest2.set_ops('e_size',5);
 rest2.set_ops('clust_method','thres');
+rest2.set_ops('sig', .2);
+rest2.remove_mvt;
 rest2.cluster;
 rest2.topography;
+rest2.detect_sce;
 
-rest2.plot('clust_topo')
+% rest2.plot('clust_topo')
+rest2.set_ops('order','cluster')
+
+rest2.plot('sce')
+rest2.plot('clust_corr')
+rest2.plot('tree')
+plot_analysis(run.analysis, [1 0 0 ], rest2.ensembles.clust{4})
+plot_analysis(run.analysis, [1 0 0 ], rest2.ensembles.clust{5})
+plot_analysis(run.analysis, [1 0 0 ], rest2.ensembles.clust{7})
+
+plot_analysis(run.analysis, [0 1 0 ], rest2.ensembles.clust{4})
+plot_analysis(run.analysis, [0 1 0 ], rest2.ensembles.clust{5})
+plot_analysis(run.analysis, [0 1 0 ], rest2.ensembles.clust{7})
+% nice clusts: 4, 5, 7
+
+%%
+figure
+deconv = fast_smooth(rest2.twop.deconv, rest2.ops.sig * rest2.twop.fs);
+deconv = (deconv - min(deconv, [], 'omitnan')) ./ range(deconv);
+imagesc('xdata', rest2.twop.ts, 'cdata', -deconv(:, rest2.ensembles.clust_order)');
+colormap gray
+xlim([355 415])
+
+
+
+%% Batch make/save analysis old M2
+chan = [1; 2; 3; 5; NaN; NaN; NaN];
+
+root = '/mnt/storage/HaoRan/RRR_motor/M2';
+
+animals = dir(fullfile(root, 'RSC*'));
+animals = {animals.name};
+
+for a = 1:length(animals)
+    sessions = dir(fullfile(root, animals{a}));
+    sessions = {sessions.name};
+    sessions = sessions( ~cellfun(@isempty, regexp(sessions, '^\d\d\d\d_\d\d_\d\d')) );
+    
+    for s = 1:length(sessions)
+        disp(['current session: ' fullfile(animals{a}, sessions{s})])
+        save(fullfile(root, animals{a}, sessions{s}, 'channels.mat'), 'chan');
+        lfp = LFP(fullfile(root, animals{a}, sessions{s}, [sessions{s} '_2.abf']));
+        lfp.perform_analysis;
+        lfp.save('analysis');
+    end
+end
+
+
+%% Rest analysis
+clear all
+
+% root = '/mnt/storage/HaoRan/RRR_motor/M2';
+root = '/mnt/storage/rrr_magnum/M2';
+
+% animals = dir(fullfile(root, 'RSC*'));
+animals = dir(fullfile(root, 'E*'));
+animals = {animals.name};
+
+EV = [];
+frac = []; %[rest1 rest2 run]
+for a = 1:length(animals)
+    sessions = dir(fullfile(root, animals{a}));
+    sessions = {sessions.name};
+    sessions = sessions( ~cellfun(@isempty, regexp(sessions, '^\d\d\d\d_\d\d_\d\d')) );
+    
+    for s = 1:length(sessions)
+        rest1 = ensemble(fullfile(root, animals{a}, sessions{s}, [sessions{s} '_1.abf']));
+        rest1.set_ops('e_size',5);
+        rest1.set_ops('clust_method','thres');
+        rest1.set_ops('sig', .2);
+        rest1.remove_mvt;
+        rest1.cluster;
+%         rest1.topography;
+%         rest1.detect_sce;
+        
+        rest2 = ensemble(fullfile(root, animals{a}, sessions{s}, [sessions{s} '_3.abf']));
+        rest2.set_ops('e_size',5);
+        rest2.set_ops('clust_method','thres');
+        rest2.set_ops('sig', .2);
+        rest2.remove_mvt;
+        rest2.cluster;
+%         rest2.topography;
+%         rest2.detect_sce;
+        [temp1, temp2] = ev(rest1, rest1.analysis.original_deconv, rest2);
+        EV = cat(1, EV, [temp1 temp2]);
+        
+        frac = cat(1, frac, [length(intersect( cell2mat(rest1.ensembles.clust), rest1.analysis.pc_list )) / length(cell2mat(rest1.ensembles.clust)), ...
+        length(intersect( cell2mat(rest2.ensembles.clust), rest1.analysis.pc_list )) / length(cell2mat(rest2.ensembles.clust)), ...
+        length(rest1.analysis.pc_list) / size(rest1.twop.deconv, 2)]);
+    end
+end
+
+
+%% Combine run for EE003/2018_12_19
+lfp1 = LFP('/mnt/storage/rrr_magnum/M2/EE003/2018_12_19/2018_12_19_2.abf');
+behav1 = lfp1.behavior;
+lfp2 = LFP('/mnt/storage/rrr_magnum/M2/EE003/2018_12_19/2018_12_19_3.abf');
+behav2 = lfp2.behavior;
+ts1 = lfp1.twop.ts;
+ts2 = lfp2.twop.ts;
+dec1 = lfp1.twop.deconv;
+dec2 = lfp2.twop.deconv;
+ts = cat(1, ts1, ts2 + ts1(end) + median(diff(ts1)));
+dec = cat(1, dec1, dec2);
+
+beh = behav1;
+beh.speed_raw_noSmooth = [beh.speed_raw_noSmooth behav2.speed_raw_noSmooth];
+beh.speed_raw = [beh.speed_raw; behav2.speed_raw];
+
+beh.ts = [beh.ts behav2.ts + ts1(end) + median(diff(ts1))];
+
+beh.pos_norm = [beh.pos_norm behav2.pos_norm];
+beh.trial= [beh.trial behav2.trial+max(beh.trial)];
+beh.speed = [beh.speed behav2.speed];
+beh.pos_cum = [beh.pos_cum behav2.pos_cum];
+beh.pos_raw = [beh.pos_raw behav2.pos_raw];
+
+tcs.tt = ts';
+[beh, dec] = convert_behavior(beh, tcs, dec);
+analysis = pc_batch_analysis(beh, dec);
+

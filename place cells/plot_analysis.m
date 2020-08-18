@@ -34,6 +34,7 @@ if plotFlag(1)
             set(gca,'xticklabel',strsplit(num2str(-analysis.vr_length:analysis.vr_length/4:0)));
             title(['n = ' num2str(k)]);
             colormap hot
+%             rbmap('caxis', [0 max(analysis.psth{k}(:))]);
             ylabel('trials')
             xlabel('distance (cm)')
             colorbar

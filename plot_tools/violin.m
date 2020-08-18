@@ -53,10 +53,10 @@ catch
 end
 
 if ops.scatter
-    scatter(linx, liny, 32, repelem(ops.cmap, cellfun(@length, X), 1), 'filled', 'jitter', 'on', 'jitteramount', .15, 'markerfacealpha', .5);
+    scatter(linx(:), liny(:), 32, repelem(ops.cmap, cellfun(@length, X), 1), 'filled', 'jitter', 'on', 'jitteramount', .15, 'markerfacealpha', .5);
 end
 if ops.box
-    boxplot(liny, linx, 'plotstyle', 'compact', 'colors', ops.cmap);
+    boxplot(liny(:), linx(:), 'plotstyle', 'compact', 'colors', ops.cmap);
 end
 
 xticks(1:length(X));

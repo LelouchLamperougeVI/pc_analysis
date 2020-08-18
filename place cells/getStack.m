@@ -20,7 +20,7 @@ pos = pos_bins(idx);
 trials = trial_bins(idx);
 Pt = accumarray([trial_bins' pos_bins'], 1);
 raw_psth = accumarray([trials' pos' neur_id'], temp) ./ Pt;
-raw_stack = squeeze(sum(raw_psth, 1));
+raw_stack = squeeze(sum(raw_psth, 1, 'omitnan'));
 
 Pi = accumarray(pos_bins', 1);
 % [xx, yy] = ndgrid(pos_bins, 1:size(deconv,2));
