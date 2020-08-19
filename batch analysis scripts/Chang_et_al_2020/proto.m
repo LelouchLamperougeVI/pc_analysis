@@ -265,6 +265,8 @@ end
 %% Rest analysis
 clear all
 
+traj_thres = .2;
+
 % root = '/mnt/storage/HaoRan/RRR_motor/M2';
 root = '/mnt/storage/rrr_magnum/M2';
 
@@ -274,6 +276,8 @@ animals = {animals.name};
 
 EV = [];
 frac = []; %[rest1 rest2 run]
+clust_stacks = cell(2,1);
+trajectories = cell(2,1);
 for a = 1:length(animals)
     sessions = dir(fullfile(root, animals{a}));
     sessions = {sessions.name};
@@ -303,6 +307,19 @@ for a = 1:length(animals)
         frac = cat(1, frac, [length(intersect( cell2mat(rest1.ensembles.clust), rest1.analysis.pc_list )) / length(cell2mat(rest1.ensembles.clust)), ...
         length(intersect( cell2mat(rest2.ensembles.clust), rest1.analysis.pc_list )) / length(cell2mat(rest2.ensembles.clust)), ...
         length(rest1.analysis.pc_list) / size(rest1.twop.deconv, 2)]);
+        
+        for c = 1:length(rest1.ensembles.clust)
+            list = intersect(rest1.analysis.pc_list, rest1.ensembles.clust{c});
+            stack = rest1.analysis.stack(:, list);
+            clust_stacks{1} = cat(2, clust_stacks{1}, mean(stack, 2));
+            trajectories{1} = cat(2, trajectories{1}, any(stack > traj_thres, 2));
+        end
+        for c = 1:length(rest2.ensembles.clust)
+            list = intersect(rest1.analysis.pc_list, rest2.ensembles.clust{c});
+            stack = rest1.analysis.stack(:, list);
+            clust_stacks{2} = cat(2, clust_stacks{2}, mean(stack, 2, 'omitnan'));
+            trajectories{2} = cat(2, trajectories{2}, any(stack > traj_thres, 2));
+        end
     end
 end
 
@@ -334,4 +351,31 @@ beh.pos_raw = [beh.pos_raw behav2.pos_raw];
 tcs.tt = ts';
 [beh, dec] = convert_behavior(beh, tcs, dec);
 analysis = pc_batch_analysis(beh, dec);
+
+
+%%
+clear all
+
+trajectories1 = load('/mnt/storage/HaoRan/RRR_motor/M2/traj.mat');
+trajectories1 = trajectories1.trajectories;
+trajectories2 = load('/mnt/storage/rrr_magnum/M2/traj.mat');
+trajectories2 = trajectories2.trajectories;
+
+trajectories = [trajectories1{1} trajectories2{1}];
+[l, s, e] = traj_length(trajectories);
+% l = cellfun(@(x) any(x > 20), l);
+figure
+% plot(sum(trajectories'))
+cdfplot(cell2mat(l));
+hold on
+trajectories = [trajectories1{2} trajectories2{2}];
+[l, s, e] = traj_length(trajectories);
+% l = cellfun(@(x) any(x > 20), l);
+cdfplot(cell2mat(l))
+
+
+
+
+
+
 
