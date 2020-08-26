@@ -316,7 +316,8 @@ for a = 1:length(animals)
             list = intersect(rest1.analysis.pc_list, rest1.ensembles.clust{c});
             stack = rest1.analysis.stack(:, list);
             frac_clust{1} = cat(1, frac_clust{1}, [length(list) length(list)/length(rest1.ensembles.clust{c})]);
-            clust_stacks{1} = cat(2, clust_stacks{1}, mean(stack, 2));
+%             clust_stacks{1} = cat(2, clust_stacks{1}, mean(stack, 2));
+            clust_stacks{1} = cat(1, clust_stacks{1}, {stack});
             trajectories{1} = cat(2, trajectories{1}, any(stack > traj_thres, 2));
             
             for l = 1:length(list)
@@ -333,7 +334,8 @@ for a = 1:length(animals)
             list = intersect(rest1.analysis.pc_list, rest2.ensembles.clust{c});
             stack = rest1.analysis.stack(:, list);
             frac_clust{2} = cat(1, frac_clust{2}, [length(list) length(list)/length(rest2.ensembles.clust{c})]);
-            clust_stacks{2} = cat(2, clust_stacks{2}, mean(stack, 2, 'omitnan'));
+%             clust_stacks{2} = cat(2, clust_stacks{2}, mean(stack, 2, 'omitnan'));
+            clust_stacks{2} = cat(1, clust_stacks{2}, {stack});
             trajectories{2} = cat(2, trajectories{2}, any(stack > traj_thres, 2));
             
             for l = 1:length(list)
@@ -392,19 +394,35 @@ trajectories2 = trajectories2.trajectories;
 
 trajectories = [trajectories1{1} trajectories2{1}];
 frac_clust = [frac_clust1{1}(:,1); frac_clust2{1}(:,1)];
-trajectories = trajectories(:, frac_clust > frac_thres);
-[l, s, e] = traj_length(trajectories);
+trajectories = trajectories(:, frac_clust >= frac_thres);
+[l1, s1, e1] = traj_length(trajectories);
 % l = cellfun(@(x) any(x > 20), l);
-figure
-% plot(sum(trajectories'))
-cdfplot(cell2mat(l));
-hold on
+
 trajectories = [trajectories1{2} trajectories2{2}];
 frac_clust = [frac_clust1{2}(:,1); frac_clust2{2}(:,1)];
-trajectories = trajectories(:, frac_clust > frac_thres);
-[l, s, e] = traj_length(trajectories);
+trajectories = trajectories(:, frac_clust >= frac_thres);
+[l2, s2, e2] = traj_length(trajectories);
 % l = cellfun(@(x) any(x > 20), l);
-cdfplot(cell2mat(l))
+
+belt;
+
+figure
+% plot(sum(trajectories'))
+cdfplot(cell2mat(l1));
+hold on
+cdfplot(cell2mat(l2))
+
+figure
+histogram(cell2mat(s1), 50)
+hold on
+histogram(cell2mat(e1), 50)
+plot(linspace(0, 150, 50), belt_idx.*10)
+
+figure
+histogram(cell2mat(s2), 50)
+hold on
+histogram(cell2mat(e2), 50)
+plot(linspace(0, 150, 50), belt_idx.*10)
 
 
 %% Figure 3
@@ -421,6 +439,7 @@ loc_clust{1} = cat(1, loc1.loc_clust{1}, loc2.loc_clust{1});
 loc_clust{2} = cat(1, loc1.loc_clust{2}, loc2.loc_clust{2});
 
 d1 = []; d2 = [];
+loc_cum1 = []; loc_cum2 = [];
 
 s1 = arrayfun(@(x) silhouette(loc{x}, loc_clust{1}{x}, circ_dist), 1:length(loc), 'uniformoutput', false);
 % s = arrayfun(@(x) silhouette(loc{x}, loc_clust{1}{x}, 'Euclidean'), 1:length(loc), 'uniformoutput', false);
@@ -429,6 +448,7 @@ g = cellfun(@(x) find(x(2:end) >= thres), g, 'uniformoutput', false);
 for ii = 1:length(g)
     for jj = 1:length(g{ii})
         d = loc{ii}(loc_clust{1}{ii} == g{ii}(jj));
+        loc_cum1 = cat(1, loc_cum1, d);
         d = circ_dist(d, d');
         d = d(logical(triu(ones(size(d)), 1)));
         d1 = cat(1, d1, mean(d));
@@ -444,6 +464,7 @@ g = cellfun(@(x) find(x(2:end) >= thres), g, 'uniformoutput', false);
 for ii = 1:length(g)
     for jj = 1:length(g{ii})
         d = loc{ii}(loc_clust{2}{ii} == g{ii}(jj));
+        loc_cum2 = cat(1, loc_cum2, d);
         d = circ_dist(d, d');
         d = d(logical(triu(ones(size(d)), 1)));
         d2 = cat(1, d2, mean(d));
@@ -472,6 +493,197 @@ violin({d1, d2}, 'labels', {'rest1', 'rest2'})
 
 p = kruskalwallis([d1; d2], [ones(length(d1), 1); 2 .* ones(length(d2), 1)]);
 disp(['kruskal-wallis dist: ' num2str(p)])
+
+figure;
+histogram(loc_cum1, 50, 'normalization', 'probability')
+hold on
+histogram(loc_cum2, 50, 'normalization', 'probability')
+
+
+%% Trajectories
+clear all
+
+clust_stacks1 = load('/mnt/storage/HaoRan/RRR_motor/M2/clust_stacks.mat');
+clust_stacks2 = load('/mnt/storage/rrr_magnum/M2/clust_stacks.mat');
+clust_stacks{1} = cat(1, clust_stacks1.clust_stacks{1}, clust_stacks2.clust_stacks{1});
+clust_stacks{2} = cat(1, clust_stacks1.clust_stacks{2}, clust_stacks2.clust_stacks{2});
+
+fr_thres = .5;
+traj_thres = 3; %min number of pc per ensemble
+
+l1 = cell(length(clust_stacks{1}), 1); s1=l1; e1=l1;
+for c = 1:length(clust_stacks{1})
+    stack = clust_stacks{1}{c};
+    traj = any(stack > fr_thres, 2);
+    [~, starts, ends] = traj_length(traj, 1);
+
+    stack = repmat(stack, 2, 1);
+    idx = false(length(starts{1}), 1);
+    for t = 1:length(starts{1})
+        temp = stack(starts{1}(t) : (ends{1}(t) - 1 + length(traj) * (starts{1}(t) > (ends{1}(t)))), :);
+        temp = any(temp > fr_thres, 1);
+        idx(t) = sum(temp) < traj_thres;
+    end
+
+    [l1{c}, s1{c}, e1{c}] = traj_length(traj);
+    l1{c} = l1{c}{1}(~idx);
+    s1{c} = s1{c}{1}(~idx);
+    e1{c} = e1{c}{1}(~idx);
+end
+
+l2 = cell(length(clust_stacks{2}), 1); s2=l2; e2=l2;
+for c = 1:length(clust_stacks{2})
+    stack = clust_stacks{2}{c};
+    traj = any(stack > fr_thres, 2);
+    [~, starts, ends] = traj_length(traj, 1);
+
+    stack = repmat(stack, 2, 1);
+    idx = false(length(starts{1}), 1);
+    for t = 1:length(starts{1})
+        temp = stack(starts{1}(t) : (ends{1}(t) - 1 + length(traj) * (starts{1}(t) > (ends{1}(t)))), :);
+        temp = any(temp > fr_thres, 1);
+        idx(t) = sum(temp) < traj_thres;
+    end
+
+    [l2{c}, s2{c}, e2{c}] = traj_length(traj);
+    l2{c} = l2{c}{1}(~idx);
+    s2{c} = s2{c}{1}(~idx);
+    e2{c} = e2{c}{1}(~idx);
+end
+
+belt;
+
+figure
+% plot(sum(trajectories'))
+cdfplot(cell2mat(l1));
+hold on
+cdfplot(cell2mat(l2))
+
+figure
+histogram(cell2mat(s1), 50, 'normalization', 'probability')
+title('rest1 start')
+xlim([0 150]); ylim([0 .2])
+figure
+histogram(cell2mat(e1), 50, 'normalization', 'probability')
+title('rest1 end')
+xlim([0 150]); ylim([0 .2])
+% plot(linspace(0, 150, 50), belt_idx.*.01)
+
+figure
+histogram(cell2mat(s2), 50, 'normalization', 'probability')
+title('rest2 start')
+xlim([0 150]); ylim([0 .2])
+figure
+histogram(cell2mat(e2), 50, 'normalization', 'probability')
+title('rest2 end')
+xlim([0 150]); ylim([0 .2])
+% plot(linspace(0, 150, 50), belt_idx.*.01)
+
+
+bins = 25;
+
+edges = linspace(0, 150, bins+1);
+P_se = accumarray([discretize(cell2mat(s1), edges) discretize(cell2mat(e1), edges)], 1, [bins bins]);
+P_se = P_se ./ sum(P_se(:));
+P_s_cond_e = P_se ./ sum(P_se, 1);
+P_e_cond_s = P_se ./ sum(P_se, 2);
+
+% figure
+% imagesc(P_se)
+% colormap jet
+% colorbar
+% rbmap('caxis', [0 1]);
+% axis image
+figure
+imagesc(P_e_cond_s)
+rbmap('caxis', [0 1]);
+colorbar
+caxis([0 1])
+axis image
+% figure
+% imagesc(P_s_cond_e)
+% rbmap('caxis', [0 1]);
+% colorbar
+% caxis([0 1])
+% axis image
+
+
+P_se = accumarray([discretize(cell2mat(s2), edges) discretize(cell2mat(e2), edges)], 1, [bins bins]);
+P_se = P_se ./ sum(P_se(:));
+P_s_cond_e = P_se ./ sum(P_se, 1);
+P_e_cond_s = P_se ./ sum(P_se, 2);
+
+% figure
+% imagesc(P_se)
+% rbmap('caxis', [0 1]);
+% colorbar
+% caxis([0 1])
+% axis image
+figure
+imagesc(P_e_cond_s)
+rbmap('caxis', [0 1]);
+colorbar
+caxis([0 1])
+axis image
+% figure
+% imagesc(P_s_cond_e)
+% rbmap('caxis', [0 1]);
+% colorbar
+% caxis([0 1])
+% axis image
+
+
+%% Fig3c
+figure
+% plot(sum(trajectories'))
+cdfplot(cell2mat(l1));
+hold on
+cdfplot(cell2mat(l2))
+
+n = 464;
+figure; [~, idx] = max(clust_stacks{2}{n}); [~, idx] = sort(idx); imagesc(-clust_stacks{2}{n}(:, idx)'); title([num2str(n) '; length:' num2str(l2{n}) '; start:' num2str(s2{n}) '; end:' num2str(e2{n})]); colormap bone
+n = 465;
+figure; [~, idx] = max(clust_stacks{2}{n}); [~, idx] = sort(idx); imagesc(-clust_stacks{2}{n}(:, idx)'); title([num2str(n) '; length:' num2str(l2{n}) '; start:' num2str(s2{n}) '; end:' num2str(e2{n})]); colormap bone
+n = 353;
+figure; [~, idx] = max(clust_stacks{2}{n}); [~, idx] = sort(idx); imagesc(-clust_stacks{2}{n}(:, idx)'); title([num2str(n) '; length:' num2str(l2{n}) '; start:' num2str(s2{n}) '; end:' num2str(e2{n})]); colormap bone
+n = 334;
+figure; [~, idx] = max(clust_stacks{2}{n}); [~, idx] = sort(idx); imagesc(-clust_stacks{2}{n}(:, idx)'); title([num2str(n) '; length:' num2str(l2{n}) '; start:' num2str(s2{n}) '; end:' num2str(e2{n})]); colormap bone
+n = 26;
+figure; [~, idx] = max(clust_stacks{2}{n}); [~, idx] = sort(idx); imagesc(-clust_stacks{2}{n}(:, idx)'); title([num2str(n) '; length:' num2str(l2{n}) '; start:' num2str(s2{n}) '; end:' num2str(e2{n})]); colormap bone
+n = 68;
+figure; [~, idx] = max(clust_stacks{2}{n}); [~, idx] = sort(idx); imagesc(-clust_stacks{2}{n}(:, idx)'); title([num2str(n) '; length:' num2str(l2{n}) '; start:' num2str(s2{n}) '; end:' num2str(e2{n})]); colormap bone
+n = 200;
+figure; [~, idx] = max(clust_stacks{2}{n}); [~, idx] = sort(idx); imagesc(-clust_stacks{2}{n}(:, idx)'); title([num2str(n) '; length:' num2str(l2{n}) '; start:' num2str(s2{n}) '; end:' num2str(e2{n})]); colormap bone
+
+
+%% Reconstructed trajectories
+P_e_cond_s(isnan(P_e_cond_s)) = 0;
+P_se(isnan(P_se)) = 0;
+
+% g = digraph(P_e_cond_s);
+g = digraph(P_se);
+LWidths = 10*g.Edges.Weight/max(g.Edges.Weight);
+LWidths(isnan(LWidths)) = 0;
+
+figure
+plot(g, 'layout', 'circle', 'LineWidth', LWidths, 'edgecdata', g.Edges.Weight, 'arrowsize', 0)
+axis square
+% rbmap('caxis',[0 1]);
+
+
+%% LFP
+lfp = LFP(fullfile(root, animals{1}, sessions{1}, [sessions{1} '_3.abf']));
+
+figure
+ax(1) = subplot(4,1,1:2);
+imagesc('xdata', lfp.twop.ts, 'cdata', lfp.twop.deconv')
+ax(2) = subplot(4,1,3);
+plot(lfp.lfp.ts, lfp.lfp.lfp);
+hold on
+plot(lfp.lfp.swr.swr_on, max(lfp.lfp.lfp) .* ones(length(lfp.lfp.swr.swr_on), 1), 'k*');
+ax(3) = subplot(4,1,4);
+plot(lfp.behavior.ts, lfp.behavior.speed);
+linkaxes(ax, 'x')
 
 
 

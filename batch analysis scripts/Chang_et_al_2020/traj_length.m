@@ -18,11 +18,11 @@ for ii = 1:size(trajectories, 2)
     if idx(find(idx(:, ii) ~= 0, 1), ii) == -1
         starts = circshift(starts, 1);
     end
-    lengths = min(mod([starts-ends ends-starts], size(trajectories, 1)), [], 2);
+    lengths = mod(ends-starts, size(trajectories, 1));
     
-    l{ii} = lengths;
-    s{ii} = starts;
-    e{ii} = ends;
+    l{ii} = lengths .* bl_ratio;
+    s{ii} = starts .* bl_ratio;
+    e{ii} = ends .* bl_ratio;
 end
 
 % for ii = 1:size(trajectories, 2)

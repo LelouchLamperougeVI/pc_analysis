@@ -44,6 +44,10 @@ obj.lfp.swr.swr=filtfilt(sos,g,obj.lfp.lfp)./obj.lfp.f60_env;
 
 % amplitude envelope for SWR band and ripples detection
 env=envelope(obj.lfp.swr.swr);
+if ~isempty(obj.behavior)
+else
+    warning('Behavioural data unavailable. Please run LFP.extract_behaviour(). SWR detection will include movement epochs.');
+end
 ts=mean(env)+3*std(env);
 ts=env>ts;
 
