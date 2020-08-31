@@ -10,25 +10,27 @@ deconv = obj.twop.deconv;
 
 t=(-wdw:wdw)/obj.twop.fs;
 
-peaks=obj.lfp.swr.swr_peaks;
+% peaks=obj.lfp.swr.swr_peaks;
+peaks=obj.lfp.swr.swr_on;
 peaks=knnsearch(ts, peaks);
 
 [stack, all] = get_stack(peaks, wdw, ts, deconv);
 
-index = ( 1:size(deconv,1) )';
-null_all = cell(1,1, shuffles);
-xx = size(obj.twop.deconv,1);
-parfor ii = 1:shuffles
-    idx = circshift(index, randi(xx, 1));
-    pks = idx(peaks);
-    [~, null_all{ii}] = get_stack(pks, wdw, ts, deconv);
-end
-null_all = cell2mat(null_all);
+% index = ( 1:size(deconv,1) )';
+% null_all = cell(1,1, shuffles);
+% xx = size(obj.twop.deconv,1);
+% parfor ii = 1:shuffles
+%     idx = circshift(index, randi(xx, 1));
+%     pks = idx(peaks);
+%     [~, null_all{ii}] = get_stack(pks, wdw, ts, deconv);
+% end
+% null_all = cell2mat(null_all);
 
 obj.ensembles.swr.stack=stack;
 obj.ensembles.swr.t=t;
 obj.ensembles.swr.all = all;
-obj.ensembles.swr.null_all = null_all;
+% obj.ensembles.swr.null_all = null_all;
+obj.ensembles.swr.null_all = [];
 
 
 

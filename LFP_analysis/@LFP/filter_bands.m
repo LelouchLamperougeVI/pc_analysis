@@ -45,11 +45,22 @@ obj.lfp.swr.swr=filtfilt(sos,g,obj.lfp.lfp)./obj.lfp.f60_env;
 % amplitude envelope for SWR band and ripples detection
 env=envelope(obj.lfp.swr.swr);
 if ~isempty(obj.behavior)
+    mvt_idx = obj.behavior.ts(obj.behavior.speed ~= 0);
+    mvt_idx = knnsearch(obj.lfp.ts', mvt_idx');
+    mvt = false(length(obj.lfp.ts), 1);
+    mvt(mvt_idx) = true;
+    
+    kernel = ones(round(obj.lfp.fs), 1); % dilate to 1 sec
+    mvt = logical(conv(mvt, kernel, 'same'));
+    
+    mvt = fill_gaps(mvt, round(obj.lfp.fs)); % fill 1 sec gaps
+    
+    env(mvt) = nan;
 else
     warning('Behavioural data unavailable. Please run LFP.extract_behaviour(). SWR detection will include movement epochs.');
 end
-ts=mean(env)+3*std(env);
-ts=env>ts;
+ts = mean(env, 'omitnan') + 3*std(env, 'omitnan');
+ts = env>ts;
 
 gaps=.02*obj.lfp.fs; %consecutive ripples less than 20 ms apart are concatenated
 ts=fill_gaps(ts,gaps);

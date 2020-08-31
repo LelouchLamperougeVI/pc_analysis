@@ -281,6 +281,9 @@ clust_stacks = cell(2,1);
 trajectories = cell(2,1);
 loc = {};
 loc_clust = cell(2,1);
+swr_stack = cell(2,1);
+clusts = cell(2,1);
+SI = [];
 for a = 1:length(animals)
     sessions = dir(fullfile(root, animals{a}));
     sessions = {sessions.name};
@@ -293,6 +296,7 @@ for a = 1:length(animals)
         rest1.set_ops('sig', .2);
         rest1.remove_mvt;
         rest1.cluster;
+        rest1.swr_window;
 %         rest1.topography;
 %         rest1.detect_sce;
         
@@ -302,6 +306,7 @@ for a = 1:length(animals)
         rest2.set_ops('sig', .2);
         rest2.remove_mvt;
         rest2.cluster;
+        rest2.swr_window;
 %         rest2.topography;
 %         rest2.detect_sce;
         [temp1, temp2] = ev(rest1, rest1.analysis.original_deconv, rest2);
@@ -310,6 +315,12 @@ for a = 1:length(animals)
         frac = cat(1, frac, [length(intersect( cell2mat(rest1.ensembles.clust), rest1.analysis.pc_list )) / length(cell2mat(rest1.ensembles.clust)), ...
         length(intersect( cell2mat(rest2.ensembles.clust), rest1.analysis.pc_list )) / length(cell2mat(rest2.ensembles.clust)), ...
         length(rest1.analysis.pc_list) / size(rest1.twop.deconv, 2)]);
+    
+        swr_stack{1} = cat(1, swr_stack{1}, {rest1.ensembles.swr.all});
+        swr_stack{2} = cat(1, swr_stack{2}, {rest2.ensembles.swr.all});
+        clusts{1} = cat(2, clusts{1}, {rest1.ensembles.clust});
+        clusts{2} = cat(2, clusts{2}, {rest2.ensembles.clust});
+        SI = cat(2, SI, {rest1.analysis.SI});
         
         g = cellfun(@(x) zeros(size(x, 1), 1), rest1.analysis.width, 'uniformoutput', false);
         for c = 1:length(rest1.ensembles.clust)
@@ -671,12 +682,35 @@ axis square
 % rbmap('caxis',[0 1]);
 
 
+%% bad LFPs
+bad: EC002, EE003
+really good: EC007, EE006
+
+
 %% LFP
-lfp = LFP(fullfile(root, animals{1}, sessions{1}, [sessions{1} '_3.abf']));
+clear all
+
+animal = 'EE006';
+date = '2019_06_04';
+
+lfp = ensemble(fullfile('/mnt/storage/rrr_magnum/M2/', animal, date, [date '_3.abf']));
+lfp.set_ops('e_size',5);
+lfp.set_ops('clust_method','thres');
+lfp.set_ops('sig', .2);
+lfp.remove_mvt;
+lfp.cluster;
+lfp.set_ops('order','cluster')
+lfp.swr_window;
+lfp.plot('swr_window')
+
+deconv = lfp.twop.deconv(:, lfp.ensembles.clust_order);
+deconv = (deconv - nanmin(deconv)) ./ range(deconv);
+deconv = fast_smooth(deconv, lfp.ops.sig * lfp.twop.fs);
 
 figure
 ax(1) = subplot(4,1,1:2);
-imagesc('xdata', lfp.twop.ts, 'cdata', lfp.twop.deconv')
+imagesc('xdata', lfp.twop.ts, 'cdata', -deconv')
+colormap gray
 ax(2) = subplot(4,1,3);
 plot(lfp.lfp.ts, lfp.lfp.lfp);
 hold on
@@ -686,7 +720,91 @@ plot(lfp.behavior.ts, lfp.behavior.speed);
 linkaxes(ax, 'x')
 
 
+%%
+clear all
+load('/mnt/storage/rrr_magnum/M2/swr_stack.mat');
 
+n_stack = []; % ensemble neurons stack
+e_stack = []; % ensemble stack
+p_stack = []; % population stack
 
+for s = 1:length(clusts{1})
+    if size(swr_stack{1}{s}, 1) ~= 39; continue; end
+    for e = 1:length(clusts{1}{s})
+        temp = swr_stack{1}{s}(:, clusts{1}{s}{e}, :);
+        temp = mean(temp, 3, 'omitnan');
+        n_stack = cat(2, n_stack, temp);
+        temp = mean(temp, 2);
+        e_stack = cat(2, e_stack, temp);
+    end
+    temp = swr_stack{1}{s};
+    temp = mean(temp, 3, 'omitnan');
+    temp = mean(temp, 2);
+    p_stack = cat(2, p_stack, temp);
+end
 
+for s = 1:length(clusts{2})
+    if size(swr_stack{2}{s}, 1) ~= 39; continue; end
+    for e = 1:length(clusts{2}{s})
+        temp = swr_stack{2}{s}(:, clusts{2}{s}{e}, :);
+        temp = mean(temp, 3, 'omitnan');
+        n_stack = cat(2, n_stack, temp);
+        temp = mean(temp, 2);
+        e_stack = cat(2, e_stack, temp);
+    end
+    temp = swr_stack{2}{s};
+    temp = mean(temp, 3, 'omitnan');
+    temp = mean(temp, 2);
+    p_stack = cat(2, p_stack, temp);
+end
+
+[~, idx] = max(e_stack);
+[~, idx] = sort(idx);
+figure;
+temp = e_stack(:,idx);
+temp = fast_smooth(temp, 1);
+imagesc(temp');
+colormap jet
+colorbar
+set(gca, 'PlotBoxAspectRatio', [.5 1 1]);
+title('e_stack')
+caxis([-.1 .1])
+
+[~, idx] = max(n_stack);
+[~, idx] = sort(idx);
+figure;
+temp = n_stack(:,idx);
+temp = fast_smooth(temp, 1);
+imagesc(temp');
+colormap jet
+colorbar
+set(gca, 'PlotBoxAspectRatio', [.5 1 1]);
+title('n_stack')
+
+[~, idx] = max(p_stack);
+[~, idx] = sort(idx);
+figure;
+temp = p_stack(:,idx);
+temp = fast_smooth(temp, 1);
+imagesc(temp');
+colormap jet
+colorbar
+set(gca, 'PlotBoxAspectRatio', [.5 1 1]);
+title('p_stack')
+
+temp = fast_smooth(e_stack, 1);
+h = errorshade(mean(temp,2,'omitnan'), sem(temp, 2));
+
+temp = fast_smooth(p_stack, 1);
+errorshade(mean(temp,2,'omitnan'), sem(temp, 2), 'h', h)
+
+temp = cellfun(@(x) mean(x, 3, 'omitnan'), swr_stack{1}, 'uniformoutput', false);
+temp = cell2mat(temp(setdiff(1:68, 35))');
+temp = fast_smooth(temp, 1);
+errorshade(mean(temp,2,'omitnan'), sem(temp, 2))
+
+temp = cellfun(@(x) mean(x, 3, 'omitnan'), swr_stack{2}, 'uniformoutput', false);
+temp = cell2mat(temp(setdiff(1:68, 35))');
+temp = fast_smooth(temp, 1);
+errorshade(mean(temp,2,'omitnan'), sem(temp, 2))
 

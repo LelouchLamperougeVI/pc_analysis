@@ -123,8 +123,8 @@ classdef LFP < handle
             try obj.irCam_ts; catch; end
             if strcmp(obj.intern.op_mode, 'abf')
                 obj.down_sample(obj.lfp.ops.down_fs);
-                obj.filter_bands;
                 obj.extract_behaviour;
+                obj.filter_bands;
             end
             
             try

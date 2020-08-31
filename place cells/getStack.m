@@ -19,8 +19,9 @@ neur_id = repelem(1:size(deconv, 2), sum(deconv>0, 1));
 pos = pos_bins(idx);
 trials = trial_bins(idx);
 Pt = accumarray([trial_bins' pos_bins'], 1);
-raw_psth = accumarray([trials' pos' neur_id'], temp) ./ Pt;
-raw_stack = squeeze(sum(raw_psth, 1, 'omitnan'));
+raw_psth = accumarray([trials' pos' neur_id'], temp);
+raw_stack = squeeze(sum(raw_psth, 1, 'omitnan') ./ sum(Pt, 1));
+raw_psth = raw_psth ./ Pt;
 
 Pi = accumarray(pos_bins', 1);
 % [xx, yy] = ndgrid(pos_bins, 1:size(deconv,2));
