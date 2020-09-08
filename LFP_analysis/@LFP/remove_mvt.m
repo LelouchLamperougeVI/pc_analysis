@@ -62,6 +62,8 @@ else
     obj.twop.deconv(thres,:)=nan;
 end
 
+obj.filter_bands;
+
 
 function mvt = mk_sync(mvt, numPlanes)
 % for multi-plane data, make sure that the number of frames to be removed

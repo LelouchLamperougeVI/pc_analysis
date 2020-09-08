@@ -261,6 +261,26 @@ for a = 1:length(animals)
     end
 end
 
+%% Batch make/save analysis new M2
+clear all
+
+root = '/mnt/storage/rrr_magnum/M2';
+
+animals = dir(fullfile(root, 'E*'));
+animals = {animals.name};
+
+for a = 4:length(animals)
+    sessions = dir(fullfile(root, animals{a}));
+    sessions = {sessions.name};
+    sessions = sessions( ~cellfun(@isempty, regexp(sessions, '^\d\d\d\d_\d\d_\d\d')) );
+    
+    for s = 1:length(sessions)
+        lfp = LFP(fullfile(root, animals{a}, sessions{s}, [sessions{s} '_2.abf']));
+        lfp.perform_analysis;
+        lfp.save('analysis');
+    end
+end
+
 
 %% Rest analysis
 clear all
@@ -687,61 +707,30 @@ bad: EC002, EE003
 really good: EC007, EE006
 
 
-%% LFP
-clear all
-
-animal = 'EE006';
-date = '2019_06_04';
-
-lfp = ensemble(fullfile('/mnt/storage/rrr_magnum/M2/', animal, date, [date '_3.abf']));
-lfp.set_ops('e_size',5);
-lfp.set_ops('clust_method','thres');
-lfp.set_ops('sig', .2);
-lfp.remove_mvt;
-lfp.cluster;
-lfp.set_ops('order','cluster')
-lfp.swr_window;
-lfp.plot('swr_window')
-
-deconv = lfp.twop.deconv(:, lfp.ensembles.clust_order);
-deconv = (deconv - nanmin(deconv)) ./ range(deconv);
-deconv = fast_smooth(deconv, lfp.ops.sig * lfp.twop.fs);
-
-figure
-ax(1) = subplot(4,1,1:2);
-imagesc('xdata', lfp.twop.ts, 'cdata', -deconv')
-colormap gray
-ax(2) = subplot(4,1,3);
-plot(lfp.lfp.ts, lfp.lfp.lfp);
-hold on
-plot(lfp.lfp.swr.swr_on, max(lfp.lfp.lfp) .* ones(length(lfp.lfp.swr.swr_on), 1), 'k*');
-ax(3) = subplot(4,1,4);
-plot(lfp.behavior.ts, lfp.behavior.speed);
-linkaxes(ax, 'x')
-
-
 %%
 clear all
 load('/mnt/storage/rrr_magnum/M2/swr_stack.mat');
+
+sig = 1; % smoothing factor
 
 n_stack = []; % ensemble neurons stack
 e_stack = []; % ensemble stack
 p_stack = []; % population stack
 
-for s = 1:length(clusts{1})
-    if size(swr_stack{1}{s}, 1) ~= 39; continue; end
-    for e = 1:length(clusts{1}{s})
-        temp = swr_stack{1}{s}(:, clusts{1}{s}{e}, :);
-        temp = mean(temp, 3, 'omitnan');
-        n_stack = cat(2, n_stack, temp);
-        temp = mean(temp, 2);
-        e_stack = cat(2, e_stack, temp);
-    end
-    temp = swr_stack{1}{s};
-    temp = mean(temp, 3, 'omitnan');
-    temp = mean(temp, 2);
-    p_stack = cat(2, p_stack, temp);
-end
+% for s = 1:length(clusts{1})
+%     if size(swr_stack{1}{s}, 1) ~= 39; continue; end
+%     for e = 1:length(clusts{1}{s})
+%         temp = swr_stack{1}{s}(:, clusts{1}{s}{e}, :);
+%         temp = mean(temp, 3, 'omitnan');
+%         n_stack = cat(2, n_stack, temp);
+%         temp = mean(temp, 2);
+%         e_stack = cat(2, e_stack, temp);
+%     end
+%     temp = swr_stack{1}{s};
+%     temp = mean(temp, 3, 'omitnan');
+%     temp = mean(temp, 2);
+%     p_stack = cat(2, p_stack, temp);
+% end
 
 for s = 1:length(clusts{2})
     if size(swr_stack{2}{s}, 1) ~= 39; continue; end
@@ -758,14 +747,17 @@ for s = 1:length(clusts{2})
     p_stack = cat(2, p_stack, temp);
 end
 
+% n_stack = n_stack(10:29,:);
+% e_stack = e_stack(10:29,:);
+% p_stack = p_stack(10:29,:);
+
 [~, idx] = max(e_stack);
 [~, idx] = sort(idx);
 figure;
 temp = e_stack(:,idx);
-temp = fast_smooth(temp, 1);
+temp = fast_smooth(temp, sig);
 imagesc(temp');
-colormap jet
-colorbar
+rbmap('caxis',[-.1 .1]);
 set(gca, 'PlotBoxAspectRatio', [.5 1 1]);
 title('e_stack')
 caxis([-.1 .1])
@@ -774,37 +766,89 @@ caxis([-.1 .1])
 [~, idx] = sort(idx);
 figure;
 temp = n_stack(:,idx);
-temp = fast_smooth(temp, 1);
+temp = fast_smooth(temp, sig);
 imagesc(temp');
-colormap jet
-colorbar
+rbmap('caxis',[-.1 .1]);
 set(gca, 'PlotBoxAspectRatio', [.5 1 1]);
 title('n_stack')
+caxis([-.1 .1])
 
 [~, idx] = max(p_stack);
 [~, idx] = sort(idx);
 figure;
 temp = p_stack(:,idx);
-temp = fast_smooth(temp, 1);
+temp = fast_smooth(temp, sig);
 imagesc(temp');
-colormap jet
-colorbar
+rbmap('caxis',[-.1 .1]);
 set(gca, 'PlotBoxAspectRatio', [.5 1 1]);
 title('p_stack')
+caxis([-.1 .1])
 
-temp = fast_smooth(e_stack, 1);
-h = errorshade(mean(temp,2,'omitnan'), sem(temp, 2));
+% temp = fast_smooth(e_stack, sig);
+% h = errorshade(mean(temp,2,'omitnan'), sem(temp, 2));
+% 
+% temp = fast_smooth(p_stack, sig);
+% errorshade(mean(temp,2,'omitnan'), sem(temp, 2), 'h', h)
+% 
+% temp = cellfun(@(x) mean(x, 3, 'omitnan'), swr_stack{1}, 'uniformoutput', false);
+% temp = cell2mat(temp(setdiff(1:68, 35))');
+% temp = fast_smooth(temp, sig);
+% errorshade(mean(temp,2,'omitnan'), sem(temp, 2))
+% 
+% temp = cellfun(@(x) mean(x, 3, 'omitnan'), swr_stack{2}, 'uniformoutput', false);
+% temp = cell2mat(temp(setdiff(1:68, 35))');
+% temp = fast_smooth(temp, sig);
+% errorshade(mean(temp,2,'omitnan'), sem(temp, 2))
 
-temp = fast_smooth(p_stack, 1);
-errorshade(mean(temp,2,'omitnan'), sem(temp, 2), 'h', h)
 
-temp = cellfun(@(x) mean(x, 3, 'omitnan'), swr_stack{1}, 'uniformoutput', false);
-temp = cell2mat(temp(setdiff(1:68, 35))');
-temp = fast_smooth(temp, 1);
-errorshade(mean(temp,2,'omitnan'), sem(temp, 2))
+%% Fig5a
+clear all
 
-temp = cellfun(@(x) mean(x, 3, 'omitnan'), swr_stack{2}, 'uniformoutput', false);
-temp = cell2mat(temp(setdiff(1:68, 35))');
-temp = fast_smooth(temp, 1);
-errorshade(mean(temp,2,'omitnan'), sem(temp, 2))
+animal = 'EC007';
+date = '2019_05_29';
+
+lfp = ensemble(fullfile('/mnt/storage/rrr_magnum/M2/', animal, date, [date '_3.abf']));
+lfp.set_ops('e_size',5);
+lfp.set_ops('clust_method','thres');
+lfp.set_ops('sig', .2);
+lfp.remove_mvt;
+lfp.cluster;
+lfp.set_ops('order','cluster')
+
+% lfp.swr_window;
+% lfp.detect_sce;
+% lfp.sce_spectrum;
+
+deconv = lfp.twop.deconv(:, lfp.ensembles.clust_order);
+deconv = (deconv - nanmin(deconv)) ./ range(deconv);
+deconv = fast_smooth(deconv, lfp.ops.sig * lfp.twop.fs);
+
+figure
+ax(1) = subplot(6,1,1:2);
+imagesc('xdata', lfp.twop.ts, 'cdata', -deconv')
+colormap gray
+ax(2) = subplot(6,1,3);
+plot(lfp.lfp.ts, lfp.lfp.lfp);
+hold on
+plot(lfp.lfp.swr.swr_on, max(lfp.lfp.lfp) .* ones(length(lfp.lfp.swr.swr_on), 1), 'k*');
+ax(3) = subplot(6,1,4);
+plot(lfp.lfp.ts, lfp.lfp.swr.swr);
+ax(4) = subplot(6,1,5);
+plot(lfp.lfp.ts, lfp.lfp.gamma);
+ax(5) = subplot(6,1,6);
+plot(lfp.behavior.ts, lfp.behavior.speed);
+linkaxes(ax, 'x')
+
+
+
+
+
+
+
+
+
+
+
+
+
 

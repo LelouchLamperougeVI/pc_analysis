@@ -26,22 +26,22 @@ switch option
         ax1=subplot(k,1,1);
         plot(obj.lfp.ts,obj.lfp.lfp);
         hold on
-        plot(obj.lfp.swr.swr_peaks,ones(length(obj.lfp.swr.swr_peaks),1),'k*');
+        plot(obj.lfp.swr.swr_peaks,ones(length(obj.lfp.swr.swr_on),1),'k*');
         ylabel('broad band')
         ax2=subplot(k,1,2);
-        plot(obj.lfp.ts,obj.lfp.delta);
-        ylabel('\delta')
-        ax3=subplot(k,1,3);
-        plot(obj.lfp.ts,obj.lfp.theta);
-        ylabel('\theta')
-        ax4=subplot(k,1,4);
-        plot(obj.lfp.ts,obj.lfp.gamma);
-        ylabel('\gamma')
-        ax5=subplot(k,1,5);
         plot(obj.lfp.ts,obj.lfp.swr.swr);
         hold on
-        plot(obj.lfp.swr.swr_peaks,ones(length(obj.lfp.swr.swr_peaks),1),'k*');
+        plot(obj.lfp.swr.swr_peaks,ones(length(obj.lfp.swr.swr_on),1),'k*');
         ylabel('SWR')
+        ax3=subplot(k,1,3);
+        plot(obj.lfp.ts,obj.lfp.delta);
+        ylabel('\delta')
+        ax4=subplot(k,1,4);
+        plot(obj.lfp.ts,obj.lfp.theta);
+        ylabel('\theta')
+        ax5=subplot(k,1,5);
+        plot(obj.lfp.ts,obj.lfp.gamma);
+        ylabel('\gamma')
         %         if ~isempty(obj.camera.cam.mvt)
         %             ax6=subplot(k,1,6);
         %             plot(obj.camera.ts_cam,obj.camera.cam.traces);
