@@ -1,4 +1,4 @@
-span = 1;
+span = .3;
 wdw = round(lfp.lfp.fs .* span);
 
 swr_specs = [];
@@ -25,8 +25,9 @@ end
 
 figure
 % spec = abs( (mean(log(swr_specs), 3) - mean(log(null), 3)) ./ std(log(null), [], 3) );
-spec = abs( mean(swr_specs, 3) );
+% spec = abs( mean(swr_specs, 3) );
 % spec = abs( (mean((swr_specs), 3) - mean((null), 3)) ./ std((null), [], 3) );
+spec = abs( (mean((swr_specs), 3) - mean(null, [2 3])) ./ std((null), [], [2 3]) );
 t = linspace(-span, span, size(spec, 2));
 % imagesc('xdata', t, 'ydata', f(f<=300 & f>=100), 'cdata', spec(f<=300 & f>=100, :));
 imagesc('xdata', t, 'ydata', f(f<=300), 'cdata', spec(f<=300, :));
@@ -35,39 +36,21 @@ xline(0);
 colormap jet
 
 
-%% SWR FIR filter
-n = 400; % filter order
-cF = [150 250]; % cutoff frequencies
-wdw = hamming(n+1); % creat hamming window
-flt = fir1(n, cF/(lfp.lfp.fs/2), 'bandpass', wdw, 'scale');
-disp(['Filter is linear-phase: ' num2str(islinphase(flt))])
 
-freqz(flt, 1, 512);
-
-test = filtfilt(flt, 1, lfp.lfp.lfp);
+%%
+[s, t, f] = eta_cwt(lfp.lfp.lfp, lfp.lfp.fs, .2, lfp.lfp.swr.swr_on, 'nans', isnan(lfp.lfp.swr.swr_env), 'plot', true, 'nvc', 20);
+[X, Y] = meshgrid(t, f);
 
 figure
-plot(lfp.lfp.ts, lfp.lfp.lfp);
-hold on
-plot(lfp.lfp.ts, test);
-
-%% SWR envelope
-
-y = lfp.lfp.swr.swr;
-ts = lfp.lfp.ts;
-wdw = round(lfp.lfp.fs * .008); % 8 ms RMS window
-
-env = envelope(y, wdw, 'rms');
-
-swr_thres = 3;
-swr_idx = env > (mean(env, 'omitnan') + swr_thres*std(env, 'omitnan'));
-onset = env > (mean(env, 'omitnan') + .75*swr_thres*std(env, 'omitnan'));
-
-figure;
-plot(ts, y);
-hold on
-plot(ts, env);
-plot(ts(get_head(swr_idx)), ones(sum(get_head(swr_idx)), 1) .* max(env), 'k*')
+h = pcolor(X, Y, s);
+h.EdgeColor = 'none';
+h.FaceColor = 'interp';
+ylim([0 300]);
+caxis([0 4]);
+colormap jet
+c = colorbar;
+c.Label.String = 'z-score Wavelet Magnitude';
+xline(0, 'linewidth', 2, 'color', [1 1 1])
 
 
 

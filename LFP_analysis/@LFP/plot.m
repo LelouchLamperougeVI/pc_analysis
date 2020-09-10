@@ -26,12 +26,13 @@ switch option
         ax1=subplot(k,1,1);
         plot(obj.lfp.ts,obj.lfp.lfp);
         hold on
-        plot(obj.lfp.swr.swr_peaks,ones(length(obj.lfp.swr.swr_on),1),'k*');
+        plot(obj.lfp.swr.swr_on,ones(length(obj.lfp.swr.swr_on),1),'k*');
         ylabel('broad band')
         ax2=subplot(k,1,2);
         plot(obj.lfp.ts,obj.lfp.swr.swr);
         hold on
-        plot(obj.lfp.swr.swr_peaks,ones(length(obj.lfp.swr.swr_on),1),'k*');
+        plot(obj.lfp.ts,obj.lfp.swr.swr_env);
+        plot(obj.lfp.swr.swr_on, ones(length(obj.lfp.swr.swr_on),1) .* (mean(obj.lfp.swr.swr_env, 'omitnan') + 4*std(obj.lfp.swr.swr_env, 'omitnan')),'k*');
         ylabel('SWR')
         ax3=subplot(k,1,3);
         plot(obj.lfp.ts,obj.lfp.delta);

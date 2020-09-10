@@ -824,25 +824,31 @@ deconv = (deconv - nanmin(deconv)) ./ range(deconv);
 deconv = fast_smooth(deconv, lfp.ops.sig * lfp.twop.fs);
 
 figure
-ax(1) = subplot(6,1,1:2);
+ax(1) = subplot(5,1,1:4);
 imagesc('xdata', lfp.twop.ts, 'cdata', -deconv')
 colormap gray
-ax(2) = subplot(6,1,3);
+ax(2) = subplot(5,1,5);
 plot(lfp.lfp.ts, lfp.lfp.lfp);
 hold on
 plot(lfp.lfp.swr.swr_on, max(lfp.lfp.lfp) .* ones(length(lfp.lfp.swr.swr_on), 1), 'k*');
-ax(3) = subplot(6,1,4);
-plot(lfp.lfp.ts, lfp.lfp.swr.swr);
-ax(4) = subplot(6,1,5);
-plot(lfp.lfp.ts, lfp.lfp.gamma);
-ax(5) = subplot(6,1,6);
-plot(lfp.behavior.ts, lfp.behavior.speed);
 linkaxes(ax, 'x')
+xlim([520 620])
 
 
+%% Fig5c - SCE onset events triggered average CWT spectrogram
+% sce = cat(1, lfp.ensembles.clust_SCE(1).SCE.on, lfp.ensembles.clust_SCE(2).SCE.on, lfp.ensembles.clust_SCE(2).SCE.on);
+sce = lfp.ensembles.SCE.on;
+eta_cwt(lfp.lfp.lfp, lfp.lfp.fs, .2, sce, 'nans', isnan(lfp.lfp.swr.swr_env), 'plot', true, 'nvc', 20);
 
 
+%% Fig5b - swr onset events triggered average CWT spectrogram
+clear all
+animal = 'EC007';
+date = '2019_05_29';
+lfp = LFP(fullfile('/mnt/storage/rrr_magnum/M2/', animal, date, [date '_3.abf']));
 
+[s, t, f] = eta_cwt(lfp.lfp.lfp, lfp.lfp.fs, .2, lfp.lfp.swr.swr_on, 'nans', isnan(lfp.lfp.swr.swr_env), 'plot', true, 'nvc', 20);
+ylim([0 300])
 
 
 
