@@ -13,6 +13,7 @@ function h = violin(varargin)
 %   'box':          overlay boxplot
 %   'colours', c:   custom colours specified as an Mx3 RGB-triplets matrix
 %   'labels', l:    cell array of string labels
+%   'bandwidth', b: bandwidth for kernel estimation
 %
 % by HaoRan Chang, PhD candidate
 % Polaris Research Group, Canadian Centre for Behavioural Neuroscience
@@ -25,7 +26,11 @@ end
 hold on
 
 for ii = 1:length(X)
-    [d, xi] = ksdensity(X{ii});
+    if ops.bandwidth
+        [d, xi] = ksdensity(X{ii}, 'bandwidth', ops.bandwidth);
+    else
+        [d, xi] = ksdensity(X{ii});
+    end
     d = (d - min(d)) ./ range(d) ./ 3;
     patch([d -d(end:-1:1)] + ii, [xi xi(end:-1:1)], ops.cmap(ii, :), 'facealpha', .4);
     
@@ -75,6 +80,7 @@ ops.scatter = false;
 ops.box = false;
 ops.cmap = distinguishable_colors(length(X), {'w', 'k'});
 ops.labels = strsplit(num2str(1:length(X)));
+ops.bandwidth = false;
 
 count = 2;
 while count <= length(inputs)
@@ -90,6 +96,9 @@ while count <= length(inputs)
             count = count + 1;
         case 'labels'
             ops.labels = inputs{count + 1};
+            count = count + 1;
+        case 'bandwidth'
+            ops.bandwidth = inputs{count + 1};
             count = count + 1;
         otherwise
             error(['''' inputs{count} ''' is not a valid option.']);

@@ -119,8 +119,8 @@ rest2.set_ops('order','pc');
 figure
 ax1(1) = subplot(5, 3, [1 4 7]);
 deconv = rest1.twop.deconv(:, rest1.analysis.order);
-deconv = (deconv - min(deconv)) ./ range(deconv);
 deconv = fast_smooth(deconv, rest1.ops.sig * rest1.twop.fs);
+deconv = (deconv - min(deconv)) ./ range(deconv);
 imagesc('xdata', rest1.twop.ts, 'cdata', -deconv');
 colormap gray
 ax1(2) = subplot(5, 3, 10);
@@ -134,8 +134,8 @@ xlim([300 400])
 
 ax2(1) = subplot(5, 3, [2 5 8]);
 deconv = run.twop.deconv(:, run.analysis.order);
-deconv = (deconv - min(deconv)) ./ range(deconv);
 deconv = fast_smooth(deconv, rest1.ops.sig * run.twop.fs);
+deconv = (deconv - min(deconv)) ./ range(deconv);
 imagesc('xdata', run.twop.ts, 'cdata', -deconv');
 colormap gray
 ax2(2) = subplot(5, 3, 11);
@@ -149,8 +149,8 @@ xlim([200 300])
 
 ax3(1) = subplot(5, 3, [3 6 9]);
 deconv = rest2.twop.deconv(:, rest2.analysis.order);
-deconv = (deconv - min(deconv)) ./ range(deconv);
 deconv = fast_smooth(deconv, rest2.ops.sig * rest2.twop.fs);
+deconv = (deconv - min(deconv)) ./ range(deconv);
 imagesc('xdata', rest2.twop.ts, 'cdata', -deconv');
 colormap gray
 ax3(2) = subplot(5, 3, 12);
@@ -287,11 +287,11 @@ clear all
 
 traj_thres = .2;
 
-% root = '/mnt/storage/HaoRan/RRR_motor/M2';
-root = '/mnt/storage/rrr_magnum/M2';
+root = '/mnt/storage/HaoRan/RRR_motor/M2';
+% root = '/mnt/storage/rrr_magnum/M2';
 
-% animals = dir(fullfile(root, 'RSC*'));
-animals = dir(fullfile(root, 'E*'));
+animals = dir(fullfile(root, 'RSC*'));
+% animals = dir(fullfile(root, 'E*'));
 animals = {animals.name};
 
 EV = [];
@@ -304,6 +304,7 @@ loc_clust = cell(2,1);
 swr_stack = cell(2,1);
 clusts = cell(2,1);
 SI = [];
+si_frac = [];
 for a = 1:length(animals)
     sessions = dir(fullfile(root, animals{a}));
     sessions = {sessions.name};
@@ -316,7 +317,7 @@ for a = 1:length(animals)
         rest1.set_ops('sig', .2);
         rest1.remove_mvt;
         rest1.cluster;
-        rest1.swr_window;
+%         rest1.swr_window;
 %         rest1.topography;
 %         rest1.detect_sce;
         
@@ -326,7 +327,7 @@ for a = 1:length(animals)
         rest2.set_ops('sig', .2);
         rest2.remove_mvt;
         rest2.cluster;
-        rest2.swr_window;
+%         rest2.swr_window;
 %         rest2.topography;
 %         rest2.detect_sce;
         [temp1, temp2] = ev(rest1, rest1.analysis.original_deconv, rest2);
@@ -335,48 +336,102 @@ for a = 1:length(animals)
         frac = cat(1, frac, [length(intersect( cell2mat(rest1.ensembles.clust), rest1.analysis.pc_list )) / length(cell2mat(rest1.ensembles.clust)), ...
         length(intersect( cell2mat(rest2.ensembles.clust), rest1.analysis.pc_list )) / length(cell2mat(rest2.ensembles.clust)), ...
         length(rest1.analysis.pc_list) / size(rest1.twop.deconv, 2)]);
+        
+        si_frac = cat(1, si_frac, {{rest1.analysis.SI(cell2mat(rest1.ensembles.clust))}, {rest1.analysis.SI(cell2mat(rest2.ensembles.clust))}, {rest1.analysis.SI}});
+        % v checkpoint
     
-        swr_stack{1} = cat(1, swr_stack{1}, {rest1.ensembles.swr.all});
-        swr_stack{2} = cat(1, swr_stack{2}, {rest2.ensembles.swr.all});
-        clusts{1} = cat(2, clusts{1}, {rest1.ensembles.clust});
-        clusts{2} = cat(2, clusts{2}, {rest2.ensembles.clust});
-        SI = cat(2, SI, {rest1.analysis.SI});
-        
-        g = cellfun(@(x) zeros(size(x, 1), 1), rest1.analysis.width, 'uniformoutput', false);
-        for c = 1:length(rest1.ensembles.clust)
-            list = intersect(rest1.analysis.pc_list, rest1.ensembles.clust{c});
-            stack = rest1.analysis.stack(:, list);
-            frac_clust{1} = cat(1, frac_clust{1}, [length(list) length(list)/length(rest1.ensembles.clust{c})]);
-%             clust_stacks{1} = cat(2, clust_stacks{1}, mean(stack, 2));
-            clust_stacks{1} = cat(1, clust_stacks{1}, {stack});
-            trajectories{1} = cat(2, trajectories{1}, any(stack > traj_thres, 2));
-            
-            for l = 1:length(list)
-                g{list(l)} = c .* ones(size(rest1.analysis.width{list(l)}, 1), 1);
-            end
-        end
-        temp = cell2mat({rest1.analysis.width{~cellfun(@isempty, rest1.analysis.width)}}');
-        loc{end+1} =  temp(:, 2);
-        temp = cell2mat({g{~cellfun(@isempty, rest1.analysis.width)}}');
-        loc_clust{1} = cat(1, loc_clust{1}, {temp});
-        
-        g = cellfun(@(x) zeros(size(x, 1), 1), rest1.analysis.width, 'uniformoutput', false);
-        for c = 1:length(rest2.ensembles.clust)
-            list = intersect(rest1.analysis.pc_list, rest2.ensembles.clust{c});
-            stack = rest1.analysis.stack(:, list);
-            frac_clust{2} = cat(1, frac_clust{2}, [length(list) length(list)/length(rest2.ensembles.clust{c})]);
-%             clust_stacks{2} = cat(2, clust_stacks{2}, mean(stack, 2, 'omitnan'));
-            clust_stacks{2} = cat(1, clust_stacks{2}, {stack});
-            trajectories{2} = cat(2, trajectories{2}, any(stack > traj_thres, 2));
-            
-            for l = 1:length(list)
-                g{list(l)} = c .* ones(size(rest1.analysis.width{list(l)}, 1), 1);
-            end
-        end
-        temp = cell2mat({g{~cellfun(@isempty, rest1.analysis.width)}}');
-        loc_clust{2} = cat(1, loc_clust{2}, {temp});
+%         swr_stack{1} = cat(1, swr_stack{1}, {rest1.ensembles.swr.all});
+%         swr_stack{2} = cat(1, swr_stack{2}, {rest2.ensembles.swr.all});
+%         clusts{1} = cat(2, clusts{1}, {rest1.ensembles.clust});
+%         clusts{2} = cat(2, clusts{2}, {rest2.ensembles.clust});
+%         SI = cat(2, SI, {rest1.analysis.SI});
+%         
+%         g = cellfun(@(x) zeros(size(x, 1), 1), rest1.analysis.width, 'uniformoutput', false);
+%         for c = 1:length(rest1.ensembles.clust)
+%             list = intersect(rest1.analysis.pc_list, rest1.ensembles.clust{c});
+%             stack = rest1.analysis.stack(:, list);
+%             frac_clust{1} = cat(1, frac_clust{1}, [length(list) length(list)/length(rest1.ensembles.clust{c})]);
+% %             clust_stacks{1} = cat(2, clust_stacks{1}, mean(stack, 2));
+%             clust_stacks{1} = cat(1, clust_stacks{1}, {stack});
+%             trajectories{1} = cat(2, trajectories{1}, any(stack > traj_thres, 2));
+%             
+%             for l = 1:length(list)
+%                 g{list(l)} = c .* ones(size(rest1.analysis.width{list(l)}, 1), 1);
+%             end
+%         end
+%         temp = cell2mat({rest1.analysis.width{~cellfun(@isempty, rest1.analysis.width)}}');
+%         loc{end+1} =  temp(:, 2);
+%         temp = cell2mat({g{~cellfun(@isempty, rest1.analysis.width)}}');
+%         loc_clust{1} = cat(1, loc_clust{1}, {temp});
+%         
+%         g = cellfun(@(x) zeros(size(x, 1), 1), rest1.analysis.width, 'uniformoutput', false);
+%         for c = 1:length(rest2.ensembles.clust)
+%             list = intersect(rest1.analysis.pc_list, rest2.ensembles.clust{c});
+%             stack = rest1.analysis.stack(:, list);
+%             frac_clust{2} = cat(1, frac_clust{2}, [length(list) length(list)/length(rest2.ensembles.clust{c})]);
+% %             clust_stacks{2} = cat(2, clust_stacks{2}, mean(stack, 2, 'omitnan'));
+%             clust_stacks{2} = cat(1, clust_stacks{2}, {stack});
+%             trajectories{2} = cat(2, trajectories{2}, any(stack > traj_thres, 2));
+%             
+%             for l = 1:length(list)
+%                 g{list(l)} = c .* ones(size(rest1.analysis.width{list(l)}, 1), 1);
+%             end
+%         end
+%         temp = cell2mat({g{~cellfun(@isempty, rest1.analysis.width)}}');
+%         loc_clust{2} = cat(1, loc_clust{2}, {temp});
     end
 end
+
+
+%% Fig2e-f
+clear all
+frac1 = load('/mnt/storage/HaoRan/RRR_motor/M2/frac.mat');
+frac_clust1 = load('/mnt/storage/HaoRan/RRR_motor/M2/frac_clust.mat');
+frac2 = load('/mnt/storage/rrr_magnum/M2/frac.mat');
+frac_clust2 = load('/mnt/storage/rrr_magnum/M2/frac_clust.mat');
+
+frac = cat(1, frac1.frac, frac2.frac);
+frac_clust = cell(2, 1);
+frac_clust{1} = cat(1, frac_clust1.frac_clust{1}, frac_clust2.frac_clust{1});
+frac_clust{2} = cat(1, frac_clust1.frac_clust{2}, frac_clust2.frac_clust{2});
+
+figure
+boxplot(frac);
+[~,~,stats] = kruskalwallis(frac);
+multcompare(stats)
+
+figure
+boxplot([frac(:,1) - frac(:,3), frac(:,2) - frac(:,3)]);
+ylim([-.5 1])
+p = ranksum(frac(:,1) - frac(:,3), frac(:,2) - frac(:,3))
+p = signrank(frac(:,1) - frac(:,3))
+p = signrank(frac(:,2) - frac(:,3))
+
+
+%% Fig2g
+clear all
+si_frac1 = load('/mnt/storage/HaoRan/RRR_motor/M2/si_frac.mat');
+si_frac2 = load('/mnt/storage/rrr_magnum/M2/si_frac.mat');
+si_frac = cat(1, si_frac1.si_frac, si_frac2.si_frac);
+
+temp = cell(3,1);
+for ii = 1:size(si_frac, 1)
+    temp{1} = cat(2, temp{1}, si_frac{ii, 1}{1});
+    temp{2} = cat(2, temp{2}, si_frac{ii, 2}{1});
+    temp{3} = cat(2, temp{3}, si_frac{ii, 3}{1});
+end
+
+figure
+cdfplot(temp{1})
+hold on
+cdfplot(temp{2})
+cdfplot(temp{3})
+
+figure
+boxplot([temp{1} temp{2}], [ones(1, length(temp{1})) 2.*ones(1, length(temp{2}))]);
+
+[~, p] = kstest2(temp{1}, temp{2})
+p = ranksum(temp{1}, temp{2})
 
 
 %% Combine run for EE003/2018_12_19
@@ -515,15 +570,17 @@ disp(['kstest silhouette: ' num2str(p)])
 figure
 boxplot([cell2mat(s1'); cell2mat(s2')], [ones(length(cell2mat(s1')), 1); 2 .* ones(length(cell2mat(s2')), 1)])
 
-p = kruskalwallis([cell2mat(s1'); cell2mat(s2')], [ones(length(cell2mat(s1')), 1); 2 .* ones(length(cell2mat(s2')), 1)]);
-disp(['kruskal-wallis silhouette: ' num2str(p)])
+% p = kruskalwallis([cell2mat(s1'); cell2mat(s2')], [ones(length(cell2mat(s1')), 1); 2 .* ones(length(cell2mat(s2')), 1)]);
+p = ranksum(cell2mat(s1'), cell2mat(s2'));
+disp(['ranksum silhouette: ' num2str(p)])
 
 figure;
-violin({d1, d2}, 'labels', {'rest1', 'rest2'})
+violin({d1, d2}, 'labels', {'rest1', 'rest2'}, 'bandwidth', 2)
 % violin({d1, d2}, 'labels', {'rest1', 'rest2'}, 'scatter')
 
-p = kruskalwallis([d1; d2], [ones(length(d1), 1); 2 .* ones(length(d2), 1)]);
-disp(['kruskal-wallis dist: ' num2str(p)])
+% p = kruskalwallis([d1; d2], [ones(length(d1), 1); 2 .* ones(length(d2), 1)]);
+p = ranksum(d1, d2);
+disp(['ranksum dist: ' num2str(p)])
 
 figure;
 histogram(loc_cum1, 50, 'normalization', 'probability')
@@ -699,7 +756,7 @@ LWidths(isnan(LWidths)) = 0;
 figure
 plot(g, 'layout', 'circle', 'LineWidth', LWidths, 'edgecdata', g.Edges.Weight, 'arrowsize', 0)
 axis square
-% rbmap('caxis',[0 1]);
+rbmap('caxis',[0 1]);
 
 
 %% bad LFPs
@@ -814,26 +871,64 @@ lfp.set_ops('sig', .2);
 lfp.remove_mvt;
 lfp.cluster;
 lfp.set_ops('order','cluster')
+lfp.detect_sce;
 
 % lfp.swr_window;
 % lfp.detect_sce;
 % lfp.sce_spectrum;
 
 deconv = lfp.twop.deconv(:, lfp.ensembles.clust_order);
-deconv = (deconv - nanmin(deconv)) ./ range(deconv);
 deconv = fast_smooth(deconv, lfp.ops.sig * lfp.twop.fs);
+deconv = (deconv - nanmin(deconv)) ./ range(deconv);
 
 figure
-ax(1) = subplot(5,1,1:4);
+ax(1) = subplot(7,1,1:4);
 imagesc('xdata', lfp.twop.ts, 'cdata', -deconv')
 colormap gray
-ax(2) = subplot(5,1,5);
+ax(2) = subplot(7,1,5);
+plot(lfp.twop.ts, lfp.ensembles.MUA);
+ax(3) = subplot(7,1,6);
 plot(lfp.lfp.ts, lfp.lfp.lfp);
 hold on
 plot(lfp.lfp.swr.swr_on, max(lfp.lfp.lfp) .* ones(length(lfp.lfp.swr.swr_on), 1), 'k*');
+ax(4) = subplot(7,1,7);
+plot(lfp.lfp.ts, lfp.lfp.swr.swr);
 linkaxes(ax, 'x')
-xlim([520 620])
+xlim([560 620])
 
+deconv = lfp.twop.deconv(:, lfp.ensembles.clust_order);
+deconv = fast_smooth(deconv, 0.05 * lfp.twop.fs);
+deconv = (deconv - nanmin(deconv)) ./ range(deconv);
+
+figure
+ax(1) = subplot(7,1,1:4);
+imagesc('xdata', lfp.twop.ts, 'cdata', -deconv')
+colormap gray
+ax(2) = subplot(7,1,5);
+plot(lfp.twop.ts, lfp.ensembles.MUA);
+ax(3) = subplot(7,1,6);
+plot(lfp.lfp.ts, lfp.lfp.lfp);
+hold on
+plot(lfp.lfp.swr.swr_on, max(lfp.lfp.lfp) .* ones(length(lfp.lfp.swr.swr_on), 1), 'k*');
+ax(4) = subplot(7,1,7);
+plot(lfp.lfp.ts, lfp.lfp.swr.swr);
+linkaxes(ax, 'x')
+xlim([573 575])
+
+figure
+ax(1) = subplot(7,1,1:4);
+imagesc('xdata', lfp.twop.ts, 'cdata', -deconv')
+colormap gray
+ax(2) = subplot(7,1,5);
+plot(lfp.twop.ts, lfp.ensembles.MUA);
+ax(3) = subplot(7,1,6);
+plot(lfp.lfp.ts, lfp.lfp.lfp);
+hold on
+plot(lfp.lfp.swr.swr_on, max(lfp.lfp.lfp) .* ones(length(lfp.lfp.swr.swr_on), 1), 'k*');
+ax(4) = subplot(7,1,7);
+plot(lfp.lfp.ts, lfp.lfp.swr.swr);
+linkaxes(ax, 'x')
+xlim([602 604])
 
 %% Fig5c - SCE onset events triggered average CWT spectrogram
 % sce = cat(1, lfp.ensembles.clust_SCE(1).SCE.on, lfp.ensembles.clust_SCE(2).SCE.on, lfp.ensembles.clust_SCE(2).SCE.on);
