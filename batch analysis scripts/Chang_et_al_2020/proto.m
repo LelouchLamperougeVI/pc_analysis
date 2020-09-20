@@ -287,11 +287,11 @@ clear all
 
 traj_thres = .2;
 
-root = '/mnt/storage/HaoRan/RRR_motor/M2';
-% root = '/mnt/storage/rrr_magnum/M2';
+% root = '/mnt/storage/HaoRan/RRR_motor/M2';
+root = '/mnt/storage/rrr_magnum/M2';
 
-animals = dir(fullfile(root, 'RSC*'));
-% animals = dir(fullfile(root, 'E*'));
+% animals = dir(fullfile(root, 'RSC*'));
+animals = dir(fullfile(root, 'E*'));
 animals = {animals.name};
 
 EV = [];
@@ -305,6 +305,7 @@ swr_stack = cell(2,1);
 clusts = cell(2,1);
 SI = [];
 si_frac = [];
+swr_clust_stack = cell(2,1);
 for a = 1:length(animals)
     sessions = dir(fullfile(root, animals{a}));
     sessions = {sessions.name};
@@ -317,7 +318,7 @@ for a = 1:length(animals)
         rest1.set_ops('sig', .2);
         rest1.remove_mvt;
         rest1.cluster;
-%         rest1.swr_window;
+        rest1.swr_window;
 %         rest1.topography;
 %         rest1.detect_sce;
         
@@ -327,7 +328,7 @@ for a = 1:length(animals)
         rest2.set_ops('sig', .2);
         rest2.remove_mvt;
         rest2.cluster;
-%         rest2.swr_window;
+        rest2.swr_window;
 %         rest2.topography;
 %         rest2.detect_sce;
         [temp1, temp2] = ev(rest1, rest1.analysis.original_deconv, rest2);
@@ -340,45 +341,49 @@ for a = 1:length(animals)
         si_frac = cat(1, si_frac, {{rest1.analysis.SI(cell2mat(rest1.ensembles.clust))}, {rest1.analysis.SI(cell2mat(rest2.ensembles.clust))}, {rest1.analysis.SI}});
         % v checkpoint
     
-%         swr_stack{1} = cat(1, swr_stack{1}, {rest1.ensembles.swr.all});
-%         swr_stack{2} = cat(1, swr_stack{2}, {rest2.ensembles.swr.all});
-%         clusts{1} = cat(2, clusts{1}, {rest1.ensembles.clust});
-%         clusts{2} = cat(2, clusts{2}, {rest2.ensembles.clust});
-%         SI = cat(2, SI, {rest1.analysis.SI});
-%         
-%         g = cellfun(@(x) zeros(size(x, 1), 1), rest1.analysis.width, 'uniformoutput', false);
-%         for c = 1:length(rest1.ensembles.clust)
-%             list = intersect(rest1.analysis.pc_list, rest1.ensembles.clust{c});
-%             stack = rest1.analysis.stack(:, list);
-%             frac_clust{1} = cat(1, frac_clust{1}, [length(list) length(list)/length(rest1.ensembles.clust{c})]);
-% %             clust_stacks{1} = cat(2, clust_stacks{1}, mean(stack, 2));
-%             clust_stacks{1} = cat(1, clust_stacks{1}, {stack});
-%             trajectories{1} = cat(2, trajectories{1}, any(stack > traj_thres, 2));
-%             
-%             for l = 1:length(list)
-%                 g{list(l)} = c .* ones(size(rest1.analysis.width{list(l)}, 1), 1);
-%             end
-%         end
-%         temp = cell2mat({rest1.analysis.width{~cellfun(@isempty, rest1.analysis.width)}}');
-%         loc{end+1} =  temp(:, 2);
-%         temp = cell2mat({g{~cellfun(@isempty, rest1.analysis.width)}}');
-%         loc_clust{1} = cat(1, loc_clust{1}, {temp});
-%         
-%         g = cellfun(@(x) zeros(size(x, 1), 1), rest1.analysis.width, 'uniformoutput', false);
-%         for c = 1:length(rest2.ensembles.clust)
-%             list = intersect(rest1.analysis.pc_list, rest2.ensembles.clust{c});
-%             stack = rest1.analysis.stack(:, list);
-%             frac_clust{2} = cat(1, frac_clust{2}, [length(list) length(list)/length(rest2.ensembles.clust{c})]);
-% %             clust_stacks{2} = cat(2, clust_stacks{2}, mean(stack, 2, 'omitnan'));
-%             clust_stacks{2} = cat(1, clust_stacks{2}, {stack});
-%             trajectories{2} = cat(2, trajectories{2}, any(stack > traj_thres, 2));
-%             
-%             for l = 1:length(list)
-%                 g{list(l)} = c .* ones(size(rest1.analysis.width{list(l)}, 1), 1);
-%             end
-%         end
-%         temp = cell2mat({g{~cellfun(@isempty, rest1.analysis.width)}}');
-%         loc_clust{2} = cat(1, loc_clust{2}, {temp});
+        swr_stack{1} = cat(1, swr_stack{1}, {rest1.ensembles.swr.all});
+        swr_stack{2} = cat(1, swr_stack{2}, {rest2.ensembles.swr.all});
+        clusts{1} = cat(2, clusts{1}, {rest1.ensembles.clust});
+        clusts{2} = cat(2, clusts{2}, {rest2.ensembles.clust});
+        SI = cat(2, SI, {rest1.analysis.SI});
+        
+        g = cellfun(@(x) zeros(size(x, 1), 1), rest1.analysis.width, 'uniformoutput', false);
+        swr_clust_stack{1} = cat(2, swr_clust_stack{1}, {cell(1, length(rest1.ensembles.clust))});
+        for c = 1:length(rest1.ensembles.clust)
+            list = intersect(rest1.analysis.pc_list, rest1.ensembles.clust{c});
+            stack = rest1.analysis.stack(:, list);
+            frac_clust{1} = cat(1, frac_clust{1}, [length(list) length(list)/length(rest1.ensembles.clust{c})]);
+%             clust_stacks{1} = cat(2, clust_stacks{1}, mean(stack, 2));
+            clust_stacks{1} = cat(1, clust_stacks{1}, {stack});
+            swr_clust_stack{1}{end}{c} = stack;
+            trajectories{1} = cat(2, trajectories{1}, any(stack > traj_thres, 2));
+            
+            for l = 1:length(list)
+                g{list(l)} = c .* ones(size(rest1.analysis.width{list(l)}, 1), 1);
+            end
+        end
+        temp = cell2mat({rest1.analysis.width{~cellfun(@isempty, rest1.analysis.width)}}');
+        loc{end+1} =  temp(:, 2);
+        temp = cell2mat({g{~cellfun(@isempty, rest1.analysis.width)}}');
+        loc_clust{1} = cat(1, loc_clust{1}, {temp});
+        
+        g = cellfun(@(x) zeros(size(x, 1), 1), rest1.analysis.width, 'uniformoutput', false);
+        swr_clust_stack{2} = cat(2, swr_clust_stack{2}, {cell(1, length(rest2.ensembles.clust))});
+        for c = 1:length(rest2.ensembles.clust)
+            list = intersect(rest1.analysis.pc_list, rest2.ensembles.clust{c});
+            stack = rest1.analysis.stack(:, list);
+            frac_clust{2} = cat(1, frac_clust{2}, [length(list) length(list)/length(rest2.ensembles.clust{c})]);
+%             clust_stacks{2} = cat(2, clust_stacks{2}, mean(stack, 2, 'omitnan'));
+            clust_stacks{2} = cat(1, clust_stacks{2}, {stack});
+            swr_clust_stack{2}{end}{c} = stack;
+            trajectories{2} = cat(2, trajectories{2}, any(stack > traj_thres, 2));
+            
+            for l = 1:length(list)
+                g{list(l)} = c .* ones(size(rest1.analysis.width{list(l)}, 1), 1);
+            end
+        end
+        temp = cell2mat({g{~cellfun(@isempty, rest1.analysis.width)}}');
+        loc_clust{2} = cat(1, loc_clust{2}, {temp});
     end
 end
 
@@ -598,6 +603,7 @@ clust_stacks{2} = cat(1, clust_stacks1.clust_stacks{2}, clust_stacks2.clust_stac
 
 fr_thres = .5;
 traj_thres = 3; %min number of pc per ensemble
+l_thres = 30; % length to be considered cue ensemble
 
 l1 = cell(length(clust_stacks{1}), 1); s1=l1; e1=l1;
 for c = 1:length(clust_stacks{1})
@@ -640,6 +646,26 @@ for c = 1:length(clust_stacks{2})
 end
 
 belt;
+iscue1 = zeros(length(l1), 1); % 1:iscue 2:istraj 0:aint shit
+for ii = 1:length(l1) %classify cue/traj ensembles
+    if isempty(l1{ii}); continue; end
+    temp = any(s1{ii} < cue_centres & e1{ii} > cue_centres & l1{ii} < l_thres, 'all'); % cue centre within traj and length smaller than l_thres
+    if temp
+        iscue1(ii) = 1;
+    else
+        iscue1(ii) = 2;
+    end
+end
+iscue2 = zeros(length(l2), 1); % 1:iscue 2:istraj 0:aint shit
+for ii = 1:length(l2) %classify cue/traj ensembles
+    if isempty(l2{ii}); continue; end
+    temp = any(s2{ii} < cue_centres & e2{ii} > cue_centres & l2{ii} < l_thres, 'all'); % cue centre within traj and length smaller than l_thres
+    if temp
+        iscue2(ii) = 1;
+    else
+        iscue2(ii) = 2;
+    end
+end
 
 figure
 % plot(sum(trajectories'))
@@ -721,6 +747,13 @@ axis image
 % axis image
 
 
+%% Ensemble class pie chart
+figure
+subplot(1,2,1);
+pie(accumarray(iscue1+1, 1), [0 1 1], {'none', 'cue', 'traj'});
+subplot(1,2,2);
+pie(accumarray(iscue2+1, 1), [0 1 1], {'none', 'cue', 'traj'});
+
 %% Fig3c
 figure
 % plot(sum(trajectories'))
@@ -743,6 +776,46 @@ figure; [~, idx] = max(clust_stacks{2}{n}); [~, idx] = sort(idx); imagesc(-clust
 n = 200;
 figure; [~, idx] = max(clust_stacks{2}{n}); [~, idx] = sort(idx); imagesc(-clust_stacks{2}{n}(:, idx)'); title([num2str(n) '; length:' num2str(l2{n}) '; start:' num2str(s2{n}) '; end:' num2str(e2{n})]); colormap bone
 
+%% All trajectories
+traj_idx = find(~cellfun(@isempty, l1));
+k = 5;
+for n = 1:length(traj_idx)
+    if ~mod(n-1, k^2)
+        figure
+    end
+    subplot(k, k, mod(n-1, k^2) + 1);
+    [~, idx] = max(clust_stacks{1}{traj_idx(n)}); 
+    [~, idx] = sort(idx);
+    imagesc('xdata', linspace(0, 150, 50), 'cdata', -clust_stacks{1}{traj_idx(n)}(:, idx)'); 
+    title([num2str(traj_idx(n)) '; length:' num2str(l1{traj_idx(n)}') '; start:' num2str(s1{traj_idx(n)}') '; end:' num2str(e1{traj_idx(n)}')]); 
+    if iscue1(traj_idx(n)) == 1
+        xlabel('cue')
+    else
+        xlabel('traj')
+    end
+    colormap bone
+end
+
+figure
+
+traj_idx = find(~cellfun(@isempty, l2));
+k = 5;
+for n = 1:length(traj_idx)
+    if ~mod(n-1, k^2)
+        figure
+    end
+    subplot(k, k, mod(n-1, k^2) + 1);
+    [~, idx] = max(clust_stacks{2}{traj_idx(n)}); 
+    [~, idx] = sort(idx);
+    imagesc('xdata', linspace(0, 150, 50), 'cdata', -clust_stacks{2}{traj_idx(n)}(:, idx)'); 
+    title([num2str(traj_idx(n)) '; length:' num2str(l2{traj_idx(n)}') '; start:' num2str(s2{traj_idx(n)}') '; end:' num2str(e2{traj_idx(n)}')]); 
+    if iscue2(traj_idx(n)) == 1
+        xlabel('cue')
+    else
+        xlabel('traj')
+    end
+    colormap bone
+end
 
 %% Reconstructed trajectories
 P_e_cond_s(isnan(P_e_cond_s)) = 0;
@@ -946,10 +1019,155 @@ lfp = LFP(fullfile('/mnt/storage/rrr_magnum/M2/', animal, date, [date '_3.abf'])
 ylim([0 300])
 
 
+%% SWR trajectories
+clear all
+load('/mnt/storage/rrr_magnum/M2/swr_stack_2s.mat');
+
+fr_thres = .5;
+traj_thres = 3; %min number of pc per ensemble
+l_thres = 30; % length to be considered cue ensemble
+
+l1 = cell(length(swr_clust_stack{1}), 1); s1=l1; e1=l1;
+for s = 1:length(swr_clust_stack{1})
+    l1{s} = cell(length(swr_clust_stack{1}{s}), 1);
+    for c = 1:length(swr_clust_stack{1}{s})
+        stack = swr_clust_stack{1}{s}{c};
+        traj = any(stack > fr_thres, 2);
+        [~, starts, ends] = traj_length(traj, 1);
+
+        stack = repmat(stack, 2, 1);
+        idx = false(length(starts{1}), 1);
+        for t = 1:length(starts{1})
+            temp = stack(starts{1}(t) : (ends{1}(t) - 1 + length(traj) * (starts{1}(t) > (ends{1}(t)))), :);
+            temp = any(temp > fr_thres, 1);
+            idx(t) = sum(temp) < traj_thres;
+        end
+
+        [l1{s}{c}, s1{s}{c}, e1{s}{c}] = traj_length(traj);
+        l1{s}{c} = l1{s}{c}{1}(~idx);
+        s1{s}{c} = s1{s}{c}{1}(~idx);
+        e1{s}{c} = e1{s}{c}{1}(~idx);
+    end
+end
+
+l2 = cell(length(swr_clust_stack{2}), 1); s2=l2; e2=l2;
+for s = 1:length(swr_clust_stack{2})
+    l2{s} = cell(length(swr_clust_stack{2}{s}), 1);
+    for c = 1:length(swr_clust_stack{2}{s})
+        stack = swr_clust_stack{2}{s}{c};
+        traj = any(stack > fr_thres, 2);
+        [~, starts, ends] = traj_length(traj, 1);
+
+        stack = repmat(stack, 2, 1);
+        idx = false(length(starts{1}), 1);
+        for t = 1:length(starts{1})
+            temp = stack(starts{1}(t) : (ends{1}(t) - 1 + length(traj) * (starts{1}(t) > (ends{1}(t)))), :);
+            temp = any(temp > fr_thres, 1);
+            idx(t) = sum(temp) < traj_thres;
+        end
+
+        [l2{s}{c}, s2{s}{c}, e2{s}{c}] = traj_length(traj);
+        l2{s}{c} = l2{s}{c}{1}(~idx);
+        s2{s}{c} = s2{s}{c}{1}(~idx);
+        e2{s}{c} = e2{s}{c}{1}(~idx);
+    end
+end
+
+belt;
+iscue1 = cell(length(l1), 1);
+for ii = 1:length(l1) %classify cue/traj ensembles
+    iscue1{ii} = zeros(length(l1{ii}), 1);
+    for jj = 1:length(l1{ii})
+        if isempty(l1{ii}{jj}); continue; end
+        temp = any(s1{ii}{jj} < cue_centres & e1{ii}{jj} > cue_centres & l1{ii}{jj} < l_thres, 'all'); % cue centre within traj and length smaller than l_thres
+        if temp
+            iscue1{ii}(jj) = 1;
+        else
+            iscue1{ii}(jj) = 2;
+        end
+    end
+end
+iscue2 = cell(length(l2), 1);
+for ii = 1:length(l2) %classify cue/traj ensembles
+    iscue2{ii} = zeros(length(l2{ii}), 1);
+    for jj = 1:length(l2{ii})
+        if isempty(l2{ii}{jj}); continue; end
+        temp = any(s2{ii}{jj} < cue_centres & e2{ii}{jj} > cue_centres & l2{ii}{jj} < l_thres, 'all'); % cue centre within traj and length smaller than l_thres
+        if temp
+            iscue2{ii}(jj) = 1;
+        else
+            iscue2{ii}(jj) = 2;
+        end
+    end
+end
+
+
+%% SWR cue/traj
+
+% rest 1
+cue_ens = [];
+traj_ens = [];
+none_ens = [];
+
+for ii = 1:length(l1)
+    for jj = 1:length(l1{ii})
+        temp = mean( mean( swr_stack{1}{ii}(:, clusts{1}{ii}{jj}, :), 3 ), 2 );
+        if iscue1{ii}(jj) == 2
+            traj_ens = cat(2, traj_ens, temp);
+        elseif iscue1{ii}(jj) == 1
+            cue_ens = cat(2, cue_ens, temp);
+        else
+            try
+                none_ens = cat(2, none_ens, temp);
+            catch
+            end
+        end
+    end
+end
+
+t = linspace(-1, 1, size(traj_ens, 1));
+temp = fast_smooth(traj_ens, 1);
+h = errorshade(t, mean(temp, 2), sem(temp, 2), 'colour', 'b');
+hold on
+temp = fast_smooth(cue_ens, 1);
+errorshade(t, mean(temp, 2), sem(temp, 2), 'h', h, 'colour', 'r');
+temp = fast_smooth(none_ens, 1);
+errorshade(t, mean(temp, 2), sem(temp, 2), 'h', h, 'colour', 'k');
+xline(0);
+yline(0);
 
 
 
+% rest 2
+cue_ens = [];
+traj_ens = [];
+none_ens = [];
 
+for ii = 1:length(l2)
+    for jj = 1:length(l2{ii})
+        temp = mean( mean( swr_stack{2}{ii}(:, clusts{2}{ii}{jj}, :), 3 ), 2 );
+        if iscue2{ii}(jj) == 2
+            traj_ens = cat(2, traj_ens, temp);
+        elseif iscue2{ii}(jj) == 1
+            cue_ens = cat(2, cue_ens, temp);
+        else
+            try
+                none_ens = cat(2, none_ens, temp);
+            catch
+            end
+        end
+    end
+end
 
+t = linspace(-1, 1, size(traj_ens, 1));
+temp = fast_smooth(traj_ens, 1);
+h = errorshade(t, mean(temp, 2), sem(temp, 2), 'colour', 'b');
+hold on
+temp = fast_smooth(cue_ens, 1);
+errorshade(t, mean(temp, 2), sem(temp, 2), 'h', h, 'colour', 'r');
+temp = fast_smooth(none_ens, 1);
+errorshade(t, mean(temp, 2), sem(temp, 2), 'h', h, 'colour', 'k');
+xline(0);
+yline(0);
 
 

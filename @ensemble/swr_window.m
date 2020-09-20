@@ -2,7 +2,7 @@ function [stack,all,t]=swr_window(obj)
 
 % wdw=3;
 shuffles = 100;
-wdw=2;
+wdw=4;
 wdw=floor(obj.twop.fs * wdw / 2);
 
 ts = obj.twop.ts;
