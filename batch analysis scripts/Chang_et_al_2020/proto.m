@@ -761,21 +761,19 @@ cdfplot(cell2mat(l1));
 hold on
 cdfplot(cell2mat(l2))
 
-n = 464;
-figure; [~, idx] = max(clust_stacks{2}{n}); [~, idx] = sort(idx); imagesc(-clust_stacks{2}{n}(:, idx)'); title([num2str(n) '; length:' num2str(l2{n}) '; start:' num2str(s2{n}) '; end:' num2str(e2{n})]); colormap bone
-n = 465;
-figure; [~, idx] = max(clust_stacks{2}{n}); [~, idx] = sort(idx); imagesc(-clust_stacks{2}{n}(:, idx)'); title([num2str(n) '; length:' num2str(l2{n}) '; start:' num2str(s2{n}) '; end:' num2str(e2{n})]); colormap bone
-n = 353;
-figure; [~, idx] = max(clust_stacks{2}{n}); [~, idx] = sort(idx); imagesc(-clust_stacks{2}{n}(:, idx)'); title([num2str(n) '; length:' num2str(l2{n}) '; start:' num2str(s2{n}) '; end:' num2str(e2{n})]); colormap bone
-n = 334;
-figure; [~, idx] = max(clust_stacks{2}{n}); [~, idx] = sort(idx); imagesc(-clust_stacks{2}{n}(:, idx)'); title([num2str(n) '; length:' num2str(l2{n}) '; start:' num2str(s2{n}) '; end:' num2str(e2{n})]); colormap bone
-n = 26;
-figure; [~, idx] = max(clust_stacks{2}{n}); [~, idx] = sort(idx); imagesc(-clust_stacks{2}{n}(:, idx)'); title([num2str(n) '; length:' num2str(l2{n}) '; start:' num2str(s2{n}) '; end:' num2str(e2{n})]); colormap bone
-n = 68;
-figure; [~, idx] = max(clust_stacks{2}{n}); [~, idx] = sort(idx); imagesc(-clust_stacks{2}{n}(:, idx)'); title([num2str(n) '; length:' num2str(l2{n}) '; start:' num2str(s2{n}) '; end:' num2str(e2{n})]); colormap bone
-n = 200;
-figure; [~, idx] = max(clust_stacks{2}{n}); [~, idx] = sort(idx); imagesc(-clust_stacks{2}{n}(:, idx)'); title([num2str(n) '; length:' num2str(l2{n}) '; start:' num2str(s2{n}) '; end:' num2str(e2{n})]); colormap bone
-
+for n = [26, 40, 41, 51, 68, 108, 109, 295]
+    [~, idx] = max(clust_stacks{2}{n}); 
+    [~, idx] = sort(idx);
+    figure
+    imagesc('xdata', linspace(0, 150, 50), 'cdata', -clust_stacks{2}{n}(:, idx)'); 
+    title([num2str(n) '; length:' num2str(l2{n}') '; start:' num2str(s2{n}') '; end:' num2str(e2{n}')]); 
+    if iscue2(n) == 1
+        xlabel('cue')
+    else
+        xlabel('traj')
+    end
+    colormap bone
+end
 %% All trajectories
 traj_idx = find(~cellfun(@isempty, l1));
 k = 5;
@@ -1103,6 +1101,7 @@ end
 
 
 %% SWR cue/traj
+sigma = 1;
 
 % rest 1
 cue_ens = [];
@@ -1125,17 +1124,20 @@ for ii = 1:length(l1)
     end
 end
 
-t = linspace(-1, 1, size(traj_ens, 1));
-temp = fast_smooth(traj_ens, 1);
+t = linspace(-2, 2, size(traj_ens, 1));
+% temp = fast_smooth(traj_ens, sigma);
+temp = fast_smooth((traj_ens - mean(traj_ens)) ./ std(traj_ens), sigma);
 h = errorshade(t, mean(temp, 2), sem(temp, 2), 'colour', 'b');
 hold on
-temp = fast_smooth(cue_ens, 1);
+% temp = fast_smooth(cue_ens, sigma);
+temp = fast_smooth((cue_ens - mean(cue_ens)) ./ std(cue_ens), sigma);
 errorshade(t, mean(temp, 2), sem(temp, 2), 'h', h, 'colour', 'r');
-temp = fast_smooth(none_ens, 1);
+% temp = fast_smooth(none_ens, sigma);
+temp = fast_smooth((none_ens - mean(none_ens)) ./ std(none_ens), sigma);
 errorshade(t, mean(temp, 2), sem(temp, 2), 'h', h, 'colour', 'k');
 xline(0);
 yline(0);
-
+% ylim([-.05 .05])
 
 
 % rest 2
@@ -1159,15 +1161,70 @@ for ii = 1:length(l2)
     end
 end
 
-t = linspace(-1, 1, size(traj_ens, 1));
-temp = fast_smooth(traj_ens, 1);
+temp = fast_smooth((traj_ens - mean(traj_ens)) ./ std(traj_ens), sigma);
 h = errorshade(t, mean(temp, 2), sem(temp, 2), 'colour', 'b');
 hold on
-temp = fast_smooth(cue_ens, 1);
+temp = fast_smooth((cue_ens - mean(cue_ens)) ./ std(cue_ens), sigma);
 errorshade(t, mean(temp, 2), sem(temp, 2), 'h', h, 'colour', 'r');
-temp = fast_smooth(none_ens, 1);
+temp = fast_smooth((none_ens - mean(none_ens)) ./ std(none_ens), sigma);
 errorshade(t, mean(temp, 2), sem(temp, 2), 'h', h, 'colour', 'k');
 xline(0);
 yline(0);
+% ylim([-.05 .05])
+
+
+%% Create data table for R
+temp1 = fast_smooth((none_ens - mean(none_ens)) ./ std(none_ens), sigma);
+temp2 = fast_smooth((traj_ens - mean(traj_ens)) ./ std(traj_ens), sigma);
+temp3 = fast_smooth((cue_ens - mean(cue_ens)) ./ std(cue_ens), sigma);
+
+t_partitions = [-inf -1;   %before
+                -.3  0;  %early
+                0    .4    %during
+                1    inf]; %after
+% t_partitions = [-inf -1;   %before
+%                 -.4  .2;  %early
+%                 1    inf]; %after
+t_partitions = cat(2, t_partitions(:,1) < permute(t, [1 3 2]), t_partitions(:,2) > permute(t, [1 3 2]));
+t_partitions = squeeze(and(t_partitions(:,1,:), t_partitions(:,2,:)));
+
+responses = [arrayfun(@(x) temp1(t_partitions(x, :), :), 1:size(t_partitions,1), 'uniformoutput', false);
+            arrayfun(@(x) temp2(t_partitions(x, :), :), 1:size(t_partitions,1), 'uniformoutput', false);
+            arrayfun(@(x) temp3(t_partitions(x, :), :), 1:size(t_partitions,1), 'uniformoutput', false)];
+responses = cellfun(@mean, responses, 'uniformoutput', false);
+        
+mu_res = cellfun(@(x) mean(x, 'all'), responses);
+err_res = cellfun(@(x) sem(x(:)), responses);
+
+figure
+bar(mu_res(:));
+hold on
+errorbar(1:numel(responses), mu_res(:), err_res(:), 'linestyle', 'none');
+
+[gt, gg] = meshgrid(1:size(responses,2), 1:size(responses,1));
+gg = arrayfun(@(x, y) y .* ones(size(x{1})), responses, gg, 'uniformoutput', false);
+gt = arrayfun(@(x, y) y .* ones(size(x{1})), responses, gt, 'uniformoutput', false);
+
+temp = cellfun(@(x) size(x, 2), responses);
+temp = [zeros(1, size(temp,2)); cumsum(temp(1:end-1, :))] + 1;
+subjects = arrayfun(@(x, y) meshgrid(y:y+size(x{1},2)-1, 1:size(x{1},1)), responses, temp, 'uniformoutput', false);
+
+y = []; GG = []; GT = []; S = [];
+for ii = 1:numel(responses)
+    y = cat(1, y, responses{ii}(:));
+    GG = cat(1, GG, gg{ii}(:));
+    GT = cat(1, GT, gt{ii}(:));
+    S = cat(1, S, subjects{ii}(:));
+end
+
+% figure
+% [~, ~, stats] = anovan(y, {S, GG, GT}, 'random', 1, 'varnames', {'subject', 'ens type', 'time'}, 'model', 'full');
+% [c, m, h, gnames] = multcompare(stats, 'dimension', [2 3]);
+
+tbl = table(y, categorical(S), categorical(GG), categorical(GT), 'variablenames', {'response', 'subject', 'type', 'time'});
+
+writetable(tbl, 'test.csv');
+
+
 
 
