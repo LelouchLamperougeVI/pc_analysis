@@ -674,30 +674,30 @@ hold on
 cdfplot(cell2mat(l2))
 
 figure
-histogram(cell2mat(s1), 50, 'normalization', 'probability')
+histogram(cell2mat(s1(iscue1 == 2)), 50, 'normalization', 'probability')
 title('rest1 start')
-xlim([0 150]); ylim([0 .2])
+xlim([0 150]); ylim([0 .1])
 figure
-histogram(cell2mat(e1), 50, 'normalization', 'probability')
+histogram(cell2mat(e1(iscue1 == 2)), 50, 'normalization', 'probability')
 title('rest1 end')
-xlim([0 150]); ylim([0 .2])
+xlim([0 150]); ylim([0 .1])
 % plot(linspace(0, 150, 50), belt_idx.*.01)
 
 figure
-histogram(cell2mat(s2), 50, 'normalization', 'probability')
+histogram(cell2mat(s2(iscue2 == 2)), 50, 'normalization', 'probability')
 title('rest2 start')
-xlim([0 150]); ylim([0 .2])
+xlim([0 150]); ylim([0 .1])
 figure
-histogram(cell2mat(e2), 50, 'normalization', 'probability')
+histogram(cell2mat(e2(iscue2 == 2)), 50, 'normalization', 'probability')
 title('rest2 end')
-xlim([0 150]); ylim([0 .2])
+xlim([0 150]); ylim([0 .1])
 % plot(linspace(0, 150, 50), belt_idx.*.01)
 
 
 bins = 25;
 
 edges = linspace(0, 150, bins+1);
-P_se = accumarray([discretize(cell2mat(s1), edges) discretize(cell2mat(e1), edges)], 1, [bins bins]);
+P_se = accumarray([discretize(cell2mat(s1(iscue1 == 2)), edges) discretize(cell2mat(e1(iscue1 == 2)), edges)], 1, [bins bins]);
 P_se = P_se ./ sum(P_se(:));
 P_s_cond_e = P_se ./ sum(P_se, 1);
 P_e_cond_s = P_se ./ sum(P_se, 2);
@@ -722,7 +722,7 @@ axis image
 % axis image
 
 
-P_se = accumarray([discretize(cell2mat(s2), edges) discretize(cell2mat(e2), edges)], 1, [bins bins]);
+P_se = accumarray([discretize(cell2mat(s2(iscue2 == 2)), edges) discretize(cell2mat(e2(iscue2 == 2)), edges)], 1, [bins bins]);
 P_se = P_se ./ sum(P_se(:));
 P_s_cond_e = P_se ./ sum(P_se, 1);
 P_e_cond_s = P_se ./ sum(P_se, 2);
@@ -825,9 +825,10 @@ LWidths = 10*g.Edges.Weight/max(g.Edges.Weight);
 LWidths(isnan(LWidths)) = 0;
 
 figure
-plot(g, 'layout', 'circle', 'LineWidth', LWidths, 'edgecdata', g.Edges.Weight, 'arrowsize', 0)
+cm = rbmap('caxis',[0 1]);
+cm = cm(knnsearch(linspace(0, max(g.Edges.Weight), size(cm,1))', g.Edges.Weight), :);
+plot(g, 'layout', 'circle', 'LineWidth', LWidths, 'edgecolor', cm, 'arrowsize', 0)
 axis square
-rbmap('caxis',[0 1]);
 
 
 %% bad LFPs
@@ -1228,3 +1229,92 @@ writetable(tbl, 'test.csv');
 
 
 
+%% New data table with neurons, session
+
+% rest 1
+stack = [];
+type = [];
+neur_id = [0];
+ens_id = [0];
+sess_id = [];
+
+for ii = 1:length(l1)
+    for jj = 1:length(l1{ii})
+        temp = mean( swr_stack{1}{ii}(:, clusts{1}{ii}{jj}, :), 3 );
+        temp = (temp - mean(temp)) ./ std(temp);
+        if 77 ~= size(temp,1)
+            continue
+        end
+        stack = cat(2, stack, temp);
+        type = cat(1, type, repmat(iscue1{ii}(jj), [size(temp,2) 1]));
+        neur_id = cat(1, neur_id, neur_id(end) + (1:size(temp,2))');
+        ens_id = cat(1, ens_id, ens_id(end) + ones([size(temp,2) 1]));
+        sess_id = cat(1, sess_id, repmat(ii, [size(temp,2) 1]));
+    end
+end
+neur_id(1) = [];
+ens_id(1) = [];
+
+t = linspace(-2, 2, size(stack, 1));
+t_partitions = [-inf -1;   %before
+                -.3  0;  %early
+                0    .4    %during
+                1    inf]; %after
+t_partitions = cat(2, t_partitions(:,1) < permute(t, [1 3 2]), t_partitions(:,2) > permute(t, [1 3 2]));
+t_partitions = squeeze(and(t_partitions(:,1,:), t_partitions(:,2,:)));
+
+responses = arrayfun(@(x) stack(t_partitions(x, :), :), 1:size(t_partitions,1), 'uniformoutput', false);
+responses = cellfun(@mean, responses, 'uniformoutput', false);
+responses = cell2mat(responses')';
+
+figure
+temp1 = [mean(responses(type == 0, :)); mean(responses(type == 2, :)); mean(responses(type == 1, :))];
+bar(temp1(:));
+hold on
+temp2 = [sem(responses(type == 0, :)); sem(responses(type == 2, :)); sem(responses(type == 1, :))];
+errorbar(1:numel(temp1), temp1(:), temp2(:))
+
+tbl = table(categorical(neur_id), categorical(ens_id), categorical(sess_id), categorical(type), responses(:,1), responses(:,2), responses(:,3), responses(:,4),...
+    'variablenames', {'neuron', 'ensemble', 'session', 'type', 't0', 't1', 't2', 't3'});
+
+writetable(tbl, '/home/loulou/Documents/my_docs/Manuscripts/Chang_et_al_2020/inkscape/MATLAB/r1.csv');
+
+% rest 2
+stack = [];
+type = [];
+neur_id = [0];
+ens_id = [0];
+sess_id = [];
+
+for ii = 1:length(l2)
+    for jj = 1:length(l2{ii})
+        temp = mean( swr_stack{2}{ii}(:, clusts{2}{ii}{jj}, :), 3 );
+        temp = (temp - mean(temp)) ./ std(temp);
+        if 77 ~= size(temp,1)
+            continue
+        end
+        stack = cat(2, stack, temp);
+        type = cat(1, type, repmat(iscue2{ii}(jj), [size(temp,2) 1]));
+        neur_id = cat(1, neur_id, neur_id(end) + (1:size(temp,2))');
+        ens_id = cat(1, ens_id, ens_id(end) + ones([size(temp,2) 1]));
+        sess_id = cat(1, sess_id, repmat(ii, [size(temp,2) 1]));
+    end
+end
+neur_id(1) = [];
+ens_id(1) = [];
+
+responses = arrayfun(@(x) stack(t_partitions(x, :), :), 1:size(t_partitions,1), 'uniformoutput', false);
+responses = cellfun(@mean, responses, 'uniformoutput', false);
+responses = cell2mat(responses')';
+
+figure
+temp1 = [mean(responses(type == 0, :)); mean(responses(type == 2, :)); mean(responses(type == 1, :))];
+bar(temp1(:));
+hold on
+temp2 = [sem(responses(type == 0, :)); sem(responses(type == 2, :)); sem(responses(type == 1, :))];
+errorbar(1:numel(temp1), temp1(:), temp2(:))
+
+tbl = table(categorical(neur_id), categorical(ens_id), categorical(sess_id), categorical(type), responses(:,1), responses(:,2), responses(:,3), responses(:,4),...
+    'variablenames', {'neuron', 'ensemble', 'session', 'type', 't0', 't1', 't2', 't3'});
+
+writetable(tbl, '/home/loulou/Documents/my_docs/Manuscripts/Chang_et_al_2020/inkscape/MATLAB/r2.csv');
