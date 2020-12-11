@@ -2,6 +2,7 @@ classdef ensemble < LFP
     properties (GetAccess = 'public', SetAccess = 'private')
         ops
         ensembles = struct('SCE', [], 'MUA', [], 'R', [], 'null_R', [], 'clust', [])
+        hiepi
     end
     
     properties (GetAccess = 'private', SetAccess = 'private')
@@ -40,6 +41,7 @@ classdef ensemble < LFP
         classi_swr(obj, wdw, p);
         [decoded, P, pos, err] = bayes_infer(obj, varargin);
         plot(obj,type,varargin);
+        hiepi = hPICA(obj);
     end
     
     methods (Access=private)

@@ -395,6 +395,39 @@ switch lower(type)
         ylabel('silhouette score')
         yline(0);
         
+    case {'hiepi', 'hpica'}
+        z = (obj.hiepi.z - min(obj.hiepi.z)) ./ range(obj.hiepi.z);
+        
+        figure
+        ax(1) = subplot(3,1,1);
+        smthnd = fast_smooth(obj.hiepi.X(:, obj.analysis.order), 5)';
+        imagesc(smthnd)
+        ax(2) = subplot(3,1,2);
+        smthnd = fast_smooth(obj.hiepi.reconst(:, obj.analysis.order), 5)';
+        imagesc(smthnd)
+        ax(3) = subplot(3,1,3);
+        plot(z + (1:size(z, 2)));
+        linkaxes(ax, 'x')
+        linkaxes(ax(1:2), 'y');
+
+        figure
+        subplot(2,1,1)
+        plot(obj.hiepi.init(obj.ensembles.clust_order, :));
+        legend
+        subplot(2,1,2)
+        plot(obj.hiepi.pc(obj.ensembles.clust_order, :));
+        legend
+        
+        for ii = 1:length(obj.hiepi.psth)
+            if mod(ii, 9) == 1
+                figure
+            end
+            subplot(3, 3, mod(ii - 1, 9) + 1);
+            imagesc(obj.hiepi.psth{ii}');
+            colorbar
+            colormap hot
+        end
+        
     otherwise
         plot@LFP(obj, type);
         
