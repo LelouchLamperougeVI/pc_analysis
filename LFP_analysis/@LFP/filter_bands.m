@@ -34,6 +34,16 @@ obj.lfp.theta=filtfilt(sos,g,obj.lfp.lfp)./obj.lfp.f60_env;
 [sos,g]=ss2sos(a,b,c,d);
 obj.lfp.gamma=filtfilt(sos,g,obj.lfp.lfp)./obj.lfp.f60_env;
 
+%low gamma
+[a,b,c,d]=butter(2,obj.lfp.ops.freqs('lgamma')/obj.lfp.fs*2,'bandpass');
+[sos,g]=ss2sos(a,b,c,d);
+obj.lfp.lgamma=filtfilt(sos,g,obj.lfp.lfp)./obj.lfp.f60_env;
+
+%high gamma
+[a,b,c,d]=butter(2,obj.lfp.ops.freqs('hgamma')/obj.lfp.fs*2,'bandpass');
+[sos,g]=ss2sos(a,b,c,d);
+obj.lfp.hgamma=filtfilt(sos,g,obj.lfp.lfp)./obj.lfp.f60_env;
+
 %ripples
 if obj.lfp.fs < 500
     error('LFP has been down sampled too much, the minimum Fs should be 500 Hz');

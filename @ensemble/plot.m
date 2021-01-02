@@ -396,14 +396,15 @@ switch lower(type)
         yline(0);
         
     case {'hiepi', 'hpica'}
-        z = (obj.hiepi.z - min(obj.hiepi.z)) ./ range(obj.hiepi.z);
+        z = movmedian(obj.hiepi.z, obj.twop.fs * obj.ops.hPICA.k);
+        z = (z - min(z)) ./ range(z);
         
         figure
         ax(1) = subplot(3,1,1);
-        smthnd = fast_smooth(obj.hiepi.X(:, obj.analysis.order), 5)';
+        smthnd = fast_smooth(obj.hiepi.X(:, obj.analysis.order), 0)';
         imagesc(smthnd)
         ax(2) = subplot(3,1,2);
-        smthnd = fast_smooth(obj.hiepi.reconst(:, obj.analysis.order), 5)';
+        smthnd = fast_smooth(obj.hiepi.reconst(:, obj.analysis.order), 0)';
         imagesc(smthnd)
         ax(3) = subplot(3,1,3);
         plot(z + (1:size(z, 2)));

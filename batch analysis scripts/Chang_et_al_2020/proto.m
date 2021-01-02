@@ -282,7 +282,7 @@ for a = 4:length(animals)
 end
 
 
-%% Rest analysis
+%% Core analysis
 clear all
 
 traj_thres = .2;
@@ -302,6 +302,8 @@ trajectories = cell(2,1);
 loc = {};
 loc_clust = cell(2,1);
 swr_stack = cell(2,1);
+swr_hiepi = cell(2,1);
+hiepi_lfp_pw = cell(2,1);
 clusts = cell(2,1);
 SI = [];
 si_frac = [];
@@ -319,6 +321,7 @@ for a = 1:length(animals)
         rest1.remove_mvt;
         rest1.cluster;
         rest1.swr_window;
+        rest1.hPICA;
 %         rest1.topography;
 %         rest1.detect_sce;
         
@@ -329,6 +332,7 @@ for a = 1:length(animals)
         rest2.remove_mvt;
         rest2.cluster;
         rest2.swr_window;
+        rest2.hPICA;
 %         rest2.topography;
 %         rest2.detect_sce;
         [temp1, temp2] = ev(rest1, rest1.analysis.original_deconv, rest2);
@@ -339,6 +343,14 @@ for a = 1:length(animals)
         length(rest1.analysis.pc_list) / size(rest1.twop.deconv, 2)]);
         
         si_frac = cat(1, si_frac, {{rest1.analysis.SI(cell2mat(rest1.ensembles.clust))}, {rest1.analysis.SI(cell2mat(rest2.ensembles.clust))}, {rest1.analysis.SI}});
+        
+        %hPICA
+        swr_hiepi{1} = cat(1, swr_hiepi{1}, {rest1.hiepi.swr_react_strength});
+        swr_hiepi{2} = cat(1, swr_hiepi{2}, {rest2.hiepi.swr_react_strength});
+        
+        hiepi_lfp_pw{1} = cat(1, hiepi_lfp_pw{1}, {rest1.hiepi.reactivations});
+        hiepi_lfp_pw{2} = cat(1, hiepi_lfp_pw{2}, {rest2.hiepi.reactivations});
+        
         % v checkpoint
     
         swr_stack{1} = cat(1, swr_stack{1}, {rest1.ensembles.swr.all});
@@ -1020,7 +1032,9 @@ ylim([0 300])
 
 %% SWR trajectories
 clear all
-load('/mnt/storage/rrr_magnum/M2/swr_stack_2s.mat');
+% load('/mnt/storage/rrr_magnum/M2/swr_stack_2s.mat');
+% load('/mnt/storage/rrr_magnum/M2/hiepi.mat');
+load('/mnt/storage/rrr_magnum/M2/hiepi3.mat');
 
 fr_thres = .5;
 traj_thres = 3; %min number of pc per ensemble
@@ -1172,6 +1186,223 @@ errorshade(t, mean(temp, 2), sem(temp, 2), 'h', h, 'colour', 'k');
 xline(0);
 yline(0);
 % ylim([-.05 .05])
+
+
+%% SWR cue/traj with hiepi
+sigma = 1;
+
+% rest 1
+cue_ens = [];
+traj_ens = [];
+none_ens = [];
+
+for ii = 1:length(l1)
+    for jj = 1:length(l1{ii})
+        temp = mean(swr_hiepi{1}{ii}{jj}, 'omitnan')';
+        if iscue1{ii}(jj) == 2
+            traj_ens = cat(2, traj_ens, temp);
+        elseif iscue1{ii}(jj) == 1
+            cue_ens = cat(2, cue_ens, temp);
+        else
+            try
+                none_ens = cat(2, none_ens, temp);
+            catch
+            end
+        end
+    end
+end
+
+t = linspace(-4, 4, size(traj_ens, 1));
+idx = t > -1 & t < 1;
+% temp = fast_smooth(traj_ens, sigma);
+temp = fast_smooth((traj_ens - mean(traj_ens)) ./ std(traj_ens), sigma);
+h = errorshade(t, mean(temp, 2), sem(temp, 2), 'colour', 'b');
+hold on
+% temp = fast_smooth(cue_ens, sigma);
+temp = fast_smooth((cue_ens - mean(cue_ens)) ./ std(cue_ens), sigma);
+errorshade(t, mean(temp, 2), sem(temp, 2), 'h', h, 'colour', 'r');
+% temp = fast_smooth(none_ens, sigma);
+temp = fast_smooth((none_ens - mean(none_ens)) ./ std(none_ens), sigma);
+errorshade(t, mean(temp, 2), sem(temp, 2), 'h', h, 'colour', 'k');
+xline(0);
+yline(0);
+% ylim([-.05 .05])
+
+figure
+[r, delay, p] = bxcorr(mean(traj_ens(idx, :), 2, 'omitnan'), mean(cue_ens(idx, :), 2, 'omitnan'), t);
+f = fit(delay(delay > -1 & delay < 1), r(delay > -1 & delay < 1), 'gauss1');
+plot(f, delay, r, 'k')
+yline(p)
+text(f.b1, f(f.b1) + .02, [num2str(f.b1) newline '\downarrow'], 'HorizontalAlignment', 'center');
+title('traj x cue')
+xlim([-1 1])
+ylim([-1.2 1.2])
+legend('xcorr', 'fit')
+
+% figure
+% ax(1) = subplot(1, 2, 1);
+% [r, delay, p] = bxcorr(mean(none_ens(idx, :), 2, 'omitnan'), mean(traj_ens(idx, :), 2, 'omitnan'), t);
+% f = fit(delay(delay > -1 & delay < 1), r(delay > -1 & delay < 1), 'gauss1');
+% plot(f, delay, r, 'k')
+% yline(p)
+% text(f.b1, f(f.b1) + .02, [num2str(f.b1) newline '\downarrow'], 'HorizontalAlignment', 'center');
+% title('none x traj')
+% ax(2) = subplot(1, 2, 2);
+% [r, delay, p] = bxcorr(mean(none_ens(idx, :), 2, 'omitnan'), mean(cue_ens(idx, :), 2, 'omitnan'), t);
+% f = fit(delay(delay > -1 & delay < 1), r(delay > -1 & delay < 1), 'gauss1');
+% plot(f, delay, r, 'k')
+% yline(p)
+% text(f.b1, f(f.b1) + .02, [num2str(f.b1) newline '\downarrow'], 'HorizontalAlignment', 'center');
+% title('none x cue')
+% linkaxes(ax, 'xy');
+% xlim([-1 1])
+% legend('xcorr', 'fit')
+
+
+% rest 2
+cue_ens = [];
+traj_ens = [];
+none_ens = [];
+
+for ii = 1:length(l2)
+    for jj = 1:length(l2{ii})
+        temp = mean(swr_hiepi{2}{ii}{jj}, 'omitnan')';
+        if iscue2{ii}(jj) == 2
+            traj_ens = cat(2, traj_ens, temp);
+        elseif iscue2{ii}(jj) == 1
+            cue_ens = cat(2, cue_ens, temp);
+        else
+            try
+                none_ens = cat(2, none_ens, temp);
+            catch
+            end
+        end
+    end
+end
+
+temp = fast_smooth((traj_ens - mean(traj_ens)) ./ std(traj_ens), sigma);
+h = errorshade(t, mean(temp, 2), sem(temp, 2), 'colour', 'b');
+hold on
+temp = fast_smooth((cue_ens - mean(cue_ens)) ./ std(cue_ens), sigma);
+errorshade(t, mean(temp, 2), sem(temp, 2), 'h', h, 'colour', 'r');
+temp = fast_smooth((none_ens - mean(none_ens)) ./ std(none_ens), sigma);
+errorshade(t, mean(temp, 2), sem(temp, 2), 'h', h, 'colour', 'k');
+xline(0);
+yline(0);
+% ylim([-.05 .05])
+
+figure
+[r, delay, p] = bxcorr(mean(traj_ens(idx, :), 2, 'omitnan'), mean(cue_ens(idx, :), 2, 'omitnan'), t);
+f = fit(delay(delay > -1 & delay < 1), r(delay > -1 & delay < 1), 'gauss1');
+plot(f, delay, r, 'k')
+yline(p)
+text(f.b1, f(f.b1) + .02, [num2str(f.b1) newline '\downarrow'], 'HorizontalAlignment', 'center');
+title('traj x cue')
+xlim([-1 1])
+ylim([-1.2 1.2])
+legend('xcorr', 'fit')
+
+
+%% LFP power cue/traj with hiepi2
+sigma = 100;
+
+% rest 1
+cue_ens = [];
+traj_ens = [];
+none_ens = [];
+
+for ii = 1:length(l1)
+    for jj = 1:length(l1{ii})
+        temp = mean(hiepi_lfp_pw{1}{ii}{jj}.swr_pw, 'omitnan')';
+%         temp = mean(hiepi_lfp_pw{1}{ii}{jj}.delta_pw, 'omitnan')';
+        if iscue1{ii}(jj) == 2
+            traj_ens = cat(2, traj_ens, temp);
+        elseif iscue1{ii}(jj) == 1
+            cue_ens = cat(2, cue_ens, temp);
+        else
+            try
+                none_ens = cat(2, none_ens, temp);
+            catch
+            end
+        end
+    end
+end
+
+t = linspace(-4, 4, size(traj_ens, 1));
+idx = t > -1 & t < 1;
+% temp = fast_smooth(traj_ens, sigma);
+temp = fast_smooth((traj_ens - mean(traj_ens)) ./ std(traj_ens), sigma);
+h = errorshade(t, mean(temp, 2), sem(temp, 2), 'colour', 'b');
+hold on
+% temp = fast_smooth(cue_ens, sigma);
+temp = fast_smooth((cue_ens - mean(cue_ens)) ./ std(cue_ens), sigma);
+errorshade(t, mean(temp, 2), sem(temp, 2), 'h', h, 'colour', 'r');
+% temp = fast_smooth(none_ens, sigma);
+temp = fast_smooth((none_ens - mean(none_ens)) ./ std(none_ens), sigma);
+errorshade(t, mean(temp, 2), sem(temp, 2), 'h', h, 'colour', 'k');
+xline(0);
+yline(0);
+% ylim([-.05 .05])
+
+figure
+[r, delay, p] = bxcorr(mean(traj_ens(idx, :), 2, 'omitnan'), mean(cue_ens(idx, :), 2, 'omitnan'), t);
+f = fit(delay(delay > -1 & delay < 1), r(delay > -1 & delay < 1), 'gauss1');
+plot(f, delay, r, 'k')
+yline(p)
+text(f.b1, f(f.b1) + .02, [num2str(f.b1) newline '\downarrow'], 'HorizontalAlignment', 'center');
+title('traj x cue')
+xlim([-1 1])
+ylim([-1.2 1.2])
+legend('xcorr', 'fit')
+
+
+% rest 2
+cue_ens = [];
+traj_ens = [];
+none_ens = [];
+
+for ii = 1:length(l2)
+    for jj = 1:length(l2{ii})
+        temp = mean(hiepi_lfp_pw{2}{ii}{jj}.swr_pw, 'omitnan')';
+%         temp = mean(hiepi_lfp_pw{2}{ii}{jj}.delta_pw, 'omitnan')';
+        try
+            if iscue2{ii}(jj) == 2
+                traj_ens = cat(2, traj_ens, temp);
+            elseif iscue2{ii}(jj) == 1
+                cue_ens = cat(2, cue_ens, temp);
+            else
+                try
+                    none_ens = cat(2, none_ens, temp);
+                catch
+                end
+            end
+        catch
+            continue
+        end
+    end
+end
+
+temp = fast_smooth((traj_ens - mean(traj_ens)) ./ std(traj_ens), sigma);
+h = errorshade(t, mean(temp, 2), sem(temp, 2), 'colour', 'b');
+hold on
+temp = fast_smooth((cue_ens - mean(cue_ens)) ./ std(cue_ens), sigma);
+errorshade(t, mean(temp, 2), sem(temp, 2), 'h', h, 'colour', 'r');
+temp = fast_smooth((none_ens - mean(none_ens)) ./ std(none_ens), sigma);
+errorshade(t, mean(temp, 2), sem(temp, 2), 'h', h, 'colour', 'k');
+xline(0);
+yline(0);
+% ylim([-.05 .05])
+
+figure
+[r, delay, p] = bxcorr(mean(traj_ens(idx, :), 2, 'omitnan'), mean(cue_ens(idx, :), 2, 'omitnan'), t);
+f = fit(delay(delay > -1 & delay < 1), r(delay > -1 & delay < 1), 'gauss1');
+plot(f, delay, r, 'k')
+yline(p)
+text(f.b1, f(f.b1) + .02, [num2str(f.b1) newline '\downarrow'], 'HorizontalAlignment', 'center');
+title('traj x cue')
+xlim([-1 1])
+ylim([-1.2 1.2])
+legend('xcorr', 'fit')
 
 
 %% Create data table for R

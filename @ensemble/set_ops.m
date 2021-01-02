@@ -26,6 +26,12 @@ if isempty(obj.ops) || nargin<2
     
     ops.FOV = obj.topo.FOV; % in microns
     
+    ops.hPICA.thres = 3; % threshold for reactivation (SDs)
+    ops.hPICA.on_thres = .25;
+    ops.hPICA.k = .1; % moving median filter length (sec)
+    ops.hPICA.gap = .25; % fill gaps (sec)
+    ops.hPICA.swr_wdw = 4; % sec
+    
     obj.ops=ops;
     if nargin<2
         return;
@@ -95,6 +101,12 @@ while(idx<length(varargin))
         case 'fov'
             idx=idx+1;
             obj.ops.FOV = varargin{idx};
+            
+        case {'react_thres', 'hpica_thres', 'hiepi_thres'}
+            obj.ops.hPICA.thres = varargin{idx};
+            
+        case {'react_on_thres', 'hpica_on_thres', 'hiepi_on_thres'}
+            obj.ops.hPICA.on_thres = varargin{idx};
             
         otherwise
             error(['''' varargin{idx} ''' is not a valid parameter']);

@@ -26,7 +26,7 @@ if isempty(ops) % reset default properties
     obj.lfp.ops.spec_wdw = .5;
     obj.lfp.ops.swr_cyc = 3;
     obj.lfp.ops.swr_gap = .25;
-    obj.lfp.ops.freqs = containers.Map({'delta', 'theta', 'gamma', 'swr'}, {[1 4], [5 10], [30 140], [150 250]});
+    obj.lfp.ops.freqs = containers.Map({'delta', 'theta', 'gamma', 'swr', 'lgamma', 'hgamma'}, {[1 4], [5 10], [30 120], [150 250], [30 60], [60 120]});
     obj.lfp.ops.filt_order = 400; % filter order for swr FIR filter
     obj.lfp.ops.swr_thres = 3; % threshold for swr identification (in std)
     obj.lfp.ops.swr_on_thres = .75; % fraction of swr_thres for identification of onset/offset

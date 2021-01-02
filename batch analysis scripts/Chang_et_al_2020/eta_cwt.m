@@ -52,7 +52,12 @@ wdw = round(wdw / median(diff(t)));
 mean_zscore_spec = zeros(size(s,1), wdw*2 + 1, length(evts));
 idx = knnsearch(t, evts);
 for ii = 1:length(evts)
-    mean_zscore_spec(:,:,ii) = zscored(:, idx(ii) - wdw : idx(ii) + wdw);
+    temp = idx(ii) - wdw : idx(ii) + wdw;
+    if any(isnan(temp) | isinf(temp) | temp<1 | temp>size(zscored,2))
+        mean_zscore_spec(:,:,ii) = nan;
+        continue
+    end
+    mean_zscore_spec(:,:,ii) = zscored(:, temp);
 end
 mean_zscore_spec = mean(mean_zscore_spec, 3, 'omitnan');
 
