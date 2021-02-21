@@ -62,5 +62,5 @@ for i=1:size(deconv,2)
 
     shift = repelem(ind(reverse) - burst_ind(:, 1), burst_spks);
     
-    ret_deconv(spk{i} + shift, i) = deconv(spk{i}, i);
+    ret_deconv(spk{i} + shift(:), i) = deconv(spk{i}, i);
 end

@@ -212,6 +212,7 @@ classdef LFP < handle
                 dec = obj.twop.deconv(ii:length(obj.twop.planes.planes):end, obj.twop.planes.plane_members == obj.twop.planes.planes(ii));
                 [beh, dec] = convert_behavior(obj.behavior, tcs, dec);
                 temp = pc_batch_analysis(beh, dec);
+%                 temp = pc_batch_analysis(beh, dec, 'par', false); %for debugging
                 disp(['Detected ' num2str(length(temp.pc_list)) '/' num2str(size(dec, 2)) ' place cells (' num2str(length(temp.pc_list)/size(dec, 2) * 100) '%)']);
                 anal = combine_analysis(anal, temp);
             end
@@ -293,6 +294,7 @@ classdef LFP < handle
                         disp(['Found the following channels definition: [' strjoin(strsplit(num2str(obj.abf.Channels')), ', ') ']']);
                     catch
                         warning('Failed to autodetect channels. Using default.');
+                        obj.set({'channels', obj.abf.Channels});
                     end
                 end
             end

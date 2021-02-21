@@ -19,7 +19,7 @@ neur_id = repelem(1:size(deconv, 2), sum(deconv>0, 1));
 pos = pos_bins(idx);
 trials = trial_bins(idx);
 Pt = accumarray([trial_bins' pos_bins'], 1);
-raw_psth = accumarray([trials' pos' neur_id'], temp);
+raw_psth = accumarray([trials' pos' neur_id'], temp, [range(trial_bins)+1 range(pos_bins)+1 range(neur_id)+1]);
 raw_stack = squeeze(sum(raw_psth, 1, 'omitnan') ./ sum(Pt, 1));
 raw_psth = raw_psth ./ Pt;
 
