@@ -21,8 +21,8 @@ trials=frame_ts(trials_ts);
 idx=knnsearch(behavior.ts',frame_ts');
 
 unit_pos=behavior.pos_raw(idx);
-
-unit_vel=behavior.speed(idx);
+% unit_vel=behavior.speed(idx);
+unit_vel = diff([0 behavior.pos_cum(idx)])./ median(diff(frame_ts));
 
 clear behavior;
 

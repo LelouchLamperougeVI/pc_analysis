@@ -112,7 +112,7 @@ for i=1:length(idx)-1
     pos_norm(idx(i):idx(i+1))=pos_norm(idx(i):idx(i+1))./range(pos_norm(idx(i):idx(i+1)));
     trial(idx(i):idx(i+1))=i;
 end
-pos_cum(end)=pos_cum(end)+pos_cum(end-1);
+pos_cum(idx(end):end)=pos_cum(idx(end):end)+pos_cum(idx(end)-1);
 pos_norm(idx(end):end)=pos_norm(idx(end):end)./range(pos_norm(idx(end):end));
 speed=diff(pos_cum)./diff(ts);
 speed=[speed(1) speed];
