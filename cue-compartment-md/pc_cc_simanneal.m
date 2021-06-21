@@ -7,6 +7,7 @@ function md = pc_cc_simanneal(n, x, dt, varargin)
 %   x                   linear position vector of length Time
 %   dt                  delta-t parameter for Poisson log-likelihood
 %   'plot', false       plot model fits
+%   'prog', true        display progress bar
 %   'reject', vect      logical vector of rejection epochs of length Time
 %   'bins', 50          number of bins for discretized position
 %   'blt', blt          belt vector (default to Ingrid's belt)
@@ -51,15 +52,21 @@ stack = arrayfun(@(ii) accumarray(x, n(:, ii), [ops.bins 1], @mean), 1:size(n, 2
 % run model fitting
 fit_pc = zeros(size(n, 2), 4);
 fit_cc = zeros(size(n, 2), length(unique(blt)));
-h = waitbar(0,'model fitting... (simulated annealing)');
+
 dq=parallel.pool.DataQueue;
-afterEach(dq,@updateBar);
-progress = 0;
+if ops.prog
+    h = waitbar(0,'model fitting... (simulated annealing)');
+    afterEach(dq,@updateBar);
+    progress = 0;
+else
+    h = [];
+end
     function updateBar(~)
         waitbar(progress/size(n, 2), h);
         progress = progress + 1;
     end
-for ii = 1:size(n, 2)
+
+parfor ii = 1:size(n, 2)
     n_single = n(:, ii);
     
     init = [max(stack{ii}) find(stack{ii} == max(stack{ii}), 1) ops.bins/4 mean(n_single)];
@@ -132,6 +139,7 @@ end
 
 function ops = parse_ops(inputs)
 ops.plot = false;
+ops.prog = true;
 ops.reject = [];
 ops.bins = 50;
 ops.comp = 'intra';
@@ -143,6 +151,8 @@ while count < length(inputs)
     switch lower(inputs{count})
         case {'plot', 'plotflag'}
             ops.plot = logical(inputs{count+1});
+        case {'prog', 'progress'}
+            ops.prog = logical(inputs{count+1});
         case {'reject'}
             ops.reject = logical(inputs{count+1});
         case {'bins'}
