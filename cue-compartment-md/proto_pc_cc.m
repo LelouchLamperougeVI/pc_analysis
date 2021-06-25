@@ -1,8 +1,10 @@
 clear all
 
 traj_thres = .2;
-root = '/mnt/md0/Data/RSC_M2';
+root = '/mnt/storage/HaoRan/RRR_motor/M2';
 animals = dir(fullfile(root, 'RSC*'));
+% root = '/mnt/storage/rrr_magnum/M2';
+% animals = dir(fullfile(root, 'E*'));
 animals = {animals.name};
 
 clust_stacks = cell(2,1);
@@ -10,6 +12,7 @@ trajectories = cell(2,1);
 loc_clust = cell(2,1);
 clusts = cell(2,1);
 pev = cell(2, 1);
+file_ids = cell(2, 1);
 for a = 1:length(animals)
     sessions = dir(fullfile(root, animals{a}));
     sessions = {sessions.name};
@@ -29,6 +32,9 @@ for a = 1:length(animals)
         rest2.set_ops('sig', .2);
         rest2.remove_mvt;
         rest2.cluster;
+        
+        file_ids{1} = cat(1, file_ids{1}, {fullfile(root, animals{a}, sessions{s}, [sessions{s} '_1'])});
+        file_ids{2} = cat(1, file_ids{2}, {fullfile(root, animals{a}, sessions{s}, [sessions{s} '_3'])});
         
         % v checkpoint
     
@@ -98,3 +104,130 @@ for a = 1:length(animals)
         loc_clust{2} = cat(1, loc_clust{2}, {temp});
     end
 end
+
+
+%%
+clear all
+rsc = load('/mnt/storage/HaoRan/RRR_motor/M2/proto.mat');
+ee = load('/mnt/storage/rrr_magnum/M2/proto.mat');
+clust_stacks{1} = [rsc.clust_stacks{1}; ee.clust_stacks{1}];
+clust_stacks{2} = [rsc.clust_stacks{2}; ee.clust_stacks{2}];
+pev{1} = [rsc.pev{1}; ee.pev{1}];
+pev{2} = [rsc.pev{2}; ee.pev{2}];
+
+fr_thres = .5;
+traj_thres = 3; %min number of pc per ensemble
+l_thres = 30; % length to be considered cue ensemble
+
+l1 = cell(length(clust_stacks{1}), 1); s1=l1; e1=l1;
+for c = 1:length(clust_stacks{1})
+    stack = clust_stacks{1}{c};
+    traj = any(stack > fr_thres, 2);
+    [~, starts, ends] = traj_length(traj, 1);
+
+    stack = repmat(stack, 2, 1);
+    idx = false(length(starts{1}), 1);
+    for t = 1:length(starts{1})
+        temp = stack(starts{1}(t) : (ends{1}(t) - 1 + length(traj) * (starts{1}(t) > (ends{1}(t)))), :);
+        temp = any(temp > fr_thres, 1);
+        idx(t) = sum(temp) < traj_thres;
+    end
+
+    [l1{c}, s1{c}, e1{c}] = traj_length(traj);
+    l1{c} = l1{c}{1}(~idx);
+    s1{c} = s1{c}{1}(~idx);
+    e1{c} = e1{c}{1}(~idx);
+end
+
+l2 = cell(length(clust_stacks{2}), 1); s2=l2; e2=l2;
+for c = 1:length(clust_stacks{2})
+    stack = clust_stacks{2}{c};
+    traj = any(stack > fr_thres, 2);
+    [~, starts, ends] = traj_length(traj, 1);
+
+    stack = repmat(stack, 2, 1);
+    idx = false(length(starts{1}), 1);
+    for t = 1:length(starts{1})
+        temp = stack(starts{1}(t) : (ends{1}(t) - 1 + length(traj) * (starts{1}(t) > (ends{1}(t)))), :);
+        temp = any(temp > fr_thres, 1);
+        idx(t) = sum(temp) < traj_thres;
+    end
+
+    [l2{c}, s2{c}, e2{c}] = traj_length(traj);
+    l2{c} = l2{c}{1}(~idx);
+    s2{c} = s2{c}{1}(~idx);
+    e2{c} = e2{c}{1}(~idx);
+end
+
+belt;
+iscue1 = zeros(length(l1), 1); % 1:iscue 2:istraj 0:aint shit
+for ii = 1:length(l1) %classify cue/traj ensembles
+    if isempty(l1{ii}); continue; end
+    temp = any(s1{ii} < cue_centres & e1{ii} > cue_centres & l1{ii} < l_thres, 'all'); % cue centre within traj and length smaller than l_thres
+    if temp
+        iscue1(ii) = 1;
+    else
+        iscue1(ii) = 2;
+    end
+end
+iscue2 = zeros(length(l2), 1); % 1:iscue 2:istraj 0:aint shit
+for ii = 1:length(l2) %classify cue/traj ensembles
+    if isempty(l2{ii}); continue; end
+    temp = any(s2{ii} < cue_centres & e2{ii} > cue_centres & l2{ii} < l_thres, 'all'); % cue centre within traj and length smaller than l_thres
+    if temp
+        iscue2(ii) = 1;
+    else
+        iscue2(ii) = 2;
+    end
+end
+
+
+
+%%
+% cellfun(@(x) size(x, 2), clust_stacks{2});
+
+n = 5;
+idx = cellfun(@(x) size(x, 1) >= n, pev{2});
+
+ev = pev{2}(idx);
+ev = cellfun(@sqrt, ev, 'UniformOutput', false);
+temp = cellfun(@(x) median(x, 1, 'omitnan'), ev, 'UniformOutput', false);
+stack = clust_stacks{2}(idx);
+stack(cellfun(@isempty, temp)) = [];
+ev(cellfun(@isempty, temp)) = [];
+k = iscue2(idx) + 1;
+k(cellfun(@isempty, temp)) = [];
+temp = cell2mat( temp(~cellfun(@isempty, temp)) );
+
+for ii = 1:length(stack)
+    [~, idx] = max(stack{ii}, [], 1);
+    [~, idx] = sort(idx);
+    stack{ii} = stack{ii}(:, idx);
+end
+
+k = kmeans(temp, 3);
+% k(:) = 1;
+% k(temp(:, 1) > .04) = 2;
+% k(temp(:, 1) < .04 & temp(:, 2) > .19) = 3;
+
+figure
+hold on
+n = 1; scatter(temp(k==n,1), temp(k==n,2))
+n = 2; scatter(temp(k==n,1), temp(k==n,2))
+n = 3; scatter(temp(k==n,1), temp(k==n,2))
+
+for ii = 1:length(unique(k))
+    list = find(k == ii);
+    for jj = 1:length(list)
+        if ~mod(jj-1, 25)
+            figure
+        end
+        subplot(5, 5, mod(jj-1, 25)+1)
+        imagesc(stack{list(jj)}')
+        title(num2str(list(jj)))
+    end
+end
+
+
+
+
