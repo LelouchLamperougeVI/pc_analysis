@@ -27,8 +27,8 @@ x = discretize(x, edges);
 x = x(:);
 
 % window average firing rates (for log-likelihood estimation)
-n = movmean(n, dt);
-% n = fast_smooth(n, dt);
+% n = movmean(n, dt);
+n = fast_smooth(n, dt);
 
 % remove rejection epochs
 n(ops.reject, :) = [];
@@ -66,14 +66,19 @@ end
         progress = progress + 1;
     end
 
-parfor ii = 1:size(n, 2)
+% parfor ii = 1:size(n, 2)
+for ii = 1:size(n, 2)
     n_single = n(:, ii);
     
     init = [max(stack{ii}) find(stack{ii} == max(stack{ii}), 1) ops.bins/4 mean(n_single)];
     max_t = [max(n_single) ops.bins ops.bins/4 mean(n_single)];
     options = optimoptions('simulannealbnd','InitialTemperature', max_t,...
         'TemperatureFcn', 'temperatureexp', 'AnnealingFcn', 'annealingfast',...
-        'ReannealInterval', 50, 'FunctionTolerance', 1e1);
+        'ReannealInterval', 50, 'FunctionTolerance', 1e1,...
+        'PlotFcns', {@saplotbestx,@saplotbestf,@saplotx,@saplotf});
+%     options = optimoptions('simulannealbnd','InitialTemperature', max_t,...
+%         'TemperatureFcn', 'temperatureexp', 'AnnealingFcn', 'annealingfast',...
+%         'ReannealInterval', 50, 'FunctionTolerance', 1e1);
     l = @(params) pc_md_opt_fun(params, x, n_single, dt);
 %     fit_pc(ii, :) = simulannealbnd(l, [mean(n_single) mean(x) ops.bins/4], [0 0 0], [max(n_single) ops.bins ops.bins]);
     fit_pc(ii, :) = simulannealbnd(l, init, [0 0 0 0], max_t, options);
@@ -174,6 +179,7 @@ function l = pc_md_opt_fun(params, x, n, dt)
 
 lambda = params(1) .* exp(-(x - params(2)).^2 ./ (2 * params(3) ^ 2)) + params(4);
 l = -sum( n .* log(lambda) - dt .* lambda );
+% l = -sum( n .* log(lambda) - lambda );
 end
 
 function l = cc_md_opt_fun(params, x, n, dt, blt)

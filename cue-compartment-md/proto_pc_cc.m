@@ -9,6 +9,7 @@ animals = {animals.name};
 
 clust_stacks = cell(2,1);
 trajectories = cell(2,1);
+origin = cell(2,1);
 loc_clust = cell(2,1);
 clusts = cell(2,1);
 pev = cell(2, 1);
@@ -57,6 +58,7 @@ for a = 1:length(animals)
             stack = rest1.analysis.stack(:, list);
             clust_stacks{1} = cat(1, clust_stacks{1}, {stack});
             trajectories{1} = cat(2, trajectories{1}, any(stack > traj_thres, 2));
+            origin{1} = cat(1, origin{1}, {fullfile(root, animals{a}, sessions{s}, [sessions{s} '_1.abf'])});
             
             try
                 md = pc_cc_simanneal(n(:, list), x, dt, 'reject', ~thres, 'prog', false);
@@ -88,6 +90,7 @@ for a = 1:length(animals)
             stack = rest1.analysis.stack(:, list);
             clust_stacks{2} = cat(1, clust_stacks{2}, {stack});
             trajectories{2} = cat(2, trajectories{2}, any(stack > traj_thres, 2));
+            origin{2} = cat(1, origin{2}, {fullfile(root, animals{a}, sessions{s}, [sessions{s} '_3.abf'])});
             
             try
                 md = pc_cc_simanneal(n(:, list), x, dt, 'reject', ~thres, 'prog', false);
@@ -186,7 +189,7 @@ end
 %%
 % cellfun(@(x) size(x, 2), clust_stacks{2});
 
-n = 5;
+n = 0;
 idx = cellfun(@(x) size(x, 1) >= n, pev{2});
 
 ev = pev{2}(idx);
@@ -229,5 +232,24 @@ for ii = 1:length(unique(k))
 end
 
 
+%% Troubleshooting
+clear all
 
+rest = ensemble('/mnt/storage/HaoRan/RRR_motor/M2/RSC037/2017_09_13/2017_09_13_3.abf');
+rest.set_ops('e_size',5);
+rest.set_ops('clust_method','thres');
+rest.set_ops('sig', .2);
+rest.remove_mvt;
+rest.cluster;
 
+%%
+analysis = rest.analysis;
+thres=noRun(analysis.behavior.unit_vel);
+thres=(analysis.behavior.unit_vel>thres | analysis.behavior.unit_vel<-thres) & (analysis.behavior.trials(1) < analysis.behavior.frame_ts & analysis.behavior.trials(end) > analysis.behavior.frame_ts);
+n = analysis.original_deconv;
+dt = .3; % 300 milliseconds
+dt = round(analysis.fs * dt);
+x = analysis.behavior.unit_pos;
+list = rest.ensembles.clust{13};
+        
+md = pc_cc_simanneal(n(:, list(1)), x, dt, 'reject', ~thres, 'prog', false);
