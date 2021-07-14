@@ -251,5 +251,11 @@ dt = .3; % 300 milliseconds
 dt = round(analysis.fs * dt);
 x = analysis.behavior.unit_pos;
 list = rest.ensembles.clust{13};
-        
-md = pc_cc_simanneal(n(:, list(1)), x, dt, 'reject', ~thres, 'prog', false);
+
+for ii = 1:100
+    md(ii) = pc_cc_simanneal(n(:, list), x, dt, 'reject', ~thres, 'prog', false);
+end
+
+
+
+
