@@ -70,8 +70,8 @@ end
         progress = progress + 1;
     end
 
-parfor ii = 1:size(n, 2)
-% for ii = 1:size(n, 2)
+% parfor ii = 1:size(n, 2)
+for ii = 1:size(n, 2)
     n_single = n(:, ii);
     
     init = [max(stack{ii}),...
@@ -79,25 +79,25 @@ parfor ii = 1:size(n, 2)
         sum(stack{1} > (mean(stack{1}) + std(stack{1})*2)),...
         mean(n_single)];
     max_t = [max(n_single) ops.bins ops.bins/4 mean(n_single)];
-    init_t = [max(n_single)/2 ops.bins/2 ops.bins/4 mean(n_single)];
-%     options = optimoptions('simulannealbnd','InitialTemperature', max_t,...
-%         'TemperatureFcn', 'temperatureboltz', 'AnnealingFcn', 'annealingboltz',...
-%         'ReannealInterval', 50, 'FunctionTolerance', 1e1,...
-%         'PlotFcns', {@saplotbestx,@saplotbestf,@saplotx,@saplotf});
+    init_t = [max(stack{ii})/10 ops.bins/15 ops.bins/15 mean(n_single)];
+%     options = optimoptions('simulannealbnd','InitialTemperature', init_t,...
+%         'TemperatureFcn', 'temperaturefast', 'AnnealingFcn', 'annealingboltz',...
+%         'ReannealInterval', 10, 'FunctionTolerance', 1e1,...
+%         'PlotFcns', {@saplotbestx,@saplotbestf,@saplotx,@saplotf, @saplottemperature, @saplotstopping});
     options = optimoptions('simulannealbnd','InitialTemperature', init_t,...
         'TemperatureFcn', 'temperatureboltz', 'AnnealingFcn', 'annealingboltz',...
-        'ReannealInterval', 50, 'FunctionTolerance', 1e1);
+        'ReannealInterval', 10, 'FunctionTolerance', 1e1);
     l = @(params) pc_md_opt_fun(params, x, n_single, dt);
-%     fit_pc(ii, :) = simulannealbnd(l, [mean(n_single) mean(x) ops.bins/4], [0 0 0], [max(n_single) ops.bins ops.bins]);
     fit_pc(ii, :) = simulannealbnd(l, init, [0 0 0 0], max_t, options);
     
-    init = accumarray(blt(x), n_single, [length(unique(blt)) 1], @mean);
-    max_t = ones(length(unique(blt)), 1) .* max(n_single);
-    options = optimoptions('simulannealbnd','InitialTemperature', max_t,...
-        'TemperatureFcn', 'temperatureexp', 'AnnealingFcn', 'annealingfast',...
-        'ReannealInterval', 50, 'FunctionTolerance', 1e1);
-    l = @(params) cc_md_opt_fun(params, x, n_single, dt, blt);
-    fit_cc(ii, :) = simulannealbnd(l, init, zeros(length(unique(blt)), 1), max_t, options);
+%     init = accumarray(blt(x), n_single, [length(unique(blt)) 1], @mean);
+%     max_t = ones(length(unique(blt)), 1) .* max(n_single);
+%     init_t = ones(length(unique(blt)), 1) .* max(init) ./ 10;
+%     options = optimoptions('simulannealbnd','InitialTemperature', init_t,...
+%         'TemperatureFcn', 'temperatureboltz', 'AnnealingFcn', 'annealingboltz',...
+%         'ReannealInterval', 50, 'FunctionTolerance', 1e1);
+%     l = @(params) cc_md_opt_fun(params, x, n_single, dt, blt);
+%     fit_cc(ii, :) = simulannealbnd(l, init, zeros(length(unique(blt)), 1), max_t, options);
     
     send(dq, ii);
 end
