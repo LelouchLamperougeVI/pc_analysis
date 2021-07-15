@@ -235,7 +235,8 @@ end
 %% Troubleshooting
 clear all
 
-rest = ensemble('/mnt/storage/HaoRan/RRR_motor/M2/RSC037/2017_09_13/2017_09_13_3.abf');
+rest = ensemble('/mnt/md0/Data/RSC_M2/RSC037/2017_09_13/2017_09_13_3.abf');
+% rest = ensemble('/mnt/storage/HaoRan/RRR_motor/M2/RSC037/2017_09_13/2017_09_13_3.abf');
 rest.set_ops('e_size',5);
 rest.set_ops('clust_method','thres');
 rest.set_ops('sig', .2);
@@ -253,10 +254,10 @@ x = analysis.behavior.unit_pos;
 list = rest.ensembles.clust{13};
 
 % ii = 1;
-parfor ii = 1:100
+% parfor ii = 1:100
     md(ii) = pc_cc_simanneal(n(:, list), x, dt, 'reject', ~thres, 'prog', false);
     ii
-end
+% end
 
 
 
