@@ -304,6 +304,8 @@ loc_clust = cell(2,1);
 swr_stack = cell(2,1);
 swr_hiepi = cell(2,1);
 hiepi_lfp_pw = cell(2,1);
+hiepi_z = cell(2,1);
+masks = cell(2,1);
 clusts = cell(2,1);
 SI = [];
 si_frac = [];
@@ -350,6 +352,14 @@ for a = 1:length(animals)
         
         hiepi_lfp_pw{1} = cat(1, hiepi_lfp_pw{1}, {rest1.hiepi.reactivations});
         hiepi_lfp_pw{2} = cat(1, hiepi_lfp_pw{2}, {rest2.hiepi.reactivations});
+        
+        %hPICA z traces
+        hiepi_z{1} = cat(1, hiepi_z{1}, {rest1.hiepi.z});
+        hiepi_z{2} = cat(1, hiepi_z{2}, {rest2.hiepi.z});
+        
+        %ROI masks
+        masks{1} = cat(1, masks{1}, {rest1.topo.maskNeurons});
+        masks{2} = cat(1, masks{2}, {rest2.topo.maskNeurons});
         
         % v checkpoint
     

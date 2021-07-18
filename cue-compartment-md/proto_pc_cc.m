@@ -1,10 +1,10 @@
 clear all
 
 traj_thres = .2;
-root = '/mnt/storage/HaoRan/RRR_motor/M2';
-animals = dir(fullfile(root, 'RSC*'));
-% root = '/mnt/storage/rrr_magnum/M2';
-% animals = dir(fullfile(root, 'E*'));
+% root = '/mnt/storage/HaoRan/RRR_motor/M2';
+% animals = dir(fullfile(root, 'RSC*'));
+root = '/mnt/storage/rrr_magnum/M2';
+animals = dir(fullfile(root, 'E*'));
 animals = {animals.name};
 
 clust_stacks = cell(2,1);
@@ -61,7 +61,7 @@ for a = 1:length(animals)
             origin{1} = cat(1, origin{1}, {fullfile(root, animals{a}, sessions{s}, [sessions{s} '_1.abf'])});
             
             try
-                md = pc_cc_simanneal(n(:, list), x, dt, 'reject', ~thres, 'prog', false);
+                md = pc_cc_simanneal(n(:, rest1.ensembles.clust{c}), x, dt, 'reject', ~thres, 'prog', false, 'comp', 'full');
                 pev{1} = cat(1, pev{1}, {[md.pc.pev(:), md.cc.pev(:)]});
             catch
                 pev{1} = cat(1, pev{1}, {[]});
@@ -93,7 +93,7 @@ for a = 1:length(animals)
             origin{2} = cat(1, origin{2}, {fullfile(root, animals{a}, sessions{s}, [sessions{s} '_3.abf'])});
             
             try
-                md = pc_cc_simanneal(n(:, list), x, dt, 'reject', ~thres, 'prog', false);
+                md = pc_cc_simanneal(n(:, rest2.ensembles.clust{c}), x, dt, 'reject', ~thres, 'prog', false, 'comp', 'full');
                 pev{2} = cat(1, pev{2}, {[md.pc.pev(:), md.cc.pev(:)]});
             catch
                 pev{2} = cat(1, pev{2}, {[]});
@@ -194,12 +194,12 @@ idx = cellfun(@(x) size(x, 1) >= n, pev{2});
 
 ev = pev{2}(idx);
 ev = cellfun(@sqrt, ev, 'UniformOutput', false);
-temp = cellfun(@(x) median(x, 1, 'omitnan'), ev, 'UniformOutput', false);
+temp = cellfun(@(x) mean(x, 1, 'omitnan'), ev, 'UniformOutput', false);
 stack = clust_stacks{2}(idx);
 stack(cellfun(@isempty, temp)) = [];
 ev(cellfun(@isempty, temp)) = [];
-k = iscue2(idx) + 1;
-k(cellfun(@isempty, temp)) = [];
+% k = iscue2(idx) + 1;
+% k(cellfun(@isempty, temp)) = [];
 temp = cell2mat( temp(~cellfun(@isempty, temp)) );
 
 for ii = 1:length(stack)
@@ -235,13 +235,15 @@ end
 %% Troubleshooting
 clear all
 
-rest = ensemble('/mnt/md0/Data/RSC_M2/RSC037/2017_09_13/2017_09_13_3.abf');
-% rest = ensemble('/mnt/storage/HaoRan/RRR_motor/M2/RSC037/2017_09_13/2017_09_13_3.abf');
+% rest = ensemble('/mnt/md0/Data/RSC_M2/RSC037/2017_09_13/2017_09_13_3.abf');
+rest = ensemble('/mnt/storage/HaoRan/RRR_motor/M2/RSC037/2017_09_13/2017_09_13_3.abf');
 rest.set_ops('e_size',5);
 rest.set_ops('clust_method','thres');
 rest.set_ops('sig', .2);
 rest.remove_mvt;
 rest.cluster;
+% rest.swr_window;
+rest.hPICA;
 
 %%
 analysis = rest.analysis;
@@ -251,13 +253,14 @@ n = analysis.original_deconv;
 dt = .3; % 300 milliseconds
 dt = round(analysis.fs * dt);
 x = analysis.behavior.unit_pos;
-list = rest.ensembles.clust{13};
+% list = rest.ensembles.clust{13};
+list = rest.ensembles.clust{1};
 
 % ii = 1;
-% parfor ii = 1:100
-    md(ii) = pc_cc_simanneal(n(:, list), x, dt, 'reject', ~thres, 'prog', false);
+parfor ii = 1:100
+    md(ii) = pc_cc_simanneal(n(:, list), x, dt, 'reject', ~thres, 'prog', false, 'comp', 'full');
     ii
-% end
+end
 
 
 
