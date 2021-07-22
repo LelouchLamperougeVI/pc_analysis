@@ -288,10 +288,11 @@ clear all
 traj_thres = .2;
 
 % root = '/mnt/storage/HaoRan/RRR_motor/M2';
-root = '/mnt/storage/rrr_magnum/M2';
-
 % animals = dir(fullfile(root, 'RSC*'));
+
+root = '/mnt/storage/rrr_magnum/M2';
 animals = dir(fullfile(root, 'E*'));
+
 animals = {animals.name};
 
 EV = [];
@@ -310,6 +311,8 @@ clusts = cell(2,1);
 SI = [];
 si_frac = [];
 swr_clust_stack = cell(2,1);
+whole_stack = {};
+pc_list = {};
 for a = 1:length(animals)
     sessions = dir(fullfile(root, animals{a}));
     sessions = {sessions.name};
@@ -322,7 +325,7 @@ for a = 1:length(animals)
         rest1.set_ops('sig', .2);
         rest1.remove_mvt;
         rest1.cluster;
-        rest1.swr_window;
+%         rest1.swr_window;
         rest1.hPICA;
 %         rest1.topography;
 %         rest1.detect_sce;
@@ -333,7 +336,7 @@ for a = 1:length(animals)
         rest2.set_ops('sig', .2);
         rest2.remove_mvt;
         rest2.cluster;
-        rest2.swr_window;
+%         rest2.swr_window;
         rest2.hPICA;
 %         rest2.topography;
 %         rest2.detect_sce;
@@ -346,12 +349,12 @@ for a = 1:length(animals)
         
         si_frac = cat(1, si_frac, {{rest1.analysis.SI(cell2mat(rest1.ensembles.clust))}, {rest1.analysis.SI(cell2mat(rest2.ensembles.clust))}, {rest1.analysis.SI}});
         
-        %hPICA
-        swr_hiepi{1} = cat(1, swr_hiepi{1}, {rest1.hiepi.swr_react_strength});
-        swr_hiepi{2} = cat(1, swr_hiepi{2}, {rest2.hiepi.swr_react_strength});
-        
-        hiepi_lfp_pw{1} = cat(1, hiepi_lfp_pw{1}, {rest1.hiepi.reactivations});
-        hiepi_lfp_pw{2} = cat(1, hiepi_lfp_pw{2}, {rest2.hiepi.reactivations});
+%         %hPICA
+%         swr_hiepi{1} = cat(1, swr_hiepi{1}, {rest1.hiepi.swr_react_strength});
+%         swr_hiepi{2} = cat(1, swr_hiepi{2}, {rest2.hiepi.swr_react_strength});
+%         
+%         hiepi_lfp_pw{1} = cat(1, hiepi_lfp_pw{1}, {rest1.hiepi.reactivations});
+%         hiepi_lfp_pw{2} = cat(1, hiepi_lfp_pw{2}, {rest2.hiepi.reactivations});
         
         %hPICA z traces
         hiepi_z{1} = cat(1, hiepi_z{1}, {rest1.hiepi.z});
@@ -361,10 +364,14 @@ for a = 1:length(animals)
         masks{1} = cat(1, masks{1}, {rest1.topo.maskNeurons});
         masks{2} = cat(1, masks{2}, {rest2.topo.maskNeurons});
         
+        % whole stack for cross days analysis
+        whole_stack{end+1} = rest1.analysis.stack;
+        pc_list{end+1} = rest1.analysis.pc_list;
+        
         % v checkpoint
     
-        swr_stack{1} = cat(1, swr_stack{1}, {rest1.ensembles.swr.all});
-        swr_stack{2} = cat(1, swr_stack{2}, {rest2.ensembles.swr.all});
+%         swr_stack{1} = cat(1, swr_stack{1}, {rest1.ensembles.swr.all});
+%         swr_stack{2} = cat(1, swr_stack{2}, {rest2.ensembles.swr.all});
         clusts{1} = cat(2, clusts{1}, {rest1.ensembles.clust});
         clusts{2} = cat(2, clusts{2}, {rest2.ensembles.clust});
         SI = cat(2, SI, {rest1.analysis.SI});
@@ -375,7 +382,6 @@ for a = 1:length(animals)
             list = intersect(rest1.analysis.pc_list, rest1.ensembles.clust{c});
             stack = rest1.analysis.stack(:, list);
             frac_clust{1} = cat(1, frac_clust{1}, [length(list) length(list)/length(rest1.ensembles.clust{c})]);
-%             clust_stacks{1} = cat(2, clust_stacks{1}, mean(stack, 2));
             clust_stacks{1} = cat(1, clust_stacks{1}, {stack});
             swr_clust_stack{1}{end}{c} = stack;
             trajectories{1} = cat(2, trajectories{1}, any(stack > traj_thres, 2));
@@ -395,7 +401,6 @@ for a = 1:length(animals)
             list = intersect(rest1.analysis.pc_list, rest2.ensembles.clust{c});
             stack = rest1.analysis.stack(:, list);
             frac_clust{2} = cat(1, frac_clust{2}, [length(list) length(list)/length(rest2.ensembles.clust{c})]);
-%             clust_stacks{2} = cat(2, clust_stacks{2}, mean(stack, 2, 'omitnan'));
             clust_stacks{2} = cat(1, clust_stacks{2}, {stack});
             swr_clust_stack{2}{end}{c} = stack;
             trajectories{2} = cat(2, trajectories{2}, any(stack > traj_thres, 2));

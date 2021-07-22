@@ -1,7 +1,7 @@
 clear all
-% load('/mnt/storage/rrr_magnum/M2/swr_stack_2s.mat');
-% load('/mnt/storage/rrr_magnum/M2/hiepi.mat');
+
 load('/mnt/storage/rrr_magnum/M2/hiepi4.mat');
+% load('/mnt/storage/HaoRan/RRR_motor/M2/hiepi4.mat');
 
 fr_thres = .5;
 traj_thres = 3; %min number of pc per ensemble
@@ -80,3 +80,98 @@ for ii = 1:length(l2) %classify cue/traj ensembles
         end
     end
 end
+
+
+%% Manual classification
+temp = cell(size(iscue2));
+figure
+for ii = 1:length(iscue2)
+    for jj = 1:length(iscue2{ii})
+        [~, order] = max(swr_clust_stack{2}{ii}{jj}, [], 1);
+        [~, order] = sort(order);
+        imagesc(swr_clust_stack{2}{ii}{jj}(:, order)')
+        temp{ii}(jj) = input('class: ');
+    end
+end
+iscue2 = temp;
+
+
+%%
+temp = [];
+sig = [];
+stack_pairs = {};
+for ii = 1:length(iscue2)
+    cue = find(iscue2{ii} == 1);
+    traj = find(iscue2{ii} == 2);
+    for cc = 1:length(cue)
+        for tt = 1:length(traj)
+            t = ~any(isnan(hiepi_z{2}{ii}), 2);
+            t = linspace(0, sum(t) / 19, sum(t));
+            [r, ~, p] = bxcorr(hiepi_z{2}{ii}(~any(isnan(hiepi_z{2}{ii}), 2), cue(cc)), hiepi_z{2}{ii}(~any(isnan(hiepi_z{2}{ii}), 2), traj(tt)), t);
+            temp = cat(2, temp, r( ceil(length(r)/2)-19 : ceil(length(r)/2)+19 ));
+            sig = cat(1, sig, p);
+            stack_pairs = cat(1, stack_pairs, [{swr_clust_stack{2}{ii}{cue(cc)}}, {swr_clust_stack{2}{ii}{traj(tt)}}]);
+        end
+    end
+end
+
+order = max(temp, [], 1);
+[~, order] = sort(order);
+figure
+imagesc(temp(:, order)');
+axis image
+
+r = [];
+for ii = 1:size(stack_pairs, 1)
+    r = [r; corr(mean(stack_pairs{ii, 1}')', mean(stack_pairs{ii, 2}')')];
+end
+
+% idx = find(any(temp > .05, 1));
+idx = find(any(temp'>sig, 2));
+figure
+for ii = 1:length(idx)
+    if ~mod(ii - 1, 6)
+        figure
+    end
+    subplot(6, 3, (mod(ii - 1, 6)+1)*3-2);
+    [~, order] = max(stack_pairs{idx(ii), 1}, [], 1);
+    [~, order] = sort(order);
+    imagesc(stack_pairs{idx(ii), 1}(:, order)');
+    
+    subplot(6, 3, (mod(ii - 1, 6)+1)*3-1);
+    [~, order] = max(stack_pairs{idx(ii), 2}, [], 1);
+    [~, order] = sort(order);
+    imagesc(stack_pairs{idx(ii), 2}(:, order)');
+    
+    subplot(6, 3, (mod(ii - 1, 6)+1)*3);
+    plot(mean(stack_pairs{idx(ii), 1}'))
+    hold on
+    plot(mean(stack_pairs{idx(ii), 2}'))
+    title(num2str(r(idx(ii))))
+end
+
+
+%%
+temp_rsc = temp;
+save('temp_rsc', 'temp_rsc')
+temp_ee = temp;
+save('temp_ee', 'temp_ee')
+
+
+%%
+load('/mnt/storage/HaoRan/RRR_motor/M2/temp_rsc.mat')
+load('/mnt/storage/HaoRan/RRR_motor/M2/temp_ee.mat')
+
+temp = [temp_rsc, temp_ee];
+
+order = max(temp, [], 1);
+[~, order] = sort(order);
+figure
+imagesc(temp(:, order)');
+axis image
+colorbar
+caxis([0 .3])
+
+
+
+
