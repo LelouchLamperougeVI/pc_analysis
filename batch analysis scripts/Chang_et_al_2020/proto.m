@@ -231,11 +231,24 @@ plot_analysis(run.analysis, [0 1 0 ], rest2.ensembles.clust{7})
 
 %%
 figure
-deconv = fast_smooth(rest2.twop.deconv, rest2.ops.sig * rest2.twop.fs);
+deconv = fast_smooth(rest2.twop.deconv, rest2.ops.sig * rest2.twop.fs * 4);
 deconv = (deconv - min(deconv, [], 'omitnan')) ./ range(deconv);
 imagesc('xdata', rest2.twop.ts, 'cdata', -deconv(:, rest2.ensembles.clust_order)');
 colormap gray
-xlim([355 415])
+% xlim([355 415])
+
+hold on
+[x, y] = find(rest2.twop.deconv(:, rest2.ensembles.clust_order) > std(rest2.twop.deconv(:, rest2.ensembles.clust_order), 'omitnan').*5);
+
+colours = rest2.ensembles.colours;
+% colours([4, 6, 1], :) = colours([6, 1, 4], :);
+
+for ii = 1:length(rest2.ensembles.clust)
+    idx = any(rest2.ensembles.clust_order(:) == rest2.ensembles.clust{ii}(:)', 2);
+    idx = ismember(y, find(idx));
+    idx = idx & (rest2.hiepi.z(x, ii) > (std(rest2.hiepi.z(:, ii), 'omitnan') * 5));
+    plot(rest2.twop.ts(x(idx)), y(idx), '.', 'MarkerFaceColor', colours(ii, :), 'MarkerSize', 20)
+end
 
 
 
@@ -306,6 +319,7 @@ swr_stack = cell(2,1);
 swr_hiepi = cell(2,1);
 hiepi_lfp_pw = cell(2,1);
 hiepi_z = cell(2,1);
+hiepi_psth = cell(2, 1);
 masks = cell(2,1);
 clusts = cell(2,1);
 SI = [];
@@ -313,12 +327,20 @@ si_frac = [];
 swr_clust_stack = cell(2,1);
 whole_stack = {};
 pc_list = {};
+pca_var = []; % percent explained variance for first 50 components (session X component X rest1/2)
+pc_width = {};
+
+file = {}; % list of sessions
+
+ll = cell(2, 1); % log likelihood from pc cc models
 for a = 1:length(animals)
     sessions = dir(fullfile(root, animals{a}));
     sessions = {sessions.name};
     sessions = sessions( ~cellfun(@isempty, regexp(sessions, '^\d\d\d\d_\d\d_\d\d')) );
     
     for s = 1:length(sessions)
+        file = cat(1, file, fullfile(root, animals{a}, sessions{s}));
+        
         rest1 = ensemble(fullfile(root, animals{a}, sessions{s}, [sessions{s} '_1.abf']));
         rest1.set_ops('e_size',5);
         rest1.set_ops('clust_method','thres');
@@ -349,16 +371,23 @@ for a = 1:length(animals)
         
         si_frac = cat(1, si_frac, {{rest1.analysis.SI(cell2mat(rest1.ensembles.clust))}, {rest1.analysis.SI(cell2mat(rest2.ensembles.clust))}, {rest1.analysis.SI}});
         
-%         %hPICA
-%         swr_hiepi{1} = cat(1, swr_hiepi{1}, {rest1.hiepi.swr_react_strength});
-%         swr_hiepi{2} = cat(1, swr_hiepi{2}, {rest2.hiepi.swr_react_strength});
-%         
-%         hiepi_lfp_pw{1} = cat(1, hiepi_lfp_pw{1}, {rest1.hiepi.reactivations});
-%         hiepi_lfp_pw{2} = cat(1, hiepi_lfp_pw{2}, {rest2.hiepi.reactivations});
+        try % RSC animals don't have electrode
+            %hPICA
+            swr_hiepi{1} = cat(1, swr_hiepi{1}, {rest1.hiepi.swr_react_strength});
+            swr_hiepi{2} = cat(1, swr_hiepi{2}, {rest2.hiepi.swr_react_strength});
+        catch
+        end
+        
+        hiepi_lfp_pw{1} = cat(1, hiepi_lfp_pw{1}, {rest1.hiepi.reactivations});
+        hiepi_lfp_pw{2} = cat(1, hiepi_lfp_pw{2}, {rest2.hiepi.reactivations});
         
         %hPICA z traces
         hiepi_z{1} = cat(1, hiepi_z{1}, {rest1.hiepi.z});
         hiepi_z{2} = cat(1, hiepi_z{2}, {rest2.hiepi.z});
+        
+        %hPICA z psth
+        hiepi_psth{1} = cat(1, hiepi_psth{1}, {rest1.hiepi.psth});
+        hiepi_psth{2} = cat(1, hiepi_psth{2}, {rest2.hiepi.psth});
         
         %ROI masks
         masks{1} = cat(1, masks{1}, {rest1.topo.maskNeurons});
@@ -376,8 +405,20 @@ for a = 1:length(animals)
         clusts{2} = cat(2, clusts{2}, {rest2.ensembles.clust});
         SI = cat(2, SI, {rest1.analysis.SI});
         
+        pc_width = cat(2, pc_width, {rest1.analysis.width});
+        
         g = cellfun(@(x) zeros(size(x, 1), 1), rest1.analysis.width, 'uniformoutput', false);
         swr_clust_stack{1} = cat(2, swr_clust_stack{1}, {cell(1, length(rest1.ensembles.clust))});
+        
+        % pc_cc characterisation - block 1/3
+        analysis = rest2.analysis;
+        thres=noRun(analysis.behavior.unit_vel);
+        thres=(analysis.behavior.unit_vel>thres | analysis.behavior.unit_vel<-thres) & (analysis.behavior.trials(1) < analysis.behavior.frame_ts & analysis.behavior.trials(end) > analysis.behavior.frame_ts);
+        n = analysis.original_deconv;
+        dt = .05; % 300 milliseconds
+        dt = round(analysis.fs * dt);
+        x = analysis.behavior.unit_pos;
+        
         for c = 1:length(rest1.ensembles.clust)
             list = intersect(rest1.analysis.pc_list, rest1.ensembles.clust{c});
             stack = rest1.analysis.stack(:, list);
@@ -389,6 +430,11 @@ for a = 1:length(animals)
             for l = 1:length(list)
                 g{list(l)} = c .* ones(size(rest1.analysis.width{list(l)}, 1), 1);
             end
+            
+            % pc_cc characterisation - block 2/3
+            list = rest1.ensembles.clust{c};
+            md = pc_cc_simanneal(n(:, list), x, dt, 'reject', ~thres, 'prog', false, 'comp', 'intra');
+            ll{1} = cat(1, ll{1}, {[md.pc.l(:), md.cc.l(:)]});
         end
         temp = cell2mat({rest1.analysis.width{~cellfun(@isempty, rest1.analysis.width)}}');
         loc{end+1} =  temp(:, 2);
@@ -397,6 +443,7 @@ for a = 1:length(animals)
         
         g = cellfun(@(x) zeros(size(x, 1), 1), rest1.analysis.width, 'uniformoutput', false);
         swr_clust_stack{2} = cat(2, swr_clust_stack{2}, {cell(1, length(rest2.ensembles.clust))});
+        
         for c = 1:length(rest2.ensembles.clust)
             list = intersect(rest1.analysis.pc_list, rest2.ensembles.clust{c});
             stack = rest1.analysis.stack(:, list);
@@ -408,9 +455,19 @@ for a = 1:length(animals)
             for l = 1:length(list)
                 g{list(l)} = c .* ones(size(rest1.analysis.width{list(l)}, 1), 1);
             end
+
+            % pc_cc characterisation - block 3/3
+            list = rest2.ensembles.clust{c};
+            md = pc_cc_simanneal(n(:, list), x, dt, 'reject', ~thres, 'prog', false, 'comp', 'intra');
+            ll{2} = cat(1, ll{2}, {[md.pc.l(:), md.cc.l(:)]});
         end
         temp = cell2mat({g{~cellfun(@isempty, rest1.analysis.width)}}');
         loc_clust{2} = cat(1, loc_clust{2}, {temp});
+        
+        [~, ~, score1] = pca(rest1.ensembles.R);
+        [~, ~, score2] = pca(rest2.ensembles.R);
+        
+        pca_var = cat(1, pca_var, permute( [score1(1:50) ./ sum(score1), score2(1:50) ./ sum(score2)], [3 1 2] ));
     end
 end
 
@@ -436,8 +493,8 @@ figure
 boxplot([frac(:,1) - frac(:,3), frac(:,2) - frac(:,3)]);
 ylim([-.5 1])
 p = ranksum(frac(:,1) - frac(:,3), frac(:,2) - frac(:,3))
-p = signrank(frac(:,1) - frac(:,3))
-p = signrank(frac(:,2) - frac(:,3))
+p = signrank(frac(:,1) - frac(:,3), 0, 'tail', 'right')
+p = signrank(frac(:,2) - frac(:,3), 0, 'tail', 'right')
 
 
 %% Fig2g
@@ -721,7 +778,7 @@ xlim([0 150]); ylim([0 .1])
 % plot(linspace(0, 150, 50), belt_idx.*.01)
 
 
-bins = 25;
+bins = 50;
 
 edges = linspace(0, 150, bins+1);
 P_se = accumarray([discretize(cell2mat(s1(iscue1 == 2)), edges) discretize(cell2mat(e1(iscue1 == 2)), edges)], 1, [bins bins]);
@@ -729,6 +786,8 @@ P_se = P_se ./ sum(P_se(:));
 P_s_cond_e = P_se ./ sum(P_se, 1);
 P_e_cond_s = P_se ./ sum(P_se, 2);
 
+P_e_cond_s(isnan(P_e_cond_s)) = 0;
+P_e_cond_s = imgaussfilt(P_e_cond_s, 2);
 % figure
 % imagesc(P_se)
 % colormap jet
@@ -737,9 +796,10 @@ P_e_cond_s = P_se ./ sum(P_se, 2);
 % axis image
 figure
 imagesc(P_e_cond_s)
-rbmap('caxis', [0 1]);
+% rbmap('caxis', [0 1]);
+colormap jet
 colorbar
-caxis([0 1])
+% caxis([0 .2])
 axis image
 % figure
 % imagesc(P_s_cond_e)
@@ -754,6 +814,8 @@ P_se = P_se ./ sum(P_se(:));
 P_s_cond_e = P_se ./ sum(P_se, 1);
 P_e_cond_s = P_se ./ sum(P_se, 2);
 
+P_e_cond_s(isnan(P_e_cond_s)) = 0;
+P_e_cond_s = imgaussfilt(P_e_cond_s, 2);
 % figure
 % imagesc(P_se)
 % rbmap('caxis', [0 1]);
@@ -762,9 +824,10 @@ P_e_cond_s = P_se ./ sum(P_se, 2);
 % axis image
 figure
 imagesc(P_e_cond_s)
-rbmap('caxis', [0 1]);
+% rbmap('caxis', [0 1]);
+colormap jet
 colorbar
-caxis([0 1])
+% caxis([0 .2])
 axis image
 % figure
 % imagesc(P_s_cond_e)
@@ -846,15 +909,18 @@ end
 P_e_cond_s(isnan(P_e_cond_s)) = 0;
 P_se(isnan(P_se)) = 0;
 
-% g = digraph(P_e_cond_s);
-g = digraph(P_se);
-LWidths = 10*g.Edges.Weight/max(g.Edges.Weight);
+P_e_cond_s(P_e_cond_s < prctile(P_e_cond_s(:), 95)) = 0;
+
+g = digraph(P_e_cond_s);
+% g = digraph(P_se);
+LWidths = (g.Edges.Weight).^2;
+LWidths = 10 .* LWidths ./ range(LWidths);
 LWidths(isnan(LWidths)) = 0;
 
 figure
 cm = rbmap('caxis',[0 1]);
-cm = cm(knnsearch(linspace(0, max(g.Edges.Weight), size(cm,1))', g.Edges.Weight), :);
-plot(g, 'layout', 'circle', 'LineWidth', LWidths, 'edgecolor', cm, 'arrowsize', 0)
+% cm = cm(knnsearch(linspace(0, range(g.Edges.Weight), size(cm,1))', g.Edges.Weight), :);
+plot(g, 'layout', 'circle', 'LineWidth', 4, 'edgecolor', cm(end, :), 'arrowsize', 0)
 axis square
 
 
@@ -1564,3 +1630,508 @@ tbl = table(categorical(neur_id), categorical(ens_id), categorical(sess_id), cat
     'variablenames', {'neuron', 'ensemble', 'session', 'type', 't0', 't1', 't2', 't3'});
 
 writetable(tbl, '/home/loulou/Documents/my_docs/Manuscripts/Chang_et_al_2020/inkscape/MATLAB/r2.csv');
+
+
+%% Supplementary figures
+
+%% supplementary fig1 - lesion vs control from Esteves et al. 2021 jneuro
+clear all
+
+% % make them damn objects
+% root = '/mnt/storage/esteves_et_al_jneuro2021_for_supp1_in_chang_et_al_m2_reactivation';
+% animal = dir(root);
+% 
+% abfs = {};
+% for a = 3:length(animal)
+%     date = dir(fullfile(root, animal(a).name));
+%     for d = 3:length(date)
+%         session = dir(fullfile(root, animal(a).name, date(d).name, '*.abf'));
+%         abfs = cat(2, abfs, fullfile(root, animal(a).name, date(d).name, {session.name}));
+%     end
+% end
+% abfs = abfs';
+% 
+% for ii = 1:length(abfs)
+%     obj(ii) = LFP(abfs{ii}, 'planes', 1:3);
+%     obj(ii).rm_redund;
+%     obj(ii).perform_analysis;
+% end
+
+
+clear all
+load('/mnt/storage/esteves_et_al_jneuro2021_for_supp1_in_chang_et_al_m2_reactivation/obj.mat');
+
+% partition analysis structs
+l_analysis = [];
+c_analysis = [];
+for ii = 1:length(obj)
+    temp = regexpi(obj(ii).session.animal, '^hl*');
+    if isempty(temp)
+        c_analysis = [c_analysis; obj(ii).analysis];
+    else
+        l_analysis = [l_analysis; obj(ii).analysis];
+    end
+end
+
+% panel a - stacks
+c_stack = arrayfun(@(x) x.stack(:, x.pc_list), c_analysis, 'UniformOutput', false);
+l_stack = arrayfun(@(x) x.stack(:, x.pc_list), l_analysis, 'UniformOutput', false);
+c_stack = cat(2, c_stack{:});
+l_stack = cat(2, l_stack{:});
+
+figure
+subplot(1, 2, 1);
+[~, idx] = max(c_stack, [], 1);
+[~, idx] = sort(idx);
+imagesc(-c_stack(:, idx)')
+rbmap('caxis', [-1 0], 'interp', 255);
+
+subplot(1, 2, 2);
+[~, idx] = max(l_stack, [], 1);
+[~, idx] = sort(idx);
+imagesc(l_stack(:, idx)')
+rbmap('caxis', [0 1], 'interp', 255);
+
+% panel b - place field location densities
+
+c_loc = arrayfun(@(x) cat(1, x.width{x.pc_list}), c_analysis, 'UniformOutput', false);
+c_loc = cat(1, c_loc{:});
+l_loc = arrayfun(@(x) cat(1, x.width{x.pc_list}), l_analysis, 'UniformOutput', false);
+l_loc = cat(1, l_loc{:});
+
+g = repelem((1:2)', [size(c_loc, 1); size(l_loc, 1)]);
+loc = cat(1, c_loc(:, 2), l_loc(:, 2));
+
+g = gramm('x', loc, 'color', g);
+g.stat_bin('nbins', 50, 'geom', 'line', 'fill', 'transparent', 'normalization', 'probability');
+g.axe_property('ylim', [0 .08]);
+figure
+g.draw();
+
+% panel c - number of place fields
+
+c_num_pf = arrayfun(@(x) cellfun(@(y) size(y, 1), x.width(x.pc_list)), c_analysis, 'UniformOutput', false);
+c_num_pf = cat(2, c_num_pf{:});
+l_num_pf = arrayfun(@(x) cellfun(@(y) size(y, 1), x.width(x.pc_list)), l_analysis, 'UniformOutput', false);
+l_num_pf = cat(2, l_num_pf{:});
+
+g = repelem((1:2)', [length(c_num_pf); length(l_num_pf)]);
+num_pf = cat(2, c_num_pf, l_num_pf);
+
+figure
+g = gramm('x', num_pf, 'color', g);
+g.stat_bin('normalization', 'probability', 'edges', .5:1:3.5);
+g.axe_property('ylim', [0 1]);
+figure
+g.draw();
+
+p = ranksum(l_num_pf, c_num_pf)
+
+
+
+%% supplementary fig3 - characterisation of resting state dynamics
+clear all
+ee = load('/mnt/storage/rrr_magnum/M2/cross_days.mat');
+rsc = load('/mnt/storage/HaoRan/RRR_motor/M2/cross_days.mat');
+
+% panel a - num neurons per ensemble
+frac1 = cat(2, arrayfun(@(x) cellfun(@length, rsc.clusts{1}{x}) ./ size(rsc.whole_stack{x}, 2), 1:length(rsc.whole_stack), 'UniformOutput', false), ...
+            arrayfun(@(x) cellfun(@length, ee.clusts{1}{x}) ./ size(ee.whole_stack{x}, 2), 1:length(ee.whole_stack), 'UniformOutput', false));
+frac1 = [frac1{:}];
+frac2 = cat(2, arrayfun(@(x) cellfun(@length, rsc.clusts{2}{x}) ./ size(rsc.whole_stack{x}, 2), 1:length(rsc.whole_stack), 'UniformOutput', false), ...
+            arrayfun(@(x) cellfun(@length, ee.clusts{2}{x}) ./ size(ee.whole_stack{x}, 2), 1:length(ee.whole_stack), 'UniformOutput', false));
+frac2 = [frac2{:}];
+
+figure
+cdfplot(frac1)
+hold on
+cdfplot(frac2)
+[~, pval] = kstest2(frac1, frac2)
+ranksum(frac1, frac2)
+
+% panel b - scatter/corr #ens vs #neurons
+num_neur = cat(1, cellfun(@(x) size(x, 2), rsc.whole_stack)', cellfun(@(x) size(x, 2), ee.whole_stack)');
+num_ens = [cat(1, cellfun(@length, rsc.clusts{1})', cellfun(@length, ee.clusts{1})'), cat(1, cellfun(@length, rsc.clusts{2})', cellfun(@length, ee.clusts{2})')];
+figure
+scatter(num_neur, num_ens(:, 2), '.');
+
+hold on
+md = fitlm(num_neur, num_ens(:, 1));
+plot(num_neur, [ones(length(num_neur), 1), num_neur] * md.Coefficients.Estimate);
+
+% xlim([100 600]);
+axis square
+title(['r sqr = ' num2str(md.Rsquared.Ordinary) '; r sqr adj = ' num2str(md.Rsquared.Adjusted) '; pval = ' num2str(md.Coefficients.pValue(end))])
+
+% panel c - norm. ensembles per session
+figure
+boxplot(num_ens ./ num_neur);
+ylim([0 .05])
+signrank(diff(num_ens, 1, 2) ./ num_neur, 0, 'tail', 'right')
+
+% panel d - rate of reactivation
+fs = ee.rest1.twop.fs;
+
+rr1 = [];
+for ii = 1:length(rsc.hiepi_lfp_pw{1})
+    for jj = 1:length(rsc.hiepi_lfp_pw{1}{ii})
+        rr1 = [rr1; length(rsc.hiepi_lfp_pw{1}{ii}{jj}.on) ./ sum(~isnan(rsc.hiepi_z{1}{ii}(:, jj))) .* fs];
+    end
+end
+for ii = 1:length(ee.hiepi_lfp_pw{1})
+    for jj = 1:length(ee.hiepi_lfp_pw{1}{ii})
+        rr1 = [rr1; length(ee.hiepi_lfp_pw{1}{ii}{jj}.on) ./ sum(~isnan(ee.hiepi_z{1}{ii}(:, jj))) .* fs];
+    end
+end
+
+rr2 = [];
+sparsity2 = [];
+for ii = 1:length(rsc.hiepi_lfp_pw{2})
+    for jj = 1:length(rsc.hiepi_lfp_pw{2}{ii})
+        rr2 = [rr2; length(rsc.hiepi_lfp_pw{2}{ii}{jj}.on) ./ sum(~isnan(rsc.hiepi_z{2}{ii}(:, jj))) .* fs];
+    end
+end
+for ii = 1:length(ee.hiepi_lfp_pw{2})
+    for jj = 1:length(ee.hiepi_lfp_pw{2}{ii})
+        rr2 = [rr2; length(ee.hiepi_lfp_pw{2}{ii}{jj}.on) ./ sum(~isnan(ee.hiepi_z{2}{ii}(:, jj))) .* fs];
+    end
+end
+
+pval = ranksum(rr1, rr2)
+[~, pval] = kstest2(rr1, rr2)
+
+g = gramm('x', [rr1; rr2], 'color', repelem([1; 2], [length(rr1); length(rr2)]));
+g.stat_bin('geom', 'line', 'normalization', 'probability', 'nbins', 25, 'fill', 'transparent');
+g.geom_vline('xintercept', [median(rr1), median(rr2)], 'style', '-');
+
+g.axe_property('xlim', [0 .4], 'ylim', [0 .15]);
+g.set_title(['Mann-Whitney two-tailed U-test p = ' num2str(pval)]);
+
+figure
+g.draw;
+
+figure
+cdfplot(rr1)
+hold on
+cdfplot(rr2)
+
+% panel e - pca explained variance
+t = cat(1, rsc.pca_var, ee.pca_var);
+% t = diff(t, 1, 3);
+t = t(:, 1:5, :);
+x = repelem(1:5, size(t, 1), 1, 2);
+g = repelem(permute((1:2), [1 3 2]), size(t, 1), size(t, 2), 1);
+
+g = gramm('x', x, 'y', t(:), 'color', g(:));
+g.stat_summary('type', 'sem');
+g.axe_property('xlim', [1 5], 'ylim', [0 .16]);
+
+t = cat(1, rsc.pca_var, ee.pca_var);
+t = diff(t, 1, 3);
+t = t(:, 1:5, :);
+x = repelem(1:5, size(t, 1), 1);
+g(1, 2) = gramm('x', x, 'y', t(:));
+g(1, 2).stat_summary('type', 'sem');
+g(1, 2).axe_property('xlim', [1 5], 'ylim', [-.03 .03]);
+figure
+g.draw()
+
+
+t = cat(1, rsc.pca_var, ee.pca_var);
+t = diff(t, 1, 3);
+
+figure
+for ii = 1:10
+    subplot(4, 4, ii);
+    histogram(t(:, ii), 25);
+end
+
+t = array2table(t);
+t = [array2table((1:size(t, 1))', 'variablename', {'session'}), t];
+
+md = fitrm(t, 't1-t5 ~ 1');
+
+md.ranova
+md.mauchly
+md.epsilon
+
+md.multcompare('Time', 'comparisontype', 'bonferroni')
+
+
+
+%% supp fig 4 - Hypergeometric test (aka Fisher's exact test) for fraction of place cells
+clear all
+ee = load('/mnt/storage/rrr_magnum/M2/cross_days.mat');
+rsc = load('/mnt/storage/HaoRan/RRR_motor/M2/cross_days.mat');
+
+N = sum(cellfun(@(x) size(x, 2), rsc.whole_stack)) + sum(cellfun(@(x) size(x, 2), ee.whole_stack));
+K = sum(cellfun(@length, rsc.pc_list)) + sum(cellfun(@length, ee.pc_list));
+k = sum(rsc.frac_clust{1}(:, 1)) + sum(ee.frac_clust{1}(:, 1));
+n = sum(rsc.frac_clust{1}(:, 1) ./ rsc.frac_clust{1}(:, 2), 'omitnan') + sum(ee.frac_clust{1}(:, 1) ./ ee.frac_clust{1}(:, 2), 'omitnan');
+
+m = [k,     n - k
+     K - k, N - K + k - n];
+[~, p] = fishertest(m, 'tail', 'right')
+
+N = sum(cellfun(@(x) size(x, 2), rsc.whole_stack)) + sum(cellfun(@(x) size(x, 2), ee.whole_stack));
+K = sum(cellfun(@length, rsc.pc_list)) + sum(cellfun(@length, ee.pc_list));
+k = sum(rsc.frac_clust{2}(:, 1)) + sum(ee.frac_clust{2}(:, 1));
+n = sum(rsc.frac_clust{2}(:, 1) ./ rsc.frac_clust{2}(:, 2), 'omitnan') + sum(ee.frac_clust{2}(:, 1) ./ ee.frac_clust{2}(:, 2), 'omitnan');
+
+m = [k,     n - k
+     K - k, N - K + k - n];
+[~, p] = fishertest(m, 'tail', 'right')
+
+
+% individual ensembles
+rest = 1;
+whole_stack = cat(2, rsc.whole_stack, ee.whole_stack);
+pc_list = cat(2, rsc.pc_list, ee.pc_list);
+clusts{1} = cat(2, rsc.clusts{1}, ee.clusts{1});
+clusts{2} = cat(2, rsc.clusts{2}, ee.clusts{2});
+
+N = repelem(cellfun(@(x) size(x, 2), whole_stack), cellfun(@length, clusts{rest}));
+K = repelem(cellfun(@length, pc_list), cellfun(@length, clusts{rest}));
+k = cat(1, rsc.frac_clust{rest}(:, 1), ee.frac_clust{rest}(:, 1));
+n = k ./ cat(1, rsc.frac_clust{rest}(:, 2), ee.frac_clust{rest}(:, 2));
+
+N(k < 1) = [];
+K(k < 1) = [];
+n(k < 1) = [];
+k(k < 1) = [];
+
+N = permute(N(:), [2 3 1]);
+K = permute(K(:), [2 3 1]);
+n = permute(n(:), [2 3 1]);
+k = permute(k(:), [2 3 1]);
+
+m = [k,     n - k
+     K - k, N - K + k - n];
+m = permute(round(m), [2 1 3]);
+
+[~, p1] = arrayfun(@(x) fishertest(m(:, :, x), 'tail', 'right'), 1:size(m, 3));
+
+rest = 2;
+whole_stack = cat(2, rsc.whole_stack, ee.whole_stack);
+pc_list = cat(2, rsc.pc_list, ee.pc_list);
+clusts{1} = cat(2, rsc.clusts{1}, ee.clusts{1});
+clusts{2} = cat(2, rsc.clusts{2}, ee.clusts{2});
+
+N = repelem(cellfun(@(x) size(x, 2), whole_stack), cellfun(@length, clusts{rest}));
+K = repelem(cellfun(@length, pc_list), cellfun(@length, clusts{rest}));
+k = cat(1, rsc.frac_clust{rest}(:, 1), ee.frac_clust{rest}(:, 1));
+n = k ./ cat(1, rsc.frac_clust{rest}(:, 2), ee.frac_clust{rest}(:, 2));
+
+N(k < 1) = [];
+K(k < 1) = [];
+n(k < 1) = [];
+k(k < 1) = [];
+
+N = permute(N(:), [2 3 1]);
+K = permute(K(:), [2 3 1]);
+n = permute(n(:), [2 3 1]);
+k = permute(k(:), [2 3 1]);
+
+m = [k,     n - k
+     K - k, N - K + k - n];
+m = permute(round(m), [2 1 3]);
+
+[~, p2] = arrayfun(@(x) fishertest(m(:, :, x), 'tail', 'right'), 1:size(m, 3));
+
+figure
+cdfplot(log(p1))
+hold on
+cdfplot(log(p2))
+xlim([-15 0])
+
+figure
+boxplot([log(p1), log(p2)], repelem(1:2, [length(p1), length(p2)]), 'plotstyle', 'compact');
+ylim([-15 0])
+
+[~, p] = kstest2(log(p1(log(p1)<-3)), log(p2(log(p2)<-3)), 'tail', 'smaller')
+ranksum(log(p1(log(p1)<-3)), log(p2(log(p2)<-3)), 'tail', 'right')
+
+
+%% supp. fig. 5 - cue/traj PC characterisation
+clear all
+ee = load('/mnt/storage/rrr_magnum/M2/cross_days.mat');
+rsc = load('/mnt/storage/HaoRan/RRR_motor/M2/cross_days.mat');
+
+% classify ensembles
+clust_stacks{1} = cat(1, rsc.clust_stacks{1}, ee.clust_stacks{1});
+clust_stacks{2} = cat(1, rsc.clust_stacks{2}, ee.clust_stacks{2});
+
+fr_thres = .5;
+traj_thres = 3; %min number of pc per ensemble
+l_thres = 30; % length to be considered cue ensemble
+
+l1 = cell(length(clust_stacks{1}), 1); s1=l1; e1=l1;
+for c = 1:length(clust_stacks{1})
+    stack = clust_stacks{1}{c};
+    traj = any(stack > fr_thres, 2);
+    [~, starts, ends] = traj_length(traj, 1);
+
+    stack = repmat(stack, 2, 1);
+    idx = false(length(starts{1}), 1);
+    for t = 1:length(starts{1})
+        temp = stack(starts{1}(t) : (ends{1}(t) - 1 + length(traj) * (starts{1}(t) > (ends{1}(t)))), :);
+        temp = any(temp > fr_thres, 1);
+        idx(t) = sum(temp) < traj_thres;
+    end
+
+    [l1{c}, s1{c}, e1{c}] = traj_length(traj);
+    l1{c} = l1{c}{1}(~idx);
+    s1{c} = s1{c}{1}(~idx);
+    e1{c} = e1{c}{1}(~idx);
+end
+
+l2 = cell(length(clust_stacks{2}), 1); s2=l2; e2=l2;
+for c = 1:length(clust_stacks{2})
+    stack = clust_stacks{2}{c};
+    traj = any(stack > fr_thres, 2);
+    [~, starts, ends] = traj_length(traj, 1);
+
+    stack = repmat(stack, 2, 1);
+    idx = false(length(starts{1}), 1);
+    for t = 1:length(starts{1})
+        temp = stack(starts{1}(t) : (ends{1}(t) - 1 + length(traj) * (starts{1}(t) > (ends{1}(t)))), :);
+        temp = any(temp > fr_thres, 1);
+        idx(t) = sum(temp) < traj_thres;
+    end
+
+    [l2{c}, s2{c}, e2{c}] = traj_length(traj);
+    l2{c} = l2{c}{1}(~idx);
+    s2{c} = s2{c}{1}(~idx);
+    e2{c} = e2{c}{1}(~idx);
+end
+
+belt;
+iscue1 = zeros(length(l1), 1); % 1:iscue 2:istraj 0:aint shit
+for ii = 1:length(l1) %classify cue/traj ensembles
+    if isempty(l1{ii}); continue; end
+    temp = any(s1{ii} < cue_centres & e1{ii} > cue_centres & l1{ii} < l_thres, 'all'); % cue centre within traj and length smaller than l_thres
+    if temp
+        iscue1(ii) = 1;
+    else
+        iscue1(ii) = 2;
+    end
+end
+iscue2 = zeros(length(l2), 1); % 1:iscue 2:istraj 0:aint shit
+for ii = 1:length(l2) %classify cue/traj ensembles
+    if isempty(l2{ii}); continue; end
+    temp = any(s2{ii} < cue_centres & e2{ii} > cue_centres & l2{ii} < l_thres, 'all'); % cue centre within traj and length smaller than l_thres
+    if temp
+        iscue2(ii) = 1;
+    else
+        iscue2(ii) = 2;
+    end
+end
+
+clearvars -except rsc ee iscue1 iscue2
+
+width = cat(2, rsc.pc_width, ee.pc_width);
+pc_list = cat(2, rsc.pc_list, ee.pc_list);
+clusts1 = cat(2, rsc.clusts{1}, ee.clusts{1});
+clusts2 = cat(2, rsc.clusts{2}, ee.clusts{2});
+
+num_pf = [];
+loc = {};
+wid = [];
+frac = [];
+for ii = 1:length(clusts2)
+    for jj = 1:length(clusts2{ii})
+        frac = cat(1, frac, length(intersect(clusts2{ii}{jj}, pc_list{ii})) ./ length(clusts2{ii}{jj}));
+        temp = width{ii}(intersect(clusts2{ii}{jj}, pc_list{ii}));
+        num_pf = cat(1, num_pf, mean(cellfun(@(x) size(x, 1), temp)));
+        wid = cat(1, wid, mean(cellfun(@(x) mean(x(:, 1)), temp)));
+        temp = cat(1, temp{:});
+        if isempty(temp)
+            loc = cat(1, loc, {[]});
+        else
+            loc = cat(1, loc, {temp(:, 2)});
+        end
+    end
+end
+
+clust_stacks = cat(1, rsc.clust_stacks{2}, ee.clust_stacks{2});
+r = nan(length(clust_stacks), 1);
+for ii = 1:length(clust_stacks)
+    if isempty(clust_stacks{ii})
+        continue
+    end
+    temp = corr(clust_stacks{ii});
+    idx = triu(ones(length(temp)), 1);
+    r(ii) = mean(temp(~~idx));
+end
+
+% panel a - mean num place fields
+g = iscue2(iscue2 ~= 0);
+figure
+subplot(1, 2, 1)
+cdfplot(num_pf(iscue2 == 1));
+hold on
+cdfplot(num_pf(iscue2 == 2));
+
+subplot(1, 2, 2)
+boxplot(num_pf(iscue2 ~= 0), g);
+ylim([1 2.5])
+
+[~, p] = kstest2(num_pf(iscue2 == 1), num_pf(iscue2 == 2))
+p = ranksum(num_pf(iscue2 == 1), num_pf(iscue2 == 2))
+
+% panel b - mean place field width
+g = iscue2(iscue2 ~= 0);
+figure
+subplot(1, 2, 1)
+cdfplot(wid(iscue2 == 1));
+hold on
+cdfplot(wid(iscue2 == 2));
+
+subplot(1, 2, 2)
+boxplot(wid(iscue2 ~= 0), g);
+ylim([5 35])
+
+[~, p] = kstest2(wid(iscue2 == 1), wid(iscue2 == 2))
+p = ranksum(wid(iscue2 == 1), wid(iscue2 == 2))
+
+% panel c - fraction place cells
+figure
+boxplot(frac, iscue2)
+ylim([0 1])
+[p, ~, stats] = kruskalwallis(frac, iscue2)
+multcompare(stats, 'ctype', 'bonferroni')
+
+% panel d - place field locations
+loc_cue = cat(1, loc{iscue2 == 1});
+loc_traj = cat(1, loc{iscue2 == 2});
+
+g = repelem((1:2)', [length(loc_cue); length(loc_traj)]);
+loc_cat = [loc_cue; loc_traj];
+
+g = gramm('x', loc_cat, 'color', g);
+g.stat_bin('nbins', 20, 'geom', 'line', 'fill', 'transparent', 'normalization', 'probability');
+g.axe_property('ylim', [0 .2]);
+figure
+g.draw();
+
+% panel e - temporal correlation
+g = iscue2(iscue2 ~= 0);
+figure
+subplot(1, 2, 1)
+cdfplot(r(iscue2 == 1));
+hold on
+cdfplot(r(iscue2 == 2));
+
+subplot(1, 2, 2)
+boxplot(r(iscue2 ~= 0), g);
+ylim([-.2 1])
+
+[~, p] = kstest2(r(iscue2 == 1), r(iscue2 == 2))
+p = ranksum(r(iscue2 == 1), r(iscue2 == 2))
+
+
+
+
+
+
+

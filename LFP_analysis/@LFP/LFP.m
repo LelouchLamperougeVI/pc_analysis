@@ -136,7 +136,7 @@ classdef LFP < handle
             
             if size(obj.twop.deconv,1) < length(obj.behavior.speed_raw) && ~isempty(obj.twop.deconv)
                 disp('resampling behaviour for multiplane...');
-                idx = repmat( (1:obj.twop.planes.numplanes)', [length(obj.behavior.speed_raw)/obj.twop.planes.numplanes 1]);
+                idx = repmat( (1:obj.twop.planes.numplanes)', [floor(length(obj.behavior.speed_raw)/obj.twop.planes.numplanes), 1]);
                 idx = ismember(idx, obj.twop.planes.planes);
                 obj.behavior.speed_raw = obj.behavior.speed_raw(idx);
                 if isfield(obj.behavior, 'speed_raw_noSmooth')

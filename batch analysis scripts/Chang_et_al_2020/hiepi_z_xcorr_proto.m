@@ -82,6 +82,7 @@ for ii = 1:length(l2) %classify cue/traj ensembles
 end
 
 
+
 %% Manual classification
 temp = cell(size(iscue2));
 figure
@@ -99,10 +100,12 @@ iscue2 = temp;
 %%
 temp = [];
 sig = [];
+any_sig = cell(length(iscue2), 1);
 stack_pairs = {};
 for ii = 1:length(iscue2)
     cue = find(iscue2{ii} == 1);
     traj = find(iscue2{ii} == 2);
+    any_sig{ii} = false(length(iscue2{ii}), 1);
     for cc = 1:length(cue)
         for tt = 1:length(traj)
             t = ~any(isnan(hiepi_z{2}{ii}), 2);
@@ -111,6 +114,8 @@ for ii = 1:length(iscue2)
             temp = cat(2, temp, r( ceil(length(r)/2)-19 : ceil(length(r)/2)+19 ));
             sig = cat(1, sig, p);
             stack_pairs = cat(1, stack_pairs, [{swr_clust_stack{2}{ii}{cue(cc)}}, {swr_clust_stack{2}{ii}{traj(tt)}}]);
+            
+            any_sig{ii}(traj(tt)) = any([any_sig{ii}(traj(tt)), any(temp(:, end)>p)]);
         end
     end
 end
@@ -120,6 +125,9 @@ order = max(temp, [], 1);
 figure
 imagesc(temp(:, order)');
 axis image
+colorbar
+caxis([0 .3])
+colormap jet
 
 r = [];
 for ii = 1:size(stack_pairs, 1)
@@ -128,7 +136,6 @@ end
 
 % idx = find(any(temp > .05, 1));
 idx = find(any(temp'>sig, 2));
-figure
 for ii = 1:length(idx)
     if ~mod(ii - 1, 6)
         figure
@@ -136,12 +143,14 @@ for ii = 1:length(idx)
     subplot(6, 3, (mod(ii - 1, 6)+1)*3-2);
     [~, order] = max(stack_pairs{idx(ii), 1}, [], 1);
     [~, order] = sort(order);
-    imagesc(stack_pairs{idx(ii), 1}(:, order)');
+    imagesc(-stack_pairs{idx(ii), 1}(:, order)');
+    colormap bone
     
     subplot(6, 3, (mod(ii - 1, 6)+1)*3-1);
     [~, order] = max(stack_pairs{idx(ii), 2}, [], 1);
     [~, order] = sort(order);
-    imagesc(stack_pairs{idx(ii), 2}(:, order)');
+    imagesc(-stack_pairs{idx(ii), 2}(:, order)');
+    colormap bone
     
     subplot(6, 3, (mod(ii - 1, 6)+1)*3);
     plot(mean(stack_pairs{idx(ii), 1}'))
@@ -149,6 +158,31 @@ for ii = 1:length(idx)
     plot(mean(stack_pairs{idx(ii), 2}'))
     title(num2str(r(idx(ii))))
 end
+
+
+%%
+s2 = [s2{:}];
+e2 = [e2{:}];
+iscue2 = cell2mat(iscue2);
+any_sig = cell2mat(any_sig);
+
+bins = 25;
+edges = linspace(0, 150, bins+1);
+
+P_se = accumarray([discretize(cell2mat(s2(iscue2 == 2)'), edges) discretize(cell2mat(e2(iscue2 == 2)'), edges)], 1, [bins bins]);
+% P_se = accumarray([discretize(cell2mat(s2((iscue2 == 2) & any_sig)'), edges) discretize(cell2mat(e2((iscue2 == 2) & any_sig)'), edges)], 1, [bins bins]);
+P_se = P_se ./ sum(P_se(:));
+P_s_cond_e = P_se ./ sum(P_se, 1);
+P_e_cond_s = P_se ./ sum(P_se, 2);
+
+P_e_cond_s = imgaussfilt(P_e_cond_s, 1.5);
+
+figure
+imagesc(P_e_cond_s)
+rbmap('caxis', [0 1]);
+colorbar
+caxis([0 1])
+axis image
 
 
 %%

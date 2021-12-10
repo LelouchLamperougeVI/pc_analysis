@@ -26,12 +26,14 @@ edges = linspace(min(x), max(x), ops.bins + 1);
 x = discretize(x, edges);
 x = x(:);
 
+% n = fast_smooth(n, dt);
+% n = n ./ range(n, 1);
+% edges = linspace(0, 1, 27);
+% n = discretize(n, edges) - 1;
 % window summing firing rates (for log-likelihood estimation)
 kernel = ones(dt, 1);
 n = arrayfun(@(x) conv(n(:, x), kernel, 'same'), 1:size(n, 2), 'UniformOutput', false);
 n = cell2mat(n);
-
-% n = fast_smooth(n, dt);
 
 % remove rejection epochs
 n(ops.reject, :) = [];
@@ -55,7 +57,7 @@ stack = cellfun(@(x) x ./ dt, stack, 'UniformOutput', false);
 
 % run model fitting
 fit_pc = zeros(size(n, 2), 4);
-fit_cc = zeros(size(n, 2), length(unique(blt)));
+fit_cc = zeros(size(n, 2), length(unique(blt)) + 1);
 
 dq=parallel.pool.DataQueue;
 if ops.prog
@@ -70,38 +72,62 @@ end
         progress = progress + 1;
     end
 
+pc_ll = zeros(size(n, 2), 1);
+cc_ll = zeros(size(n, 2), 1);
 parfor ii = 1:size(n, 2)
 % for ii = 1:size(n, 2)
     n_single = n(:, ii);
     
     init = [max(stack{ii}),...
         find(stack{ii} == max(stack{ii}), 1),...
-        sum(stack{1} > (mean(stack{1}) + std(stack{1})*2)),...
-        mean(n_single)];
-    max_t = [max(n_single) ops.bins ops.bins/4 mean(n_single)];
-    init_t = [max(stack{ii})/5 ops.bins/20 init(3)/5 mean(n_single)];
+        sum(stack{ii} > (.2 .* range(stack{ii}) + min(stack{ii}))) ./ 4,...
+        mode(stack{ii})];
+    init(init <= 0) = eps;
+    max_t = [max(stack{ii}) ops.bins ops.bins/4 mean(n_single)];
+%     init_t = [max(stack{ii})/5 ops.bins/20 init(3)/5 mean(n_single)];
 %     options = optimoptions('simulannealbnd','InitialTemperature', init_t,...
 %         'TemperatureFcn', 'temperaturefast', 'AnnealingFcn', 'annealingboltz',...
 %         'ReannealInterval', 10, 'FunctionTolerance', 1e1,...
 %         'PlotFcns', {@saplotbestx,@saplotbestf,@saplotx,@saplotf, @saplottemperature, @saplotstopping});
-    options = optimoptions('simulannealbnd','InitialTemperature', init_t,...
-        'TemperatureFcn', 'temperatureboltz', 'AnnealingFcn', 'annealingboltz',...
-        'ReannealInterval', 10, 'FunctionTolerance', 1e1);
-    l = @(params) pc_md_opt_fun(params, x, n_single, dt);
-    fit_pc(ii, :) = simulannealbnd(l, init, [0 0 0 0], max_t, options);
+%     options = optimoptions('simulannealbnd','InitialTemperature', init_t,...
+%         'TemperatureFcn', 'temperatureboltz', 'AnnealingFcn', 'annealingboltz',...
+%         'ReannealInterval', 10, 'FunctionTolerance', 1e1);
+    l = @(params) -pc_md_opt_fun(params, x, n_single, dt);
     
-    init = accumarray(blt(x), n_single, [length(unique(blt)) 1], @mean);
-    max_t = ones(length(unique(blt)), 1) .* max(n_single);
-    init_t = ones(length(unique(blt)), 1) .* max(init) ./ 10;
-    options = optimoptions('simulannealbnd','InitialTemperature', init_t,...
-        'TemperatureFcn', 'temperatureboltz', 'AnnealingFcn', 'annealingboltz',...
-        'ReannealInterval', 10, 'FunctionTolerance', 1e1);
+    options = optimoptions('particleswarm', ...
+        'SwarmSize', 50, 'MaxIterations', 1e3, ...
+        'InitialSwarmSpan', ceil(max(max_t)) * 2, 'InitialSwarmMatrix', init(:)');
+    fit_pc(ii, :) = particleswarm(l, length(init), ones(4, 1) .* eps, max_t, options);
+    
+%     fit_pc(ii, :) = simulannealbnd(l, init, ones(4, 1) .* eps, max_t, options);
+    pc_ll(ii) = pc_md_opt_fun(fit_pc(ii, :), x, n_single, dt);
+    
+        
+    shift = conv(stack{ii}, ops.blt);
+    shift = shift(length(blt)-3 : length(blt)+3);
+    [~, shift] = max(shift);
+    shift = shift - 4;
+    
+    init = accumarray(circshift(blt(:), -shift), stack{ii}, [length(unique(blt)) 1], @mean);
+    init(init <= 0) = eps;
+    init = [-shift; init(:)];
+    max_t = [3; ones(length(unique(blt)), 1) .* max(stack{ii})];
+%     init_t = ones(length(unique(blt)), 1) .* max(init) ./ 10;
+%     options = optimoptions('simulannealbnd','InitialTemperature', init_t,...
+%         'TemperatureFcn', 'temperatureboltz', 'AnnealingFcn', 'annealingboltz',...
+%         'ReannealInterval', 10, 'FunctionTolerance', 1e1);
 %     options = optimoptions('simulannealbnd','InitialTemperature', init_t,...
 %         'TemperatureFcn', 'temperatureboltz', 'AnnealingFcn', 'annealingboltz',...
 %         'ReannealInterval', 10, 'FunctionTolerance', 1e1, ...
 %         'PlotFcns', {@saplotbestx,@saplotbestf,@saplotx,@saplotf, @saplottemperature, @saplotstopping});
-    l = @(params) cc_md_opt_fun(params, x, n_single, dt, blt);
-    fit_cc(ii, :) = simulannealbnd(l, init, zeros(length(unique(blt)), 1), max_t, options);
+    l = @(params) -cc_md_opt_fun(params, x, n_single, dt, blt);
+%     fit_cc(ii, :) = simulannealbnd(l, init, ones(length(unique(blt)), 1) .* eps, max_t, options);
+    
+    options = optimoptions('particleswarm', ...
+        'SwarmSize', 50, 'MaxIterations', 1e3, ...
+        'InitialSwarmSpan', ceil(max(max_t)) * 2, 'InitialSwarmMatrix', init(:)');
+    fit_cc(ii, :) = particleswarm(l, length(init), [-3; ones(length(unique(blt)), 1) .* eps], max_t, options);
+    cc_ll(ii) = cc_md_opt_fun(fit_cc(ii, :), x, n_single, dt, blt);
     
     send(dq, ii);
 end
@@ -113,8 +139,14 @@ reconst_pc = cell2mat(reconst_pc');
 reconst_pc = arrayfun(@(ii) reconst_pc(ii, x), 1:size(n, 2), 'UniformOutput', false); % pos to time
 reconst_pc = cell2mat(reconst_pc')';
 
-reconst_cc = arrayfun(@(ii) fit_cc(ii, blt), 1:size(n, 2), 'UniformOutput', false); % belt to pos
-reconst_cc = cell2mat(reconst_cc');
+% reconst_cc = arrayfun(@(ii) fit_cc(ii, blt), 1:size(n, 2), 'UniformOutput', false); % belt to pos
+% reconst_cc = cell2mat(reconst_cc');
+fit_cc(:, 1) = round(fit_cc(:, 1));
+reconst_cc = zeros(size(n, 2), length(blt));
+for ii = 1:size(n, 2)
+    temp = fit_cc(ii, 2:end);
+    reconst_cc(ii, :) = temp(circshift(blt, fit_cc(ii, 1)));
+end
 reconst_cc = arrayfun(@(ii) reconst_cc(ii, x), 1:size(n, 2), 'UniformOutput', false); % pos to time
 reconst_cc = cell2mat(reconst_cc')';
 
@@ -141,11 +173,13 @@ md.pc.params = fit_pc;
 md.pc.reconst = reconst_pc;
 md.pc.ev = ev_pc;
 md.pc.pev = pev_pc;
+md.pc.l = pc_ll;
 
 md.cc.params = fit_cc;
 md.cc.reconst = reconst_cc;
 md.cc.ev = ev_cc;
 md.cc.pev = pev_cc;
+md.cc.l = cc_ll;
 
 md.n = n;
 md.x = x;
@@ -190,17 +224,23 @@ function l = pc_md_opt_fun(params, x, n, dt)
 % l = -sum( n .* log(params(1)) - n .* (x - params(2)).^2 ./ (2*params(3)^2) - params(1) .*dt .* exp(-(x - params(2)).^2 ./ (2*params(3)^2)));
 
 lambda = params(1) .* exp(-(x - params(2)).^2 ./ (2 * params(3) ^ 2)) + params(4);
-l = -sum( n .* log(lambda) - dt .* lambda );
+% l = sum( n .* log(lambda) - dt .* lambda );
+l = sum( n .* log(dt .* lambda) ) - sum( dt .* lambda );
+% l = sum( n .* log(dt .* lambda) ) - sum( dt .* lambda ) - sum( log(factorial(n)) );
 end
 
 function l = cc_md_opt_fun(params, x, n, dt, blt)
 % loss function (negative log-likelihood) for cue compartment model
+blt = circshift(blt, round(params(1)));
 x = blt(x);
 x = x(:);
 n = n(:);
+params = params(2:end);
 params = params(:);
 
-l = -sum( n .* log(params(x)) - dt .* params(x) );
+% l = sum( n .* log(params(x)) - dt .* params(x) );
+l = sum( n .* log(dt .* params(x)) ) - sum( dt .* params(x) );
+% l = sum( n .* log(dt .* params(x)) ) - sum( dt .* params(x) ) - sum( log(factorial(n)) );
 end
 
 function blt = comparmentalize_intra(blt)
