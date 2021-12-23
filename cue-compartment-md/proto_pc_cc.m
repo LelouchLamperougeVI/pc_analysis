@@ -322,24 +322,24 @@ end
 
 %%
 clear all
-% ee = load('/mnt/storage/rrr_magnum/M2/cross_days.mat', 'clust_stacks', 'll', 'pc_list', 'clusts', 'file', 'swr_hiepi');
-% rsc = load('/mnt/storage/HaoRan/RRR_motor/M2/cross_days.mat', 'clust_stacks', 'll', 'pc_list', 'clusts', 'file', 'swr_hiepi');
+ee = load('/mnt/storage/rrr_magnum/M2/cross_days.mat', 'clust_stacks', 'll', 'pc_list', 'clusts', 'file', 'swr_hiepi');
+rsc = load('/mnt/storage/HaoRan/RRR_motor/M2/cross_days.mat', 'clust_stacks', 'll', 'pc_list', 'clusts', 'file', 'swr_hiepi');
 
-load('/mnt/storage/rrr_magnum/M2/cross_days.mat', 'clust_stacks', 'll', 'pc_list', 'clusts', 'file', 'swr_hiepi');
+% load('/mnt/storage/rrr_magnum/M2/cross_days.mat', 'clust_stacks', 'll', 'pc_list', 'clusts', 'file', 'swr_hiepi');
 
-% pc_list = cat(2, rsc.pc_list, ee.pc_list);
-% clusts{1} = cat(2, rsc.clusts{1}, ee.clusts{1});
-% clusts{2} = cat(2, rsc.clusts{2}, ee.clusts{2});
-% ll{1} = cat(1, rsc.ll{1}, ee.ll{1});
-% ll{2} = cat(1, rsc.ll{2}, ee.ll{2});
-% file = cat(1, rsc.file, ee.file);
-% file = repelem(file, cellfun(@length, clusts{2})', 1);
-% swr_hiepi{1} = cat(1, rsc.swr_hiepi{1}, ee.swr_hiepi{1});
-% swr_hiepi{2} = cat(1, rsc.swr_hiepi{2}, ee.swr_hiepi{2});
-% clust_stacks{1} = cat(1, rsc.clust_stacks{1}, ee.clust_stacks{1});
-% clust_stacks{2} = cat(1, rsc.clust_stacks{2}, ee.clust_stacks{2});
+pc_list = cat(2, rsc.pc_list, ee.pc_list);
+clusts{1} = cat(2, rsc.clusts{1}, ee.clusts{1});
+clusts{2} = cat(2, rsc.clusts{2}, ee.clusts{2});
+ll{1} = cat(1, rsc.ll{1}, ee.ll{1});
+ll{2} = cat(1, rsc.ll{2}, ee.ll{2});
+file = cat(1, rsc.file, ee.file);
+file = repelem(file, cellfun(@length, clusts{2})', 1);
+swr_hiepi{1} = cat(1, rsc.swr_hiepi{1}, ee.swr_hiepi{1});
+swr_hiepi{2} = cat(1, rsc.swr_hiepi{2}, ee.swr_hiepi{2});
+clust_stacks{1} = cat(1, rsc.clust_stacks{1}, ee.clust_stacks{1});
+clust_stacks{2} = cat(1, rsc.clust_stacks{2}, ee.clust_stacks{2});
 
-swr_hiepi{2} = cat(2, swr_hiepi{2}{:});
+% swr_hiepi{2} = cat(2, swr_hiepi{2}{:});
 
 fr_thres = .5;
 traj_thres = 3; %min number of pc per ensemble
@@ -416,6 +416,7 @@ pc_ratio = num_pc ./ cellfun(@length, ispc);
 
 %%
 targets = find(ll_ratio(:) <= .5 & num_pc(:) > 5 & iscue2 ~= 0);
+targets = find(num_pc(:) > 10 & iscue2 ~= 0);
 % targets = find(ll_ratio(:) <= .05 & iscue2 ~= 0);
 % targets = find(num_pc(:) > 5 & iscue2 == 2);
 
@@ -428,8 +429,9 @@ for ii = 1:length(targets)
     [~, order] = max(clust_stacks{2}{targets(ii)});
     [~, order] = sort(order);
     
-    imagesc(clust_stacks{2}{targets(ii)}(:, order)');
+    imagesc(-clust_stacks{2}{targets(ii)}(:, order)');
     title([num2str(targets(ii)), '   ', num2str(ll_ratio(targets(ii)))])
+    colormap bone
 end
 
 %%

@@ -330,6 +330,9 @@ pc_list = {};
 pca_var = []; % percent explained variance for first 50 components (session X component X rest1/2)
 pc_width = {};
 
+swr_struct = cell(2,1);
+hiepi_struct = cell(2,1);
+
 file = {}; % list of sessions
 
 ll = cell(2, 1); % log likelihood from pc cc models
@@ -397,6 +400,26 @@ for a = 1:length(animals)
         whole_stack{end+1} = rest1.analysis.stack;
         pc_list{end+1} = rest1.analysis.pc_list;
         
+        % swr react. co-incidence data
+        temp = rest1.lfp.swr;
+        temp = rmfield(temp, {'swr_env', 'swr', 'swr_cyc'});
+        swr_struct{1} = cat(1, swr_struct{1}, temp);
+        temp = rest2.lfp.swr;
+        temp = rmfield(temp, {'swr_env', 'swr', 'swr_cyc'});
+        swr_struct{2} = cat(1, swr_struct{2}, temp);
+        
+        try
+            temp = cat(1, rest1.hiepi.reactivations{:});
+            temp = rmfield(temp, 'swr_pw');
+            hiepi_struct{1} = cat(1, hiepi_struct{1}, {temp});
+        catch
+        end
+        try
+            temp = cat(1, rest2.hiepi.reactivations{:});
+            temp = rmfield(temp, 'swr_pw');
+            hiepi_struct{2} = cat(1, hiepi_struct{2}, {temp});
+        catch
+        end
         % v checkpoint
     
 %         swr_stack{1} = cat(1, swr_stack{1}, {rest1.ensembles.swr.all});
@@ -411,13 +434,13 @@ for a = 1:length(animals)
         swr_clust_stack{1} = cat(2, swr_clust_stack{1}, {cell(1, length(rest1.ensembles.clust))});
         
         % pc_cc characterisation - block 1/3
-        analysis = rest2.analysis;
-        thres=noRun(analysis.behavior.unit_vel);
-        thres=(analysis.behavior.unit_vel>thres | analysis.behavior.unit_vel<-thres) & (analysis.behavior.trials(1) < analysis.behavior.frame_ts & analysis.behavior.trials(end) > analysis.behavior.frame_ts);
-        n = analysis.original_deconv;
-        dt = .05; % 300 milliseconds
-        dt = round(analysis.fs * dt);
-        x = analysis.behavior.unit_pos;
+%         analysis = rest2.analysis;
+%         thres=noRun(analysis.behavior.unit_vel);
+%         thres=(analysis.behavior.unit_vel>thres | analysis.behavior.unit_vel<-thres) & (analysis.behavior.trials(1) < analysis.behavior.frame_ts & analysis.behavior.trials(end) > analysis.behavior.frame_ts);
+%         n = analysis.original_deconv;
+%         dt = .05; % 300 milliseconds
+%         dt = round(analysis.fs * dt);
+%         x = analysis.behavior.unit_pos;
         
         for c = 1:length(rest1.ensembles.clust)
             list = intersect(rest1.analysis.pc_list, rest1.ensembles.clust{c});
@@ -432,9 +455,9 @@ for a = 1:length(animals)
             end
             
             % pc_cc characterisation - block 2/3
-            list = rest1.ensembles.clust{c};
-            md = pc_cc_simanneal(n(:, list), x, dt, 'reject', ~thres, 'prog', false, 'comp', 'intra');
-            ll{1} = cat(1, ll{1}, {[md.pc.l(:), md.cc.l(:)]});
+%             list = rest1.ensembles.clust{c};
+%             md = pc_cc_simanneal(n(:, list), x, dt, 'reject', ~thres, 'prog', false, 'comp', 'intra');
+%             ll{1} = cat(1, ll{1}, {[md.pc.l(:), md.cc.l(:)]});
         end
         temp = cell2mat({rest1.analysis.width{~cellfun(@isempty, rest1.analysis.width)}}');
         loc{end+1} =  temp(:, 2);
@@ -457,9 +480,9 @@ for a = 1:length(animals)
             end
 
             % pc_cc characterisation - block 3/3
-            list = rest2.ensembles.clust{c};
-            md = pc_cc_simanneal(n(:, list), x, dt, 'reject', ~thres, 'prog', false, 'comp', 'intra');
-            ll{2} = cat(1, ll{2}, {[md.pc.l(:), md.cc.l(:)]});
+%             list = rest2.ensembles.clust{c};
+%             md = pc_cc_simanneal(n(:, list), x, dt, 'reject', ~thres, 'prog', false, 'comp', 'intra');
+%             ll{2} = cat(1, ll{2}, {[md.pc.l(:), md.cc.l(:)]});
         end
         temp = cell2mat({g{~cellfun(@isempty, rest1.analysis.width)}}');
         loc_clust{2} = cat(1, loc_clust{2}, {temp});
@@ -1026,8 +1049,8 @@ caxis([-.1 .1])
 %% Fig5a
 clear all
 
-animal = 'EC007';
-date = '2019_05_29';
+animal = 'EE006';
+date = '2019_06_05';
 
 lfp = ensemble(fullfile('/mnt/storage/rrr_magnum/M2/', animal, date, [date '_3.abf']));
 lfp.set_ops('e_size',5);
@@ -1037,6 +1060,7 @@ lfp.remove_mvt;
 lfp.cluster;
 lfp.set_ops('order','cluster')
 lfp.detect_sce;
+lfp.hPICA;
 
 % lfp.swr_window;
 % lfp.detect_sce;
@@ -1045,55 +1069,73 @@ lfp.detect_sce;
 deconv = lfp.twop.deconv(:, lfp.ensembles.clust_order);
 deconv = fast_smooth(deconv, lfp.ops.sig * lfp.twop.fs);
 deconv = (deconv - nanmin(deconv)) ./ range(deconv);
+% deconv = deconv(:, cell2mat(lfp.ensembles.clust));
 
 figure
 ax(1) = subplot(7,1,1:4);
 imagesc('xdata', lfp.twop.ts, 'cdata', -deconv')
 colormap gray
+hold on
+[x, y] = find(lfp.twop.deconv(:, lfp.ensembles.clust_order) > std(lfp.twop.deconv(:, lfp.ensembles.clust_order), 'omitnan').*5);
+colours = lfp.ensembles.colours;
+for ii = 1:length(lfp.ensembles.clust)
+    idx = any(lfp.ensembles.clust_order(:) == lfp.ensembles.clust{ii}(:)', 2);
+    idx = ismember(y, find(idx));
+    idx = idx & (lfp.hiepi.z(x, ii) > (std(lfp.hiepi.z(:, ii), 'omitnan') * 5));
+    plot(lfp.twop.ts(x(idx)), y(idx), '.', 'MarkerFaceColor', colours(ii, :), 'MarkerSize', 20)
+end
+
 ax(2) = subplot(7,1,5);
-plot(lfp.twop.ts, lfp.ensembles.MUA);
+hold on
+for ii = 1:length(lfp.ensembles.clust)
+    plot(lfp.twop.ts, lfp.hiepi.z(:, ii));
+end
 ax(3) = subplot(7,1,6);
 plot(lfp.lfp.ts, lfp.lfp.lfp);
 hold on
-plot(lfp.lfp.swr.swr_on, max(lfp.lfp.lfp) .* ones(length(lfp.lfp.swr.swr_on), 1), 'k*');
+plot(lfp.lfp.swr.swr_on, -4 .* ones(length(lfp.lfp.swr.swr_on), 1), 'k*');
 ax(4) = subplot(7,1,7);
 plot(lfp.lfp.ts, lfp.lfp.swr.swr);
 linkaxes(ax, 'x')
-xlim([560 620])
+
+ylim([348 400])
+xlim([520 690]) % full
+xlim([528 532]) % zoom 1
+xlim([597 605]) % zoom 2
 
 deconv = lfp.twop.deconv(:, lfp.ensembles.clust_order);
 deconv = fast_smooth(deconv, 0.05 * lfp.twop.fs);
 deconv = (deconv - nanmin(deconv)) ./ range(deconv);
 
-figure
-ax(1) = subplot(7,1,1:4);
-imagesc('xdata', lfp.twop.ts, 'cdata', -deconv')
-colormap gray
-ax(2) = subplot(7,1,5);
-plot(lfp.twop.ts, lfp.ensembles.MUA);
-ax(3) = subplot(7,1,6);
-plot(lfp.lfp.ts, lfp.lfp.lfp);
-hold on
-plot(lfp.lfp.swr.swr_on, max(lfp.lfp.lfp) .* ones(length(lfp.lfp.swr.swr_on), 1), 'k*');
-ax(4) = subplot(7,1,7);
-plot(lfp.lfp.ts, lfp.lfp.swr.swr);
-linkaxes(ax, 'x')
-xlim([573 575])
-
-figure
-ax(1) = subplot(7,1,1:4);
-imagesc('xdata', lfp.twop.ts, 'cdata', -deconv')
-colormap gray
-ax(2) = subplot(7,1,5);
-plot(lfp.twop.ts, lfp.ensembles.MUA);
-ax(3) = subplot(7,1,6);
-plot(lfp.lfp.ts, lfp.lfp.lfp);
-hold on
-plot(lfp.lfp.swr.swr_on, max(lfp.lfp.lfp) .* ones(length(lfp.lfp.swr.swr_on), 1), 'k*');
-ax(4) = subplot(7,1,7);
-plot(lfp.lfp.ts, lfp.lfp.swr.swr);
-linkaxes(ax, 'x')
-xlim([602 604])
+% figure
+% ax(1) = subplot(7,1,1:4);
+% imagesc('xdata', lfp.twop.ts, 'cdata', -deconv')
+% colormap gray
+% ax(2) = subplot(7,1,5);
+% plot(lfp.twop.ts, lfp.ensembles.MUA);
+% ax(3) = subplot(7,1,6);
+% plot(lfp.lfp.ts, lfp.lfp.lfp);
+% hold on
+% plot(lfp.lfp.swr.swr_on, max(lfp.lfp.lfp) .* ones(length(lfp.lfp.swr.swr_on), 1), 'k*');
+% ax(4) = subplot(7,1,7);
+% plot(lfp.lfp.ts, lfp.lfp.swr.swr);
+% linkaxes(ax, 'x')
+% xlim([573 575])
+% 
+% figure
+% ax(1) = subplot(7,1,1:4);
+% imagesc('xdata', lfp.twop.ts, 'cdata', -deconv')
+% colormap gray
+% ax(2) = subplot(7,1,5);
+% plot(lfp.twop.ts, lfp.ensembles.MUA);
+% ax(3) = subplot(7,1,6);
+% plot(lfp.lfp.ts, lfp.lfp.lfp);
+% hold on
+% plot(lfp.lfp.swr.swr_on, max(lfp.lfp.lfp) .* ones(length(lfp.lfp.swr.swr_on), 1), 'k*');
+% ax(4) = subplot(7,1,7);
+% plot(lfp.lfp.ts, lfp.lfp.swr.swr);
+% linkaxes(ax, 'x')
+% xlim([602 604])
 
 %% Fig5c - SCE onset events triggered average CWT spectrogram
 % sce = cat(1, lfp.ensembles.clust_SCE(1).SCE.on, lfp.ensembles.clust_SCE(2).SCE.on, lfp.ensembles.clust_SCE(2).SCE.on);
@@ -1635,8 +1677,8 @@ writetable(tbl, '/home/loulou/Documents/my_docs/Manuscripts/Chang_et_al_2020/ink
 %% Supplementary figures
 
 %% supplementary fig1 - lesion vs control from Esteves et al. 2021 jneuro
-clear all
-
+% clear all
+% 
 % % make them damn objects
 % root = '/mnt/storage/esteves_et_al_jneuro2021_for_supp1_in_chang_et_al_m2_reactivation';
 % animal = dir(root);
@@ -1652,8 +1694,8 @@ clear all
 % abfs = abfs';
 % 
 % for ii = 1:length(abfs)
-%     obj(ii) = LFP(abfs{ii}, 'planes', 1:3);
-%     obj(ii).rm_redund;
+%     obj(ii) = LFP(abfs{ii}, 'planes', 1);
+% %     obj(ii).rm_redund;
 %     obj(ii).perform_analysis;
 % end
 
@@ -1726,6 +1768,68 @@ figure
 g.draw();
 
 p = ranksum(l_num_pf, c_num_pf)
+
+
+
+%% Bayesian decoding
+
+md = cell(length(obj), 1);
+for ii = 1:length(obj)
+    temp = obj(ii);
+
+    thres=noRun(temp.analysis.behavior.unit_vel);
+    thres=(temp.analysis.behavior.unit_vel>thres | temp.analysis.behavior.unit_vel<-thres) & ...
+        (temp.analysis.behavior.trials(1) < temp.analysis.behavior.frame_ts & temp.analysis.behavior.trials(end) > temp.analysis.behavior.frame_ts);
+
+    x = temp.analysis.behavior.unit_pos;
+    n = temp.analysis.original_deconv;
+    trials = temp.analysis.behavior.trials_ts;
+    x = x(trials(1):trials(end));
+    n = n(trials(1):trials(end), :);
+    thres = thres(trials(1):trials(end));
+    trials = repelem(1:(length(trials) - 1), diff(trials));
+    trials = cat(1, 1, trials(:));
+
+    x = x(thres);
+    n = n(thres, :);
+    trials = trials(thres);
+
+    md{ii} = sam_mape(x, n, trials, 'circ', true, 'bins', 150, 'dt', 12, 'sig', 18, 'cv', true, 'mle', false);
+end
+
+lesion = false(length(obj), 1);
+for ii = 1:length(obj)
+    temp = regexpi(obj(ii).session.animal, '^hl*');
+    if ~isempty(temp)
+        lesion(ii) = true;
+    end
+end
+
+cm = cellfun(@(x) x.cm, md, 'UniformOutput', false);
+cm = cat(3, cm{:});
+cm_c = mean(cm(:, :, ~lesion), 3, 'omitnan');
+cm_l = mean(cm(:, :, lesion), 3, 'omitnan');
+
+err = cellfun(@(x) x.err, md, 'UniformOutput', false);
+err = cat(2, err{:});
+
+figure
+subplot(2, 2, 1)
+imagesc(imgaussfilt(cm_c, 5))
+axis square
+colormap jet
+colorbar
+title('control')
+subplot(2, 2, 2)
+imagesc(imgaussfilt(cm_l, 5))
+axis square
+colormap jet
+colorbar
+title('lesion')
+subplot(2, 2, 3:4)
+plot(mean(err(:, ~lesion), 2))
+hold on
+plot(mean(err(:, lesion), 2))
 
 
 
@@ -2130,7 +2234,174 @@ ylim([-.2 1])
 p = ranksum(r(iscue2 == 1), r(iscue2 == 2))
 
 
+%% fig3f - SWR/react. co-occurence analysis
+clear all
 
+load('/mnt/storage/rrr_magnum/M2/cross_days.mat', 'clust_stacks', 'pc_list', 'clusts', 'file', 'hiepi_struct', 'swr_struct');
+
+fr_thres = .5;
+traj_thres = 3; %min number of pc per ensemble
+l_thres = 30; % length to be considered cue ensemble
+
+l1 = cell(length(clust_stacks{1}), 1); s1=l1; e1=l1;
+for c = 1:length(clust_stacks{1})
+    stack = clust_stacks{1}{c};
+    traj = any(stack > fr_thres, 2);
+    [~, starts, ends] = traj_length(traj, 1);
+
+    stack = repmat(stack, 2, 1);
+    idx = false(length(starts{1}), 1);
+    for t = 1:length(starts{1})
+        temp = stack(starts{1}(t) : (ends{1}(t) - 1 + length(traj) * (starts{1}(t) > (ends{1}(t)))), :);
+        temp = any(temp > fr_thres, 1);
+        idx(t) = sum(temp) < traj_thres;
+    end
+
+    [l1{c}, s1{c}, e1{c}] = traj_length(traj);
+    l1{c} = l1{c}{1}(~idx);
+    s1{c} = s1{c}{1}(~idx);
+    e1{c} = e1{c}{1}(~idx);
+end
+
+l2 = cell(length(clust_stacks{2}), 1); s2=l2; e2=l2;
+for c = 1:length(clust_stacks{2})
+    stack = clust_stacks{2}{c};
+    traj = any(stack > fr_thres, 2);
+    [~, starts, ends] = traj_length(traj, 1);
+
+    stack = repmat(stack, 2, 1);
+    idx = false(length(starts{1}), 1);
+    for t = 1:length(starts{1})
+        temp = stack(starts{1}(t) : (ends{1}(t) - 1 + length(traj) * (starts{1}(t) > (ends{1}(t)))), :);
+        temp = any(temp > fr_thres, 1);
+        idx(t) = sum(temp) < traj_thres;
+    end
+
+    [l2{c}, s2{c}, e2{c}] = traj_length(traj);
+    l2{c} = l2{c}{1}(~idx);
+    s2{c} = s2{c}{1}(~idx);
+    e2{c} = e2{c}{1}(~idx);
+end
+
+belt;
+iscue1 = zeros(length(l1), 1); % 1:iscue 2:istraj 0:aint shit
+for ii = 1:length(l1) %classify cue/traj ensembles
+    if isempty(l1{ii}); continue; end
+    temp = any(s1{ii} < cue_centres & e1{ii} > cue_centres & l1{ii} < l_thres, 'all'); % cue centre within traj and length smaller than l_thres
+    if temp
+        iscue1(ii) = 1;
+    else
+        iscue1(ii) = 2;
+    end
+end
+iscue2 = zeros(length(l2), 1); % 1:iscue 2:istraj 0:aint shit
+for ii = 1:length(l2) %classify cue/traj ensembles
+    if isempty(l2{ii}); continue; end
+    temp = any(s2{ii} < cue_centres & e2{ii} > cue_centres & l2{ii} < l_thres, 'all'); % cue centre within traj and length smaller than l_thres
+    if temp
+        iscue2(ii) = 1;
+    else
+        iscue2(ii) = 2;
+    end
+end
+
+
+%%
+empty = cellfun(@length, clusts{2}) == 0;
+
+count = 1;
+delay = [];
+dur2 = [];
+for ii = 1:length(swr_struct{2})
+    if empty(ii)
+        continue
+    end
+    for jj = 1:length(hiepi_struct{2}{count})
+        idx = knnsearch(swr_struct{2}(ii).swr_peaks, hiepi_struct{2}{count}(jj).peaks);
+        delay = cat(1, delay, {hiepi_struct{2}{count}(jj).peaks - swr_struct{2}(ii).swr_peaks(idx)});
+        dur2 = cat(1, dur2, {swr_struct{2}(ii).swr_dur(idx)});
+%         idx = knnsearch(swr_struct{2}(ii).swr_on, hiepi_struct{2}{count}(jj).on);
+%         delay = cat(1, delay, {hiepi_struct{2}{count}(jj).on - swr_struct{2}(ii).swr_on(idx)});
+    end
+    count = count + 1;
+end
+
+thres = .15;
+frac2 = cellfun(@(x) sum(abs(x) < thres) / numel(x), delay);
+dur2 = arrayfun(@(x) dur2{x}(abs(delay{x}) < thres), 1:length(dur2), 'uniformoutput', false);
+dur2 = cellfun(@mean, dur2);
+delay = cellfun(@(x) mean(x(abs(x) < thres), 'omitnan'), delay);
+
+figure
+subplot(2, 2, 1)
+cdfplot(frac2(iscue2 == 1))
+hold on
+cdfplot(frac2(iscue2 == 2))
+legend('cue', 'traj')
+subplot(2, 2, 2)
+boxplot(frac2, iscue2)
+title(['p = ' num2str(ranksum(frac2(iscue2 == 1), frac2(iscue2 == 2)))]);
+subplot(2, 2, 3)
+histogram(delay(iscue2 == 1), 25, 'normalization', 'probability')
+hold on
+histogram(delay(iscue2 == 2), 25, 'normalization', 'probability')
+legend('cue', 'traj')
+subplot(2, 2, 4)
+boxplot(delay, iscue2)
+
+
+empty = cellfun(@length, clusts{1}) == 0;
+
+count = 1;
+delay = [];
+dur1 = [];
+for ii = 1:length(swr_struct{1})
+    if empty(ii)
+        continue
+    end
+    for jj = 1:length(hiepi_struct{1}{count})
+        idx = knnsearch(swr_struct{1}(ii).swr_peaks, hiepi_struct{1}{count}(jj).peaks);
+        delay = cat(1, delay, {hiepi_struct{1}{count}(jj).peaks - swr_struct{1}(ii).swr_peaks(idx)});
+        dur1 = cat(1, dur1, {swr_struct{1}(ii).swr_dur(idx)});
+%         idx = knnsearch(swr_struct{2}(ii).swr_on, hiepi_struct{2}{count}(jj).on);
+%         delay = cat(1, delay, {hiepi_struct{2}{count}(jj).on - swr_struct{2}(ii).swr_on(idx)});
+    end
+    count = count + 1;
+end
+
+thres = .15;
+frac1 = cellfun(@(x) sum(abs(x) < thres) / numel(x), delay);
+dur1 = arrayfun(@(x) dur1{x}(abs(delay{x}) < thres), 1:length(dur1), 'uniformoutput', false);
+dur1 = cellfun(@mean, dur1);
+delay = cellfun(@(x) mean(x(abs(x) < thres), 'omitnan'), delay);
+
+figure
+subplot(2, 2, 1)
+cdfplot(frac1(iscue1 == 1))
+hold on
+cdfplot(frac1(iscue1 == 2))
+legend('cue', 'traj')
+subplot(2, 2, 2)
+boxplot(frac1, iscue1)
+title(['p = ' num2str(ranksum(frac1(iscue1 == 1), frac1(iscue1 == 2)))]);
+subplot(2, 2, 3)
+histogram(delay(iscue1 == 1), 25, 'normalization', 'probability')
+hold on
+histogram(delay(iscue1 == 2), 25, 'normalization', 'probability')
+legend('cue', 'traj')
+subplot(2, 2, 4)
+boxplot(delay, iscue1)
+
+
+frac = cat(1, frac1, frac2);
+g = iscue2;
+g(g == 1) = 3;
+g(g == 2) = 4;
+g = cat(1, iscue1, g);
+figure
+boxplot(frac(g ~= 0), g(g ~= 0))
+[~, ~, stats] = kruskalwallis(frac(g ~= 0), g(g ~= 0));
+multcompare(stats, 'ctype', 'bonferroni')
 
 
 

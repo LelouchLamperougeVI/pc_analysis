@@ -8,6 +8,18 @@ if ts(1) == 0
     ts(1) = [];
 end
 
+% Sometimes, we forget to stop the recording and some extra frames bleed
+% through. Below is correction:
+gaps = median(diff(ts))*10 > diff(ts);
+if any(~gaps)
+    warning('Gaps in recording detected. Deleting extra frames...');
+end
+gaps = get_head(gaps);
+gaps = [gaps; false; true];
+gaps = find(gaps);
+[~, idx] = max(diff(gaps));
+ts = ts(gaps(idx):(gaps(idx+1) - 1));
+
 % For future me, this here below is a better approach for determining frame
 % times. The scanner spends ~50 ms to scan through a frame. Right now we
 % are counting the beginning of the scan as the frame timestamps. But if we
@@ -26,7 +38,8 @@ obj.twop.fs = 1 / median(diff(ts)) / obj.twop.planes.numplanes;
 
 if obj.twop.planes.numplanes > 1
 %     idx = repmat( (1:obj.twop.planes.numplanes)', [length(ts)/obj.twop.planes.numplanes 1]);
-    idx = repmat( (1:obj.twop.planes.numplanes)', [size(deconv, 1)/obj.twop.planes.numplanes 1]);
+    idx = repmat( (1:obj.twop.planes.numplanes)', [floor(length(ts)/obj.twop.planes.numplanes) 1]);
+
     idx = ismember(idx, obj.twop.planes.planes);
     ts = ts(idx);
     

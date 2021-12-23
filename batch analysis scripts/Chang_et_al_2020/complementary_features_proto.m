@@ -1,6 +1,6 @@
 clear all
-ee = load('/mnt/storage/rrr_magnum/M2/cross_days.mat');
-rsc = load('/mnt/storage/HaoRan/RRR_motor/M2/cross_days.mat');
+ee = load('/mnt/storage/rrr_magnum/M2/cross_days.mat', 'clust_stacks', 'hiepi_z', 'hiepi_psth', 'hiepi_lfp_pw', 'pc_list');
+rsc = load('/mnt/storage/HaoRan/RRR_motor/M2/cross_days.mat', 'clust_stacks', 'hiepi_z', 'hiepi_psth', 'hiepi_lfp_pw', 'pc_list');
 
 % classify ensembles
 clust_stacks{1} = cat(1, rsc.clust_stacks{1}, ee.clust_stacks{1});
@@ -76,6 +76,8 @@ end
 
 
 %% Fig5 a - Reactivated cue/traj features
+pc_list = cat(2, rsc.pc_list, ee.pc_list);
+num_pc = cellfun(@(x) size(x, 2), clust_stacks{2});
 
 hiepi_psth = cat(1, rsc.hiepi_psth{2}, ee.hiepi_psth{2});
 hiepi_psth = cat(2, hiepi_psth{:});
@@ -86,15 +88,21 @@ hiepi_psth = (hiepi_psth - min(hiepi_psth, [], 1)) ./ range(hiepi_psth, 1);
 
 cue_ens = hiepi_psth(:, iscue2 == 1);
 traj_ens = hiepi_psth(:, iscue2 == 2);
+none_ens = hiepi_psth(:, iscue2 == 0 & num_pc >= 3);
 
 r = corr(cue_ens, traj_ens);
+r_null = corr(cue_ens, none_ens);
 
 figure
-subplot(1, 2, 1);
+subplot(1, 3, 1);
 [~, idx] = max(cue_ens);
 [~, idx] = sort(idx);
 imagesc(-cue_ens(:, idx)');
-subplot(1, 2, 2);
+subplot(1, 3, 2);
+[~, idx] = min(traj_ens);
+[~, idx] = sort(idx);
+imagesc(-traj_ens(:, idx)');
+subplot(1, 3, 3);
 [~, idx] = max(traj_ens);
 [~, idx] = sort(idx);
 imagesc(-traj_ens(:, idx)');
@@ -114,15 +122,24 @@ g.draw;
 
 
 %% Fig5 c - Pearson rho histogram
-g = gramm('x', r);
-g.stat_bin('nbins', 50, 'geom', 'stacked_bar', 'normalization', 'probability')
-g.axe_property('xlim', [-1 1], 'ylim', [0 .05])
+% g = gramm('x', cat(1, r(:), r_null(:)), 'color', repelem({'traj', 'none'}, [numel(r), numel(r_null)]));
+% g.stat_bin('nbins', 50, 'geom', 'stacked_bar', 'normalization', 'probability')
+% % g.axe_property('xlim', [-1 1], 'ylim', [0 .05])
+% figure
+% g.draw;
+
 figure
-g.draw;
+histogram(r_null(:), linspace(-1, 1, 51), 'Normalization', 'probability', 'DisplayStyle', 'stairs')
+hold on
+histogram(r(:), linspace(-1, 1, 51), 'Normalization', 'probability', 'DisplayStyle', 'stairs')
 
 signrank(r(:), 0, 'tail', 'left')
 skewness(r(:), 0)
-[~, p] = kstest(r(:), 'tail', 'smaller')
+[~, p] = kstest(r(:))
+
+signrank(r_null(:), 0, 'tail', 'left')
+skewness(r_null(:), 0)
+[~, p] = kstest(r_null(:))
 
 
 %% Reactivated pairs
