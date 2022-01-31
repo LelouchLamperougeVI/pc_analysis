@@ -1,0 +1,3 @@
+[submodule "inayat-bayes"]
+	path = inayat-bayes
+	url = git@github.com:LelouchLamperougeVI/inayat-bayes.git
