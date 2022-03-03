@@ -40,6 +40,7 @@ classdef ensemble < LFP
         make_colours(obj);
         classi_swr(obj, wdw, p);
         [decoded, P, pos, err] = bayes_infer(obj, varargin);
+        [decoded, P, pos, err] = bayes_infer2(obj, varargin);
         plot(obj,type,varargin);
         hiepi = hPICA(obj);
     end
