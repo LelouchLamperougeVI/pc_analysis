@@ -187,15 +187,15 @@ Bayesian decoding of animal position can be conducted with the method `[decoded,
     'smooth', 0.2       Gaussian smoothing factor in seconds
     'bins', 50          Number of position bins
     'circ', true        Compute circular distance for error calculation
-    'cv', 'loo'         Cross-validation method. By default, use leave-one-out cross-validation (`'loo'`). Alternatively, can use even-odd (`'eo'`)
-    'mle', false        Run maximum likelihood estimation instead of maximum _a posteriori_
-    'penalty', eps      Constant penalty factor in case of `log(0) = -inf` (i.e. 0 firing rates)
+    'cv', 'loo'         Cross-validation method. By default, use leave-one-out cross-validation ('loo'). Alternatively, can use even-odd ('eo')
+    'mle', false        Run maximum likelihood estimation instead of maximum a posteriori
+    'penalty', eps      Constant penalty factor in case of log(0) = -inf (i.e. 0 firing rates)
     
 outputs
     decoded     Decoded position vector
     P           Log-likelihood matrix of size bins X positions
     pos         Actual animal position vector
-    err         Decoding error as a function of position with (2 columns matrix with `[error, standard error of the mean]`)
+    err         Decoding error as a function of position with (2 columns matrix with [error, standard error of the mean])
 ```
 
 ## Where to go next?
