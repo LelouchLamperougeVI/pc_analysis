@@ -80,23 +80,58 @@ clusts{2} = cat(2, rsc.clusts{2}, ee.clusts{2});
 whole_stack = cat(2, rsc.whole_stack, ee.whole_stack);
 
 hyper_p = [];
+jaccard = [];
 for ii = 1:length(clusts{2})
     for jj = 1:length(clusts{2}{ii})
         
         p = nan(length(clusts{1}{ii}), 1);
+        o = nan(length(clusts{1}{ii}), 1);
         for kk = 1:length(clusts{1}{ii})
             X = zeros(size(whole_stack{ii}, 2), 1);
             Y = X;
             X(clusts{2}{ii}{jj}) = 1;
             Y(clusts{1}{ii}{kk}) = 1;
             cm = accumarray([X, Y] + 1, 1, [2, 2]);
+            o(kk) = cm(2, 2) / (cm(1, 2) + cm(2, 1) + cm(2, 2));
             [~, p(kk)] = fishertest(cm, 'tail', 'right');
         end
         
         hyper_p = cat(1, hyper_p, min(p));
+        jaccard = cat(1, jaccard, max(o));
         
         if isempty(p)
             hyper_p = cat(1, hyper_p, nan);
+            jaccard = cat(1, jaccard, nan);
         end
     end
 end
+
+%% plot results
+figure
+subplot(2, 2, 1);
+cdfplot(jaccard(iscue2 == 1));
+hold on
+cdfplot(jaccard(iscue2 == 2));
+legend('cue', 'traj');
+[~, p] = kstest2(jaccard(iscue2 == 1), jaccard(iscue2 == 2));
+title(['kstest2 p-value = ' num2str(p)]);
+xlabel('Jaccard index')
+
+subplot(2, 2, 2);
+boxplot(jaccard, iscue2);
+p = ranksum(jaccard(iscue2 == 1), jaccard(iscue2 == 2));
+title(['ranksum p-value = ' num2str(p) ' for cue vs traj']);
+
+subplot(2, 2, 3);
+temp = histcounts(hyper_p(iscue2 == 1) < .05);
+pie(temp, {'unstable', 'stable'});
+title(['cue ensembles; ' num2str(temp(2) / sum(temp) * 100) '% stable'])
+
+subplot(2, 2, 4);
+temp = histcounts(hyper_p(iscue2 == 2) < .05);
+pie(temp, {'unstable', 'stable'});
+title(['trajectory ensembles; ' num2str(temp(2) / sum(temp) * 100) '% stable'])
+
+
+
+

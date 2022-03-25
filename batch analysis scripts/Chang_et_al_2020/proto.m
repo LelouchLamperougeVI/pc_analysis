@@ -300,11 +300,11 @@ clear all
 
 traj_thres = .2;
 
-% root = '/mnt/storage/HaoRan/RRR_motor/M2';
-% animals = dir(fullfile(root, 'RSC*'));
+root = '/mnt/storage/HaoRan/RRR_motor/M2';
+animals = dir(fullfile(root, 'RSC*'));
 
-root = '/mnt/storage/rrr_magnum/M2';
-animals = dir(fullfile(root, 'E*'));
+% root = '/mnt/storage/rrr_magnum/M2';
+% animals = dir(fullfile(root, 'E*'));
 
 animals = {animals.name};
 

@@ -1,8 +1,8 @@
 %% classify them ensembles... again...
 
 clear all
-ee = load('/mnt/storage/rrr_magnum/M2/cross_days.mat', 'clust_stacks', 'hiepi_z', 'hiepi_psth', 'hiepi_lfp_pw', 'pc_list');
-rsc = load('/mnt/storage/HaoRan/RRR_motor/M2/cross_days.mat', 'clust_stacks', 'hiepi_z', 'hiepi_psth', 'hiepi_lfp_pw', 'pc_list');
+ee = load('/mnt/storage/rrr_magnum/M2/cross_days.mat', 'clust_stacks', 'hiepi_z', 'hiepi_psth', 'hiepi_lfp_pw', 'hiepi_struct', 'pc_list');
+rsc = load('/mnt/storage/HaoRan/RRR_motor/M2/cross_days.mat', 'clust_stacks', 'hiepi_z', 'hiepi_psth', 'hiepi_lfp_pw', 'hiepi_struct', 'pc_list');
 
 % classify ensembles
 clust_stacks{1} = cat(1, rsc.clust_stacks{1}, ee.clust_stacks{1});
@@ -98,6 +98,8 @@ hiepi_z = cat(2, hiepi_z{:});
 hiepi_z = hiepi_z(:);
 % hiepi_z = cellfun(@(x) fast_smooth(x, 4), hiepi_z, 'UniformOutput', false);
 hiepi_z = cellfun(@(x) zscore(x(~isnan(x))), hiepi_z, 'UniformOutput', false);
+
+hiepi_struct = cat(1, rsc.hiepi_struct{rest}, ee.hiepi_struct{rest});
 
 
 %% conduct paired analysis
@@ -517,6 +519,50 @@ title(['signrank p-value = ' num2str(p)])
 ylim([0 1])
 
 
+%% xcorr shuffle instead of knee
+shuffles = 1e3;
+r = [];
+r_shuffle = [];
+for ii = 1:size(aggr, 1)
+    cue_z = zscore(hiepi_z{aggr(ii, 4)});
+    traj_z = zscore(hiepi_z{aggr(ii, 5)});
+    temp = xcorr(cue_z, traj_z, 1 * 19, 'unbiased');
+    r = cat(1, r, temp(:)');
+    
+    k = randsample(length(cue_z), shuffles, true);
+    s_stack = zeros(shuffles, length(temp));
+    parfor s = 1:shuffles
+        temp = circshift(cue_z, k(s));
+        s_stack(s, :) = xcorr(temp, traj_z, 1 * 19, 'unbiased');
+    end
+    temp = [mean(s_stack); prctile(s_stack, 99); sum(r(end, :) > s_stack, 1) ./ shuffles];
+    r_shuffle = cat(1, r_shuffle, permute(temp, [3 2 1]));
+end
+
+couple_idx = max(r, [], 2) > max(r_shuffle(:, :, 2), [], 2);
+
+% t = linspace(-1, 1, size(r, 2));
+% t = repmat(t, size(r, 1) + size(r_shuffle, 1), 1);
+% color = repelem({'real'; 'shuffle'}, [size(r, 1); size(r_shuffle, 1)], 1);
+% g = gramm('x', t, 'y', cat(1, r, r_shuffle(:, :, 1)), 'color', color);
+% g.stat_summary('type', 'sem', 'geom', 'area');
+% figure
+% g.draw();
+% 
+% p = 1 - r_shuffle(:, :, 3);
+% p = p < .05;
+% heads = get_head(p');
+% tails = get_head(p(:, end:-1:1)'); tails = tails(end:-1:1, :);
+% [heads, idx] = find(heads);
+% [tails, ~] = find(tails);
+% idx = accumarray(idx, tails - heads, [size(p, 1), 1], @max);
+% couple_idx = idx >= 10;
+
+
+%% Detection of react. event onsets and coupling
+
+
+
 %%
 ol = @(x) sum(hiepi_psth(:, aggr(x, 4)) > thres & hiepi_psth(:, aggr(x, 5)) > thres, 2) ...
     ./ sum(hiepi_psth(:, aggr(x, 5)) > thres, 2);
@@ -698,7 +744,9 @@ temp = (temp - min(temp, [], 1)) ./ range(temp, 1);
 
 [~, match] = arrayfun(@(x) find(belt_num == x), unique(belt_num(belt_num > 0)), 'UniformOutput', false);
 % idx = aggr(:, 2) > knee;
-idx = aggr(:, 2) <= knee;
+% idx = aggr(:, 2) <= knee;
+idx = couple_idx;
+% idx = ~couple_idx;
 targets = hiepi_psth(:, aggr(idx, 4));
 [~, targets] = max(targets);
 
@@ -710,68 +758,50 @@ targets = cell2mat(targets);
 
 targets(targets == 1) = 2;
 targets = targets - 1;
+bn = belt_num;
+bn(bn == 1) = 2;
+bn = bn - 1;
 
 figure
 for ii = 1:length(unique(targets))
-    subplot(1, length(unique(targets)), ii);
+    subplot(2, length(unique(targets)), ii);
     
     theta = linspace(0, 2*pi, size(temp, 1) + 1);
+    
+    polarhistogram(theta(find(bn == ii)), theta);
+    hold on
+    
     rho = temp(:, aggr(idx, 4));
     rho = mean(rho(:, targets == ii), 2);
     rho = rho ./ max(rho);
     polarplot(theta, [rho; rho(1)]);
-    hold on
     
     rho = temp(:, aggr(idx, 5));
-    [~, p] = max(rho(:, targets == ii), [], 1);
+    p = arrayfun(@(x) circ_mean(theta(1:(end-1))', rho(:, x)), find(targets == ii));
     rho = mean(rho(:, targets == ii), 2);
     rho = rho ./ max(rho);
     polarplot(theta, [rho; rho(1)]);
     
-    r = circ_r(p(:) ./50 .* 2 .* pi);
-    [phi, ul, ll] = circ_mean(p(:) ./50 .* 2 .* pi);
+    r = circ_r(p(:));
+    [phi, ul, ll] = circ_mean(p(:));
     polarplot([0, phi], [0, r]);
     polarplot([0, ul], [0, r], 'k--');
     polarplot([0, ll], [0, r], 'k--');
     
-    p = circ_rtest(p ./50 .* 2 .* pi);
-    title(['p-value = ' num2str(p)]);
+    pval = circ_rtest(p);
+    title(['p-value = ' num2str(pval)]);
+    
+    
+    subplot(2, length(unique(targets)), length(unique(targets)) + ii);
+    polarhistogram(p, 36);
+    title(['n = ' num2str(length(p))])
 end
 
 figure
-for ii = 1:length(unique(targets))
-    subplot(1, length(unique(targets)), ii);
-    
-    theta = linspace(0, 2*pi, size(temp, 1));
-    rho = temp(:, aggr(idx, 4));
-    rho = mean(rho(:, targets == ii), 2);
-    rho = rho ./ max(rho);
-    polarplot([theta, theta(1)], [rho; rho(1)]);
-    hold on
-    
-    rho = aggr(idx, 5);
-    rho = [cell2mat(e2(rho(targets == ii))), cell2mat(s2(rho(targets == ii)))];
-    rho = mod(diff(rho, 1, 2), 150) ./ 2 + rho(:, 2);
-    rho = mod(rho, 150) ./ 150 .* 2 .* pi;
-    polarhistogram(rho, 15, 'Normalization', 'probability');
-%     hold on
-    
-    r = circ_r(rho(:));
-    phi = circ_mean(rho(:));
-    polarplot([0, phi], [0, r]);
-    
-    p = circ_rtest(rho(:));
-    title(['p-value = ' num2str(p)]);
-end
-
-% con_mat = zeros(size(hiepi_psth, 1), size(hiepi_psth, 1), length(unique(targets))); % connection matrix
-% idx = aggr(idx, 5);
-% for ii = 1:size(con_mat, 3)
-%     temp = [cell2mat(s2(idx(targets == ii))), cell2mat(e2(idx(targets == ii)))] ./ 3;
-%     temp = sort(temp, 2);
-%     temp = cat(1, temp, temp(:, [2 1]));
-%     con_mat(:, :, ii) = accumarray(temp, 1, [size(hiepi_psth, 1), size(hiepi_psth, 1)]);
-% end
+r = diag(corr(temp(:, aggr(idx, 4)), temp(:, aggr(idx, 5))));
+boxplot(r, targets)
+p = arrayfun(@(x) signrank(r(targets == x)), unique(targets)) .* length(unique(targets));
+title(['p-values: ' num2str(p(:)')])
 
 
 %%
