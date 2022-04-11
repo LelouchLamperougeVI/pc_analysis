@@ -1,8 +1,8 @@
 %% classify them ensembles... again...
 
 clear all
-ee = load('/mnt/storage/rrr_magnum/M2/cross_days.mat', 'clust_stacks', 'hiepi_z', 'hiepi_psth', 'hiepi_lfp_pw', 'hiepi_struct', 'pc_list');
-rsc = load('/mnt/storage/HaoRan/RRR_motor/M2/cross_days.mat', 'clust_stacks', 'hiepi_z', 'hiepi_psth', 'hiepi_lfp_pw', 'hiepi_struct', 'pc_list');
+ee = load('/mnt/storage/rrr_magnum/M2/cross_days.mat', 'clust_stacks', 'hiepi_z', 'hiepi_psth', 'hiepi_lfp_pw', 'hiepi_struct', 'pc_list', 'file');
+rsc = load('/mnt/storage/HaoRan/RRR_motor/M2/cross_days.mat', 'clust_stacks', 'hiepi_z', 'hiepi_psth', 'hiepi_lfp_pw', 'hiepi_struct', 'pc_list', 'file');
 
 % classify ensembles
 clust_stacks{1} = cat(1, rsc.clust_stacks{1}, ee.clust_stacks{1});
@@ -85,6 +85,15 @@ session = 1:length(hiepi_psth);
 session = repelem(session, cellfun(@length, hiepi_psth));
 session = session(:);
 
+file = cat(1, rsc.file, ee.file);
+ts = cell(length(file), 1);
+for ii = 1:length(file)
+    temp = load(fullfile(file{ii}, 'analysis.mat'));
+    ts{ii} = temp.analysis.behavior.frame_ts;
+end
+file = repelem(file, cellfun(@length, hiepi_psth));
+ts = repelem(ts, cellfun(@length, hiepi_psth));
+
 hiepi_psth = cat(2, hiepi_psth{:});
 hiepi_psth = cellfun(@(x) mean(x, 2), hiepi_psth, 'UniformOutput', false);
 hiepi_psth = cat(2, hiepi_psth{:});
@@ -100,6 +109,9 @@ hiepi_z = hiepi_z(:);
 hiepi_z = cellfun(@(x) zscore(x(~isnan(x))), hiepi_z, 'UniformOutput', false);
 
 hiepi_struct = cat(1, rsc.hiepi_struct{rest}, ee.hiepi_struct{rest});
+hiepi_struct = cat(1, hiepi_struct{:});
+
+
 
 
 %% conduct paired analysis
@@ -560,6 +572,26 @@ couple_idx = max(r, [], 2) > max(r_shuffle(:, :, 2), [], 2);
 
 
 %% Detection of react. event onsets and coupling
+% edges = linspace(-5, 5, 101 + 1);
+% r = nan(size(aggr, 1), 101);
+r = [];
+for ii = 1:size(aggr, 1)
+%     temp = hiepi_struct(aggr(ii, 4)).peaks - hiepi_struct(aggr(ii, 5)).peaks';
+%     [~, lags, temp] = point_xcorr(hiepi_struct(aggr(ii, 4)).on, hiepi_struct(aggr(ii, 5)).on, length(hiepi_z{aggr(ii, 4)}), 19);
+    [~, lags, temp] = point_xcorr2(hiepi_struct(aggr(ii, 4)).on, hiepi_struct(aggr(ii, 5)).on, isnan(hiepi_z{aggr(ii, 4)}), ts{65}, .1);
+    if numel(temp) < 100
+        continue
+    end
+%     r(ii, :) = histcounts(temp, edges) ./ numel(temp);
+    idx = find(lags == 0);
+    r = cat(1, r, temp(idx-19:idx+19));
+end
+
+thres = .15;
+frac2 = cellfun(@(x) sum(abs(x) < thres) / numel(x), delay);
+dur2 = arrayfun(@(x) dur2{x}(abs(delay{x}) < thres), 1:length(dur2), 'uniformoutput', false);
+dur2 = cellfun(@mean, dur2);
+delay = cellfun(@(x) mean(x(abs(x) < thres), 'omitnan'), delay);
 
 
 

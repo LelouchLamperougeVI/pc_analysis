@@ -5,7 +5,7 @@ function [decoded, P, pos, err] = bayes_paired(a1, a2, ROIs, varargin)
 % Train with a1, test on a2
 % Rest of it is the same as bayes_infer2...
 
-if abs(a1.fs - a2.fs) > 1e-2
+if abs(a1.fs - a2.fs) > 1
     error('The two sessions were acquired at different sampling rates...');
 end
 
@@ -13,7 +13,11 @@ ops = parse_inputs(varargin);
 
 cv_idx = repelem([false; true], [length(a1.behavior.unit_pos); length(a2.behavior.unit_pos)]);
 x = cat(1, a1.behavior.unit_pos(:), a2.behavior.unit_pos(:));
-n = cat(1, a1.original_deconv(:, ~isnan(ROIs)), a2.original_deconv(:, ROIs(~isnan(ROIs))));
+dec1 = a1.original_deconv(:, ~isnan(ROIs));
+dec2 = a2.original_deconv(:, ROIs(~isnan(ROIs)));
+dec1 = zscore(dec1); dec1 = dec1 + min(dec1);
+dec2 = zscore(dec2); dec2 = dec2 + min(dec2);
+n = cat(1, dec1, dec2);
 trials = cat(1, a1.behavior.trials_ts(:), length(a1.behavior.frame_ts) + a2.behavior.trials_ts(:));
 trials = discretize(1:length(x), trials);
 trials = trials(:);

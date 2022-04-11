@@ -432,12 +432,26 @@ g.draw;
 
 %% Cross days bayesian decoding fun :)
 
-s = 1;
-% for s = 1:size(sess_idx, 1)
-a1 = load(anal_f{s, 1}); a1 = a1.analysis;
-a2 = load(anal_f{s, 2}); a2 = a2.analysis;
+e = [];
+n = [];
+for s = 1:size(sess_idx, 1)
+    a1 = load(anal_f{s, 1}); a1 = a1.analysis;
+    a2 = load(anal_f{s, 2}); a2 = a2.analysis;
+    
+    idx = ROIs{1, 2, s};
+%     idx( setxor(1:length(idx), cell2mat(clusts{2}{sess_idx(s, 1)}(iscue2{sess_idx(s, 1)} == 2)) )) = nan;
+    
+    if all(isnan(idx))
+        continue
+    end
 
-[decoded, P, pos, err] = bayes_paired(a1, a2, ROIs{1, 2, s});
+    [decoded, P, pos, err] = bayes_paired(a1, a2, idx);
+    e = cat(1, e, err(:, 1)');
+    n = cat(1, n, sum(~isnan(idx)));
+end
+
+
+[decoded, P, pos, err] = bayes_paired(a1, a1, 1:size(a1.deconv, 2)); % troubleshooting...
 
     idx = clusts{2}{sess_idx(s, 1)}(iscue2{sess_idx(s, 1)}==1); % la meme chose que plutot....
     silent_cues{s} = cellfun(@(x) sum(isnan(ROIs{1, 2, s}(x))) / numel(x), idx);

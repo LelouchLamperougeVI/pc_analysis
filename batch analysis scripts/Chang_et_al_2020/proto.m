@@ -410,13 +410,19 @@ for a = 1:length(animals)
         
         try
             temp = cat(1, rest1.hiepi.reactivations{:});
-            temp = rmfield(temp, 'swr_pw');
+            try
+                temp = rmfield(temp, 'swr_pw');
+            catch
+            end
             hiepi_struct{1} = cat(1, hiepi_struct{1}, {temp});
         catch
         end
         try
             temp = cat(1, rest2.hiepi.reactivations{:});
-            temp = rmfield(temp, 'swr_pw');
+            try
+                temp = rmfield(temp, 'swr_pw');
+            catch
+            end
             hiepi_struct{2} = cat(1, hiepi_struct{2}, {temp});
         catch
         end
