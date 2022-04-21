@@ -62,6 +62,29 @@ p = exp(p);
 figure
 plot(p(lags == 0, :))
 hold on
+wdw = wdw / dt;
+edges = -(N - wdw/2):wdw:(N - wdw/2);
+lags = -(N - wdw):wdw:(N - wdw);
+
+r = zeros(perms, length(lags));
+for ii = 1:perms
+    spk = rand(N, 2) < ([l1, l2] .* dt);
+    s1 = find(spk(:, 1));
+    s2 = find(spk(:, 2));
+
+    delay = s1(:) - s2(:)';
+
+    r(ii, :) = histcounts(delay(:), edges);
+end
+
+p_boot = arrayfun(@(x) histcounts(r(:, x), -0.5:400.5), 1:size(r, 2), 'UniformOutput', false);
+p_boot = cell2mat(p_boot') ./ perms;
+
+lambda = l1 * l2 * dt^2;
+n = N - abs(lags(:));
+n = (2 .* n - wdw) .* wdw ./ 2;
+k = 0:400;
+% p = k .* log(lambda .* n .* wdw) - lambda .* n .* wdw - gammaln(k + 1);
 plot(p_boot(lags == 0, :))
 % p = cumsum(p, 2);
 

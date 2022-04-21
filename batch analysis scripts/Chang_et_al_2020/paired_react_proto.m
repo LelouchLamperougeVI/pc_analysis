@@ -467,9 +467,23 @@ figure
 bar(histcounts(retrieved) ./ sum(~isnan(retrieved)))
 title(['binomial test p-value = ' num2str(p)])
 
-idx = max(r, [], 'all'); % remove outlier
-[idx, ~] = find(r == idx);
-r(idx, :) = [];
+% idx = max(r, [], 'all'); % remove outlier
+% [idx, ~] = find(r == idx);
+% r(idx, :) = [];
+
+load('/home/loulou/Documents/my_docs/Manuscripts/Chang_et_al_2020/R/couple_idx.mat')
+boot = 1e4;
+% boot = arrayfun(@(x) randsample(find(couple_idx), sum(couple_idx), true), 1:boot, 'uniformoutput', false);
+boot = arrayfun(@(x) randsample(length(couple_idx), length(couple_idx), true), 1:boot, 'uniformoutput', false);
+r_boot = cellfun(@(x) mean(r(x, :)), boot, 'uniformoutput', false);
+r_boot = cell2mat(r_boot');
+figure
+g = gramm('x', linspace(-1, 1, size(r, 2)), 'y', mean(r(couple_idx, :)), 'ymin', prctile(r_boot, 2.5), 'ymax', prctile(r_boot, 97.5));
+g.geom_line;
+g.geom_interval;
+g.axe_property('YLim', [-.02, .1]);
+g.set_names('x', 'lag (sec)', 'y', 'xcorr');
+g.draw;
 
 figure
 subplot(2, 2, 3)
@@ -532,9 +546,12 @@ ylim([0 1])
 
 
 %% xcorr shuffle instead of knee
-shuffles = 1e3;
+shuffles = 1e6;
 r = [];
 r_shuffle = [];
+p_shuffle = [];
+dt = 0;
+tic;
 for ii = 1:size(aggr, 1)
     cue_z = zscore(hiepi_z{aggr(ii, 4)});
     traj_z = zscore(hiepi_z{aggr(ii, 5)});
@@ -547,11 +564,61 @@ for ii = 1:size(aggr, 1)
         temp = circshift(cue_z, k(s));
         s_stack(s, :) = xcorr(temp, traj_z, 1 * 19, 'unbiased');
     end
-    temp = [mean(s_stack); prctile(s_stack, 99); sum(r(end, :) > s_stack, 1) ./ shuffles];
+    temp = [mean(s_stack); prctile(s_stack, 99); sum(r(end, :) < s_stack, 1) ./ shuffles];
     r_shuffle = cat(1, r_shuffle, permute(temp, [3 2 1]));
+    p_shuffle = cat(1, p_shuffle, sum(r(end, :) < s_stack, 1) ./ shuffles);
+    disp([num2str(ii) ' out of ' num2str(size(aggr, 1))])
+    dt = cat(1, dt, toc);
+    disp(['eta: ' num2str(median(diff(dt)) * (size(aggr, 1) - ii) / 60) ' min'])
 end
 
-couple_idx = max(r, [], 2) > max(r_shuffle(:, :, 2), [], 2);
+% couple_idx = max(r, [], 2) > max(r_shuffle(:, :, 2), [], 2);
+
+% criteria for temporally coupling:
+% 3 consecutive bins (~150 ms) of p < .05 over the range +/-250 ms
+idx = size(p_shuffle, 2) / 2 + .5;
+idx = idx-5:idx+5;
+idx = p_shuffle(:, idx) <= .01;
+heads = get_head(idx');
+tails = get_head(idx(:, end:-1:1)'); tails = tails(end:-1:1, :);
+[heads, idx] = find(heads);
+[tails, ~] = find(tails);
+idx = accumarray(idx, tails - heads, [size(p_shuffle, 1), 1], @max);
+couple_idx = idx >= 3;
+
+disp(['# temporally coupled pairs: ' num2str(sum(couple_idx))])
+
+
+order = max(r, [], 2);
+[~, order] = sort(order);
+order = cat(1, intersect(order, find(~couple_idx), 'stable'), intersect(order, find(couple_idx), 'stable'));
+idx = max(r, [], 'all'); % remove outlier
+[idx, ~] = find(r == idx);
+order = setxor(order, idx, 'stable');
+figure
+imagesc(r(order, :));
+yline(sum(~couple_idx) -.5);
+
+boot = 1e4;
+boot = arrayfun(@(x) randsample(find(couple_idx), sum(couple_idx), true), 1:boot, 'uniformoutput', false);
+% boot = arrayfun(@(x) randsample(length(couple_idx), length(couple_idx), true), 1:boot, 'uniformoutput', false);
+r_boot = cellfun(@(x) mean(r(x, :)), boot, 'uniformoutput', false);
+r_boot = cell2mat(r_boot');
+figure
+g = gramm('x', linspace(-1, 1, size(r, 2)), 'y', mean(r(couple_idx, :)), 'ymin', prctile(r_boot, 2.5), 'ymax', prctile(r_boot, 97.5));
+g.geom_line;
+g.geom_interval;
+g.axe_property('YLim', [-.05, .15]);
+g.set_names('x', 'lag (sec)', 'y', 'xcorr');
+g.draw;
+
+figure
+wm = sum( linspace(-1, 1, size(r, 2)) .* abs(r(couple_idx, :)), 2 ) ./ sum(abs(r(couple_idx, :)), 2);
+boxplot(wm);
+ylabel('weighted mean xcorr lag (sec)');
+ylim([-.5 .5]);
+p = signrank(wm, 0, 'tail', 'left');
+title(['signrank p-value: ' num2str(p)])
 
 % t = linspace(-1, 1, size(r, 2));
 % t = repmat(t, size(r, 1) + size(r_shuffle, 1), 1);
@@ -561,37 +628,39 @@ couple_idx = max(r, [], 2) > max(r_shuffle(:, :, 2), [], 2);
 % figure
 % g.draw();
 % 
-% p = 1 - r_shuffle(:, :, 3);
-% p = p < .05;
-% heads = get_head(p');
-% tails = get_head(p(:, end:-1:1)'); tails = tails(end:-1:1, :);
-% [heads, idx] = find(heads);
-% [tails, ~] = find(tails);
-% idx = accumarray(idx, tails - heads, [size(p, 1), 1], @max);
-% couple_idx = idx >= 10;
-
 
 %% Detection of react. event onsets and coupling
 % edges = linspace(-5, 5, 101 + 1);
 % r = nan(size(aggr, 1), 101);
-r = [];
+r = []; p = []; dt = 0;
+tic;
 for ii = 1:size(aggr, 1)
-%     temp = hiepi_struct(aggr(ii, 4)).peaks - hiepi_struct(aggr(ii, 5)).peaks';
-%     [~, lags, temp] = point_xcorr(hiepi_struct(aggr(ii, 4)).on, hiepi_struct(aggr(ii, 5)).on, length(hiepi_z{aggr(ii, 4)}), 19);
-    [~, lags, temp] = point_xcorr2(hiepi_struct(aggr(ii, 4)).on, hiepi_struct(aggr(ii, 5)).on, isnan(hiepi_z{aggr(ii, 4)}), ts{65}, .1);
-    if numel(temp) < 100
+    s1 = hiepi_struct(aggr(ii, 4)).peaks;
+    s2 = hiepi_struct(aggr(ii, 5)).peaks;
+    if (length(s1) * length(s2)) < 100
+%         temp = nan(1, 19*2+1);
+        temp = nan(1, 38*2+1);
+        r = cat(1, r, temp);
+        p = cat(1, p, temp);
         continue
     end
-%     r(ii, :) = histcounts(temp, edges) ./ numel(temp);
+    [temp1, lags, temp2] = point_xcorr2(s1, s2, isnan(hiepi_z{aggr(ii, 4)}), ts{aggr(ii, 4)}, 0);
     idx = find(lags == 0);
-    r = cat(1, r, temp(idx-19:idx+19));
+    r = cat(1, r, temp1(idx-38:idx+38));
+    p = cat(1, p, temp2(idx-38:idx+38));
+    disp([num2str(ii) ' out of ' num2str(size(aggr, 1))])
+    dt = cat(1, dt, toc);
+    disp(['eta: ' num2str(median(diff(dt)) * (size(aggr, 1) - ii) / 60) ' min'])
 end
 
-thres = .15;
-frac2 = cellfun(@(x) sum(abs(x) < thres) / numel(x), delay);
-dur2 = arrayfun(@(x) dur2{x}(abs(delay{x}) < thres), 1:length(dur2), 'uniformoutput', false);
-dur2 = cellfun(@mean, dur2);
-delay = cellfun(@(x) mean(x(abs(x) < thres), 'omitnan'), delay);
+couple_idx = p(:, 39) < .05;
+p_xcorr = p;
+r_xcorr = r;
+% thres = .15;
+% frac2 = cellfun(@(x) sum(abs(x) < thres) / numel(x), delay);
+% dur2 = arrayfun(@(x) dur2{x}(abs(delay{x}) < thres), 1:length(dur2), 'uniformoutput', false);
+% dur2 = cellfun(@mean, dur2);
+% delay = cellfun(@(x) mean(x(abs(x) < thres), 'omitnan'), delay);
 
 
 
@@ -736,7 +805,7 @@ plot(mi)
 
 
 %% plot pairs
-targets = [aggr(aggr(:, 2) > knee, 4), aggr(aggr(:, 2) > knee, 5), aggr(aggr(:, 2) > knee, 3)];
+targets = [aggr(couple_idx, 4), aggr(couple_idx, 5), aggr(couple_idx, 3)];
 
 for ii = 1:size(targets, 1)
     if ~mod(ii - 1, 25)
@@ -779,7 +848,7 @@ temp = (temp - min(temp, [], 1)) ./ range(temp, 1);
 % idx = aggr(:, 2) <= knee;
 idx = couple_idx;
 % idx = ~couple_idx;
-targets = hiepi_psth(:, aggr(idx, 4));
+targets = hiepi_psth(:, aggr(:, 4));
 [~, targets] = max(targets);
 
 d = @(x, y) min(abs(cat(3, x(:) + size(hiepi_psth, 1) - y(:)', x(:) - y(:)')), [], [2, 3]);
@@ -794,46 +863,66 @@ bn = belt_num;
 bn(bn == 1) = 2;
 bn = bn - 1;
 
-figure
-for ii = 1:length(unique(targets))
-    subplot(2, length(unique(targets)), ii);
-    
-    theta = linspace(0, 2*pi, size(temp, 1) + 1);
-    
-    polarhistogram(theta(find(bn == ii)), theta);
-    hold on
-    
-    rho = temp(:, aggr(idx, 4));
-    rho = mean(rho(:, targets == ii), 2);
-    rho = rho ./ max(rho);
-    polarplot(theta, [rho; rho(1)]);
-    
-    rho = temp(:, aggr(idx, 5));
-    p = arrayfun(@(x) circ_mean(theta(1:(end-1))', rho(:, x)), find(targets == ii));
-    rho = mean(rho(:, targets == ii), 2);
-    rho = rho ./ max(rho);
-    polarplot(theta, [rho; rho(1)]);
-    
-    r = circ_r(p(:));
-    [phi, ul, ll] = circ_mean(p(:));
-    polarplot([0, phi], [0, r]);
-    polarplot([0, ul], [0, r], 'k--');
-    polarplot([0, ll], [0, r], 'k--');
-    
-    pval = circ_rtest(p);
-    title(['p-value = ' num2str(pval)]);
-    
-    
-    subplot(2, length(unique(targets)), length(unique(targets)) + ii);
-    polarhistogram(p, 36);
-    title(['n = ' num2str(length(p))])
+for jj = 0:1
+    figure
+    for ii = 1:length(unique(targets))
+        subplot(2, length(unique(targets)), ii);
+
+        theta = linspace(0, 2*pi, size(temp, 1) + 1);
+
+        polarhistogram(theta(find(bn == ii)), theta);
+        hold on
+
+        rho = temp(:, aggr(:, 4));
+        rho = mean(rho(:, (targets == ii) & (idx == jj)), 2);
+        rho = rho ./ max(rho);
+        polarplot(theta, [rho; rho(1)]);
+
+        rho = temp(:, aggr(:, 5));
+        p = arrayfun(@(x) circ_mean(theta(1:(end-1))', rho(:, x)), find((targets == ii) & (idx == jj)));
+        rho = mean(rho(:, (targets == ii) & (idx == jj)), 2);
+        rho = rho ./ max(rho);
+        polarplot(theta, [rho; rho(1)]);
+
+        r = circ_r(p(:));
+        [phi, ul, ll] = circ_mean(p(:));
+        polarplot([0, phi], [0, r]);
+        polarplot([0, ul], [0, r], 'k--');
+        polarplot([0, ll], [0, r], 'k--');
+
+        pval = circ_rtest(p);
+        title(['p-value = ' num2str(pval)]);
+
+
+        subplot(2, length(unique(targets)), length(unique(targets)) + ii);
+        polarhistogram(p, 36);
+        title(['n = ' num2str(length(p))])
+    end
 end
 
 figure
-r = diag(corr(temp(:, aggr(idx, 4)), temp(:, aggr(idx, 5))));
-boxplot(r, targets)
-p = arrayfun(@(x) signrank(r(targets == x)), unique(targets)) .* length(unique(targets));
-title(['p-values: ' num2str(p(:)')])
+r = diag(corr(temp(:, aggr(:, 4)), temp(:, aggr(:, 5))));
+r = atanh(r);
+g = gramm('x', targets, 'y', r, 'color', idx);
+g.stat_boxplot;
+g.axe_property('ylim', [-1.5 1.5]);
+g.set_names('x', 'cue', 'y', 'pearson''s r', 'color', 'coupling');
+g.draw;
+
+r_table = table(idx, targets, r, 'VariableNames', {'coupled', 'cue', 'r'});
+writetable(r_table, '/home/loulou/Documents/my_docs/Manuscripts/Chang_et_al_2020/R/paired.csv');
+% p = arrayfun(@(x) signrank(r(targets == x), 0, 'tail', 'both'), unique(targets)) .* length(unique(targets));
+% title(['p-values: ' num2str(p(:)')])
+
+% figure
+% for ii = unique(targets)'
+%     subplot(1, length(unique(targets)), ii);
+%     ans = temp(:, targets == ii);
+%     [~, order] = max(ans); [~, order] = sort(order);
+%     imagesc(ans(:, order)');
+% end
+% 
+% arrayfun(@(x) xcorr(temp(:, aggr(x, 4)), temp(:, aggr(x, 5))), find(couple_idx), 'uniformoutput', false);
 
 
 %%
