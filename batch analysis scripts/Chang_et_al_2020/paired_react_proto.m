@@ -1,8 +1,9 @@
 %% classify them ensembles... again...
+% (run this first)
 
 clear all
-ee = load('/mnt/storage/rrr_magnum/M2/cross_days.mat', 'clust_stacks', 'hiepi_z', 'hiepi_psth', 'hiepi_lfp_pw', 'hiepi_struct', 'pc_list', 'file');
-rsc = load('/mnt/storage/HaoRan/RRR_motor/M2/cross_days.mat', 'clust_stacks', 'hiepi_z', 'hiepi_psth', 'hiepi_lfp_pw', 'hiepi_struct', 'pc_list', 'file');
+ee = load('/mnt/storage/rrr_magnum/M2/cross_days.mat', 'clust_stacks', 'clusts', 'hiepi_z', 'hiepi_psth', 'hiepi_lfp_pw', 'hiepi_struct', 'pc_list', 'file', 'whole_stack');
+rsc = load('/mnt/storage/HaoRan/RRR_motor/M2/cross_days.mat', 'clust_stacks', 'clusts', 'hiepi_z', 'hiepi_psth', 'hiepi_lfp_pw', 'hiepi_struct', 'pc_list', 'file', 'whole_stack');
 
 % classify ensembles
 clust_stacks{1} = cat(1, rsc.clust_stacks{1}, ee.clust_stacks{1});
@@ -78,6 +79,7 @@ end
 
 
 %% build master stacks
+% (run this as well)
 rest = 2;
 
 hiepi_psth = cat(1, rsc.hiepi_psth{rest}, ee.hiepi_psth{rest});
@@ -111,10 +113,18 @@ hiepi_z = cellfun(@(x) zscore(x(~isnan(x))), hiepi_z, 'UniformOutput', false);
 hiepi_struct = cat(1, rsc.hiepi_struct{rest}, ee.hiepi_struct{rest});
 hiepi_struct = cat(1, hiepi_struct{:});
 
-
+whole_stack = cat(2, rsc.whole_stack, ee.whole_stack);
+clusts = cat(2, rsc.clusts{rest}, ee.clusts{rest});
+clust_stacks_whole = [];
+for ii = 1:length(clusts)
+    for jj = 1:length(clusts{ii})
+        clust_stacks_whole = cat(1, clust_stacks_whole, {whole_stack{ii}(:, clusts{ii}{jj})});
+    end
+end
 
 
 %% conduct paired analysis
+% (another prelim, run it)
 if rest == 1
     iscue = iscue1;
 elseif rest == 2
@@ -132,8 +142,11 @@ for s = unique(session(:))'
     traj_feat = hiepi_psth(:, iscue == 2 & session == s);
     rf = corr(cue_feat, traj_feat);
     
-    cue_z = hiepi_z(iscue == 1 & session == s);
-    traj_z = hiepi_z(iscue == 2 & session == s);
+    cue_idx = find(iscue == 1 & session == s);
+    traj_idx = find(iscue == 2 & session == s);
+    cue_z = hiepi_z(cue_idx);
+    traj_z = hiepi_z(traj_idx);
+    [traj_idx, cue_idx] = meshgrid(traj_idx, cue_idx);
     rx = nan(length(cue_z), length(traj_z));
     lag = nan(length(cue_z), length(traj_z));
     for ii = 1:length(cue_z)
@@ -146,41 +159,26 @@ for s = unique(session(:))'
         end
     end
     
-    aggr = cat(1, aggr, [lag(:), rx(:), rf(:)]);
+    aggr = cat(1, aggr, [lag(:), rx(:), rf(:), cue_idx(:), traj_idx(:), repelem(s, numel(rx), 1)]);
 end
 
+load('/home/loulou/Documents/my_docs/Manuscripts/Chang_et_al_2020/R/couple_idx.mat')
+boot = 1e4;
+boot = arrayfun(@(x) randsample(find(couple_idx), sum(couple_idx), true), 1:boot, 'uniformoutput', false);
+% boot = arrayfun(@(x) randsample(length(couple_idx), length(couple_idx), true), 1:boot, 'uniformoutput', false);
+r_boot = cellfun(@(x) mean(r(x, :)), boot, 'uniformoutput', false);
+r_boot = cell2mat(r_boot');
 figure
-subplot(1, 2, 1)
-idx = max(r, [], 2);
-[~, idx] = sort(idx);
-imagesc(r(idx, :))
-colormap jet
-xline(ceil(size(r, 2) / 2))
-
-subplot(1, 2, 2)
-cdfplot(aggr(:, 2))
-knee = prctile(aggr(:, 2), 80);
-xline(knee);
-title(['elbow of curve at ~80 percentile = ' num2str(knee)])
-
-
-
-%%
-discretize(aggr(:, 3), [-1, -.4, -.2, .2, .4, 1]);
-
-%%
-ax(1) = subplot(1, 2, 1);
-imagesc(r(idx, :))
-colormap jet
-ax(2) = subplot(1, 2, 2);
-plot(1:size(aggr, 1), aggr(idx, 3))
-plot(aggr(idx, 3), 1:size(aggr, 1))
-set(ax(1),'YDir','normal')
-linkaxes(ax, 'y')
-
+g = gramm('x', linspace(-1, 1, size(r, 2)), 'y', mean(r(couple_idx, :)), 'ymin', prctile(r_boot, 2.5), 'ymax', prctile(r_boot, 97.5));
+g.geom_line;
+g.geom_interval;
+g.axe_property('YLim', [-.02, .1]);
+g.set_names('x', 'lag (sec)', 'y', 'xcorr');
+g.draw;
 
 
 %% hopfield net modelling
+% (some early prototyping, skip this and the following few blocks)
 thres = .5;
 perms = 1e4;
 
@@ -404,60 +402,39 @@ title(['ranksum p-value = ' num2str(p)])
 
 
 %% hopfield paired
-knee = 0.061289393424153;
-aggr = [];
-r = [];
+% (first analysis block, run it)
+
+% knee = 0.061289393424153;
+thres = .5;
 retrieved = [];
 ham = [];
-for s = unique(session(:))'
-    if ~all(ismember(1:2, iscue(session == s)))
+
+targets = find(couple_idx);
+for ii = targets(:)'
+    block = aggr(ii, 6);
+    block = aggr(:, 6) == block;
+    block = [aggr(block, :), couple_idx(block)];
+    test = aggr(ii, 5);
+    partials = aggr(ii, 4);
+    overlap = ( block(:, 4) == partials ) & block(:, 7);
+    overlap = block(overlap, 5);
+    controls = setxor(block(:, 5), overlap);
+    
+    if isempty(test) || isempty(controls)
         continue
     end
     
-    cue_feat = hiepi_psth(:, iscue == 1 & session == s);
-    traj_feat = hiepi_psth(:, iscue == 2 & session == s);
-    rf = corr(cue_feat, traj_feat);
+    partials = hiepi_psth(:, partials);
+    partials = double(partials > thres);
+    partials(~partials) = -1;
     
-    cue_idx = find(iscue == 1 & session == s);
-    traj_idx = find(iscue == 2 & session == s);
-    cue_z = hiepi_z(cue_idx);
-    traj_z = hiepi_z(traj_idx);
-    [traj_idx, cue_idx] = meshgrid(traj_idx, cue_idx);
-    rx = nan(length(cue_z), length(traj_z));
-    lag = nan(length(cue_z), length(traj_z));
-    for ii = 1:length(cue_z)
-        for jj = 1:length(traj_z)
-            [temp, t] = xcorr(cue_z{ii}, traj_z{jj}, 1 * 19, 'unbiased');
-            [rx(ii, jj), idx] = max(temp);
-            lag(ii, jj) = t(idx);
-            
-            r = cat(1, r, temp(:)');
-        end
-    end
-    
-    aggr = cat(1, aggr, [lag(:), rx(:), rf(:), cue_idx(:), traj_idx(:)]);
-    
-    for ii = 1:size(rx, 1)
-        tests = find(rx(ii, :) > knee);
-        controls = setxor(1:length(rx(ii, :)), tests);
-        if isempty(tests) || isempty(controls)
-            continue
-        end
-        
-        partials = cue_feat(:, ii);
-        partials = double(partials > thres);
-        partials(~partials) = -1;
+    for jj = 1:length(controls)
+        patterns = [hiepi_psth(:, test), hiepi_psth(:, controls(jj))];
+        patterns = double(patterns > thres);
+        patterns(~patterns) = -1;
 
-        for jj = 1:length(tests)
-            for kk = 1:length(controls)
-                patterns = [traj_feat(:, tests(jj)), traj_feat(:, controls(kk))];
-                patterns = double(patterns > thres);
-                patterns(~patterns) = -1;
-
-                retrieved = cat(1, retrieved, simple_hop(patterns, partials));
-                ham = cat(1, ham, sum(patterns ~= partials));
-            end
-        end
+        retrieved = cat(1, retrieved, simple_hop(patterns, partials));
+        ham = cat(1, ham, sum(patterns ~= partials));
     end
 end
 ham = ham ./ size(hiepi_psth, 1);
@@ -467,77 +444,6 @@ figure
 bar(histcounts(retrieved) ./ sum(~isnan(retrieved)))
 title(['binomial test p-value = ' num2str(p)])
 
-% idx = max(r, [], 'all'); % remove outlier
-% [idx, ~] = find(r == idx);
-% r(idx, :) = [];
-
-load('/home/loulou/Documents/my_docs/Manuscripts/Chang_et_al_2020/R/couple_idx.mat')
-boot = 1e4;
-% boot = arrayfun(@(x) randsample(find(couple_idx), sum(couple_idx), true), 1:boot, 'uniformoutput', false);
-boot = arrayfun(@(x) randsample(length(couple_idx), length(couple_idx), true), 1:boot, 'uniformoutput', false);
-r_boot = cellfun(@(x) mean(r(x, :)), boot, 'uniformoutput', false);
-r_boot = cell2mat(r_boot');
-figure
-g = gramm('x', linspace(-1, 1, size(r, 2)), 'y', mean(r(couple_idx, :)), 'ymin', prctile(r_boot, 2.5), 'ymax', prctile(r_boot, 97.5));
-g.geom_line;
-g.geom_interval;
-g.axe_property('YLim', [-.02, .1]);
-g.set_names('x', 'lag (sec)', 'y', 'xcorr');
-g.draw;
-
-figure
-subplot(2, 2, 3)
-plot(mean(r))
-xline(ceil(size(r, 2) / 2))
-yline(0)
-auc = cumtrapz(mean(r)) ./ trapz(mean(r));
-title(['AUC = ' num2str(auc(ceil(size(r, 2) / 2)))])
-
-subplot(2, 2, 2)
-cdfplot(aggr(:, 2))
-knee = prctile(aggr(:, 2), 80);
-xline(knee);
-title(['elbow of curve at ~80 percentile = ' num2str(knee)])
-
-subplot(2, 2, 4)
-boxplot(aggr(aggr(:, 2) > knee, 1))
-p = signrank(aggr(aggr(:, 2) > knee, 1));
-title(['signrank p-value = ' num2str(p)])
-ylim([-19 19])
-
-subplot(2, 2, 1)
-idx = max(r, [], 2);
-[temp, idx] = sort(idx);
-imagesc(r(idx, :))
-colormap viridis
-xline(ceil(size(r, 2) / 2))
-yline(find(temp > knee, 1))
-
-figure
-subplot(2, 2, 1)
-temp = hiepi_psth(:, aggr(aggr(:, 2) > knee, 4));
-[~, idx] = max(temp);
-[~, idx] = sort(idx);
-imagesc(temp(:, idx)')
-subplot(2, 2, 2)
-temp = hiepi_psth(:, aggr(aggr(:, 2) > knee, 5));
-imagesc(temp(:, idx)')
-
-subplot(2, 2, 3)
-temp = hiepi_psth(:, aggr(aggr(:, 2) <= knee, 4));
-[~, idx] = max(temp);
-[~, idx] = sort(idx);
-imagesc(temp(:, idx)')
-subplot(2, 2, 4)
-temp = hiepi_psth(:, aggr(aggr(:, 2) <= knee, 5));
-imagesc(temp(:, idx)')
-
-figure
-g = (aggr(:, 2) > knee) + 1;
-boxplot(aggr(:, 3), g);
-p = ranksum(aggr(aggr(:, 2) > knee, 3), aggr(aggr(:, 2) <= knee, 3));
-title(['ranksum p-value = ' num2str(p)])
-
 figure
 boxplot(ham)
 p = signrank(diff(ham, 1, 2));
@@ -546,6 +452,7 @@ ylim([0 1])
 
 
 %% xcorr shuffle instead of knee
+% (shuffle method for detection of temporal coupling, takes a while to run, data already saved so no need to run unless for regeneration)
 shuffles = 1e6;
 r = [];
 r_shuffle = [];
@@ -588,6 +495,14 @@ couple_idx = idx >= 3;
 
 disp(['# temporally coupled pairs: ' num2str(sum(couple_idx))])
 
+%% Plot temporal coupling diagnostics (panels a-c)
+r = [];
+for ii = 1:size(aggr, 1)
+    cue_z = zscore(hiepi_z{aggr(ii, 4)});
+    traj_z = zscore(hiepi_z{aggr(ii, 5)});
+    temp = xcorr(cue_z, traj_z, 1 * 19, 'unbiased');
+    r = cat(1, r, temp(:)');
+end
 
 order = max(r, [], 2);
 [~, order] = sort(order);
@@ -598,6 +513,7 @@ order = setxor(order, idx, 'stable');
 figure
 imagesc(r(order, :));
 yline(sum(~couple_idx) -.5);
+colormap viridis
 
 boot = 1e4;
 boot = arrayfun(@(x) randsample(find(couple_idx), sum(couple_idx), true), 1:boot, 'uniformoutput', false);
@@ -629,7 +545,7 @@ title(['signrank p-value: ' num2str(p)])
 % g.draw();
 % 
 
-%% Detection of react. event onsets and coupling
+%% Detection of react. event onsets and coupling (did not work well, depricated)
 % edges = linspace(-5, 5, 101 + 1);
 % r = nan(size(aggr, 1), 101);
 r = []; p = []; dt = 0;
@@ -740,7 +656,7 @@ g.set_names('x', 'position', 'y', 'fraction overlapping pixels', 'color', 'retri
 figure
 g.draw();
 
-%% mutual information
+%% mutual information (deprecated)
 bins = 10;
 
 idx = find(aggr(:, 2) > knee);
@@ -804,7 +720,7 @@ mi = sum(mi, [2, 3], 'omitnan');
 plot(mi)
 
 
-%% plot pairs
+%% plot pairs (generate coupled pairs examples)
 targets = [aggr(couple_idx, 4), aggr(couple_idx, 5), aggr(couple_idx, 3)];
 
 for ii = 1:size(targets, 1)
@@ -813,12 +729,14 @@ for ii = 1:size(targets, 1)
     end
     
     ax(1) = subplot(15, 5, mod(ii - 1, 25) + 1 + floor(mod(ii-1, 25) / 5) * 10);
-    temp = clust_stacks{rest}{targets(ii, 1)}; [~, idx] = max(temp); [~, idx] = sort(idx);
+%     temp = clust_stacks{rest}{targets(ii, 1)}; [~, idx] = max(temp); [~, idx] = sort(idx);
+    temp = clust_stacks_whole{targets(ii, 1)}; [~, idx] = max(temp); [~, idx] = sort(idx);
     imagesc(-temp(:, idx)');
     colormap bone
     
     ax(2) = subplot(15, 5, mod(ii - 1, 25) + 1 + floor(mod(ii-1, 25) / 5) * 10 + 5);
-    temp = clust_stacks{rest}{targets(ii, 2)}; [~, idx] = max(temp); [~, idx] = sort(idx);
+%     temp = clust_stacks{rest}{targets(ii, 2)}; [~, idx] = max(temp); [~, idx] = sort(idx);
+    temp = clust_stacks_whole{targets(ii, 2)}; [~, idx] = max(temp); [~, idx] = sort(idx);
     imagesc(-temp(:, idx)');
     colormap bone
     
@@ -833,7 +751,7 @@ for ii = 1:size(targets, 1)
 end
 
 
-%% cue/traj polar plots
+%% cue/traj polar plots (panel d-e)
 temp = cat(1, rsc.hiepi_psth{rest}, ee.hiepi_psth{rest});
 temp = cat(2, temp{:});
 temp = cellfun(@(x) mean(x, 2), temp, 'UniformOutput', false);
@@ -902,11 +820,10 @@ end
 
 figure
 r = diag(corr(temp(:, aggr(:, 4)), temp(:, aggr(:, 5))));
-r = atanh(r);
-g = gramm('x', targets, 'y', r, 'color', idx);
+g = gramm('x', targets, 'y', atanh(r), 'color', idx);
 g.stat_boxplot;
 g.axe_property('ylim', [-1.5 1.5]);
-g.set_names('x', 'cue', 'y', 'pearson''s r', 'color', 'coupling');
+g.set_names('x', 'cue', 'y', 'atanh-transformed pearson''s r', 'color', 'coupling');
 g.draw;
 
 r_table = table(idx, targets, r, 'VariableNames', {'coupled', 'cue', 'r'});

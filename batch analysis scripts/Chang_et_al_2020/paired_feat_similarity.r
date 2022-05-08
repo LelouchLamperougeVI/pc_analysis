@@ -25,6 +25,11 @@ plot(md.aov, 2)
 md.residuals <- residuals(object = md.aov)
 shapiro.test(x = md.residuals)
 
+#plot diagnostics
+par(mfrow=c(2,2))
+plot(md.aov)
+par(mfrow=c(1,1))
+
 #type II anova for unequal samples, since no interaction
 Anova(md.aov, type = "II")
 

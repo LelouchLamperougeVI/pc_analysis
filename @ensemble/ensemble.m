@@ -3,6 +3,7 @@ classdef ensemble < LFP
         ops
         ensembles = struct('SCE', [], 'MUA', [], 'R', [], 'null_R', [], 'clust', [])
         hiepi
+        bayes
     end
     
     properties (GetAccess = 'private', SetAccess = 'private')

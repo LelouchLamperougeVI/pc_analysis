@@ -61,6 +61,8 @@ P = md.ll;
 pos = md.x;
 err = [md.err(:), md.sem(:)];
 
+obj.bayes = md;
+
 
 function ops = parse_inputs(inputs)
 ops.dt = 1; % all in seconds
