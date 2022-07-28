@@ -11,7 +11,8 @@ head(dat)
 library("ggpubr")
 ggboxplot(dat, x = "cue", y = "r", color = "coupled")
 
-#run anova
+#run two-way anova
+# note to future self: I know this shit looks as though as it should be a mixed anova, but these are actually two between factors
 md.aov <- aov(r ~ cue * coupled, data = dat)
 summary(md.aov)
 
