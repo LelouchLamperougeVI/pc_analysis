@@ -253,7 +253,7 @@ ylabel('cumulative freq.');
 axis square
 
 
-%% Spatial Tuning Vector (bellow methods adapted from that Losonzcy paper)
+%% Spatial Tuning Vector (below methods adapted from that Losonzcy paper)
 % This is an alternative and perhaps overly complicated method for doing
 % the above
 % Caveat: The original paper did not work with deconvolved signals, but
@@ -368,7 +368,7 @@ pval=1-sum(SI(1,:)>SI(2:end,:))./shuffles;
 % the same
 
 theta_bins=25; % number of bins for theta
-vel_thres=0.05; % kick out frames with bellow threshold velocity from prob distributions Pt and Pdt
+vel_thres=0.05; % kick out frames with below threshold velocity from prob distributions Pt and Pdt
 
 clear edges
 
