@@ -187,15 +187,14 @@ xlabel('distance lag');
 ylabel('mean corr');
 
 
-%% Population sparseness
-sparseness=sum(stack,2).^2./size(stack,2)./sum(stack.^2,2);
+%% Single-cell sparsity index
+sparseness=(sum(stack/bins,2).^2) ./ (sum(stack.^2,2) / bins);
 figure
 plot(smooth(sparseness,5));
 set(gca,'xtick',0:bins/10:bins);
 set(gca,'xticklabel',strsplit(num2str(-vr_length:vr_length/10:0)));
-xlabel('position (cm)');
-ylabel('pop. sparseness');
-
+xlabel('neurons');
+ylabel('single cell sparsity index');
 
 %% Sparsity
 clear sparsity
