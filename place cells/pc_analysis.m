@@ -191,8 +191,6 @@ ylabel('mean corr');
 sparseness=(sum(stack/bins,2).^2) ./ (sum(stack.^2,2) / bins);
 figure
 plot(smooth(sparseness,5));
-set(gca,'xtick',0:bins/10:bins);
-set(gca,'xticklabel',strsplit(num2str(-vr_length:vr_length/10:0)));
 xlabel('neurons');
 ylabel('single cell sparsity index');
 
