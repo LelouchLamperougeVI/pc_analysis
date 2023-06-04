@@ -2215,14 +2215,23 @@ multcompare(stats, 'ctype', 'bonferroni')
 loc_cue = cat(1, loc{iscue2 == 1});
 loc_traj = cat(1, loc{iscue2 == 2});
 
-g = repelem((1:2)', [length(loc_cue); length(loc_traj)]);
-loc_cat = [loc_cue; loc_traj];
+ii = 1e4;
+edges = 1:50;
+boots = zeros((length(edges) - 1) * 2, ii);
+for ii = 1:ii
+    boots(:, ii) = cat(1, histcounts(randsample(loc_cue, length(loc_cue), true), edges, 'normalization', 'probability')', histcounts(randsample(loc_traj, length(loc_traj), true), edges, 'normalization', 'probability')');
+end
+y = cat(1, histcounts(loc_cue, edges, 'normalization', 'probability')', histcounts(loc_traj, edges, 'normalization', 'probability')');
+ci = prctile(boots, [2.5, 97.5], 2);
+x = repmat((1:(length(edges) - 1))', [2, 1]);
+g = repelem((1:2)', [length(edges) - 1; length(edges) - 1]);
 
-g = gramm('x', loc_cat, 'color', g);
-g.stat_bin('nbins', 20, 'geom', 'line', 'fill', 'transparent', 'normalization', 'probability');
-g.axe_property('ylim', [0 .2]);
+g = gramm('x', x, 'y', y, 'ymin', ci(:, 1), 'ymax', ci(:, 2), 'color', g);
+g.geom_line;
+g.geom_interval;
+g.axe_property('ylim', [0 .15]);
 figure
-g.draw();
+g.draw;
 
 % panel e - temporal correlation
 g = iscue2(iscue2 ~= 0);

@@ -132,7 +132,11 @@ for e = 1:size(z, 2)
         obj.hiepi.reactivations{e}.on(i) = obj.twop.ts(heads(i));
         [~, pks] = max(obj.hiepi.z(heads(i):tails(i), e));
         obj.hiepi.reactivations{e}.peaks(i) = obj.twop.ts(heads(i)+pks-1);
-        obj.hiepi.reactivations{e}.dur(i) = obj.twop.ts(tails(i) + 1) - obj.twop.ts(heads(i));
+        if tails(i) >= length(obj.twop.ts)
+            obj.hiepi.reactivations{e}.dur(i) = (tails(i) + 1 - heads(i)) / obj.twop.fs;
+        else
+            obj.hiepi.reactivations{e}.dur(i) = obj.twop.ts(tails(i) + 1) - obj.twop.ts(heads(i));
+        end
     end
 end
 

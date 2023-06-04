@@ -60,12 +60,14 @@ xlim([1.1e4, 1.6e4])
 
 figure
 k = length(targets);
+img = [];
 for ii = 1:k
     subplot(2, k, ii);
     clust = lfp.analysis.stack(:, lfp.ensembles.clust{targets(ii)});
     [~, idx] = max(clust);
     [~, idx] = sort(idx);
     imagesc(-clust(:, idx)')
+    img{ii} = -clust(:, idx)';
     colormap bone
     
     subplot(2, k, ii + k);

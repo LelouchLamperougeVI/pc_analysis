@@ -80,7 +80,7 @@ end
 
 %% build master stacks
 % (run this as well)
-rest = 2;
+rest = 1;
 
 hiepi_psth = cat(1, rsc.hiepi_psth{rest}, ee.hiepi_psth{rest});
 session = 1:length(hiepi_psth);
@@ -808,7 +808,11 @@ for jj = 0:1
         polarplot([0, ul], [0, r], 'k--');
         polarplot([0, ll], [0, r], 'k--');
 
-        pval = circ_rtest(p);
+        try
+            pval = circ_rtest(p);
+        catch
+            pval = nan;
+        end
         title(['p-value = ' num2str(pval)]);
 
 

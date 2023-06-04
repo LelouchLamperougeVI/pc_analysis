@@ -123,15 +123,36 @@ p = ranksum(jaccard(iscue2 == 1), jaccard(iscue2 == 2));
 title(['ranksum p-value = ' num2str(p) ' for cue vs traj']);
 
 subplot(2, 2, 3);
-temp = histcounts(hyper_p(iscue2 == 1) < .05);
+temp = histcounts(hyper_p(iscue2 == 1) < .001);
 pie(temp, {'unstable', 'stable'});
 title(['cue ensembles; ' num2str(temp(2) / sum(temp) * 100) '% stable'])
 
 subplot(2, 2, 4);
-temp = histcounts(hyper_p(iscue2 == 2) < .05);
+temp = histcounts(hyper_p(iscue2 == 2) < .001);
 pie(temp, {'unstable', 'stable'});
 title(['trajectory ensembles; ' num2str(temp(2) / sum(temp) * 100) '% stable'])
 
+tbl = [(hyper_p(~~iscue2) < .001) + 1, iscue2(~~iscue2)];
+tbl = accumarray(tbl, 1);
 
+o = tbl;
+e = sum(o, 2) .* sum(o, 1) ./ sum(o, 'all');
+chi = sum((o - e).^2 ./ e, 'all');
+df = prod(size(o) - 1);
+p = 1 - chi2cdf(chi, df);
+disp(['chi square p = ' num2str(p)]);
+
+
+%% this is for fig2g - chi square test for REST1/REST2 ensemble class proportions
+tbl = [276, 252
+        19,  62
+        97, 164];
+
+o = tbl;
+e = sum(o, 2) .* sum(o, 1) ./ sum(o, 'all');
+chi = sum((o - e).^2 ./ e, 'all');
+df = prod(size(o) - 1);
+p = 1 - chi2cdf(chi, df);
+disp(['chi square p = ' num2str(p)]);
 
 

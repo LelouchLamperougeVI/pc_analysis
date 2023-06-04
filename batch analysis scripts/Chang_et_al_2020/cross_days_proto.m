@@ -176,7 +176,7 @@ idx = cell2mat(idx);
 
 %% Register them masks and find overlapping ROIs
 % Quand la realite frappe a la porte... t'as rien a faire que de te
-% preparer a etre insere :)
+% preparer a te faire mettre :)
 
 olap_thres = .5;
 
@@ -429,6 +429,51 @@ figure
 g.draw;
 
 
+%% PV correlation
+cross_stack = cell(length(target_days), length(target_days));
+for r = 1:length(target_days)
+    for c = 1:length(target_days)
+        temp = [];
+        for s = 1:size(sess_idx, 1)
+            idx = ROIs{r, c, s}(cell2mat(clusts{2}{sess_idx(s, r)}(iscue2{sess_idx(s, r)}==1)));
+            temptemp = nan(size(whole_stack{sess_idx(s, c)}, 1), length(idx));
+            temptemp(:, ~isnan(idx)) = whole_stack{sess_idx(s, c)}(:, idx(~isnan(idx)));
+            temp = cat(2, temp, temptemp);
+        end
+        cross_stack{r, c} = temp;
+    end
+end
+
+cross_stack = cross_stack(1, :);
+idx = find(~any(isnan(cross_stack{2})));
+r = corr(cross_stack{1}(:, idx)', cross_stack{2}(:, idx)');
+r_cue = diag(r);
+
+cross_stack = cell(length(target_days), length(target_days));
+for r = 1:length(target_days)
+    for c = 1:length(target_days)
+        temp = [];
+        for s = 1:size(sess_idx, 1)
+            idx = ROIs{r, c, s}(cell2mat(clusts{2}{sess_idx(s, r)}(iscue2{sess_idx(s, r)}==2)));
+            temptemp = nan(size(whole_stack{sess_idx(s, c)}, 1), length(idx));
+            temptemp(:, ~isnan(idx)) = whole_stack{sess_idx(s, c)}(:, idx(~isnan(idx)));
+            temp = cat(2, temp, temptemp);
+        end
+        cross_stack{r, c} = temp;
+    end
+end
+
+cross_stack = cross_stack(1, :);
+idx = find(~any(isnan(cross_stack{2})));
+r = corr(cross_stack{1}(:, idx)', cross_stack{2}(:, idx)');
+r_traj = diag(r);
+
+figure
+boxplot([r_cue, r_traj]);
+p = signrank(r_cue, r_traj, 'tail', 'right');
+title(['paired one-tailed signedrank; p = ' num2str(p)])
+ylim([.2 .8])
+
 
 %% Cross days bayesian decoding fun :)
 
@@ -460,6 +505,192 @@ end
     silent_all{s} = sum(isnan(ROIs{1, 2, s})) / numel(ROIs{1, 2, s});
 % end
 
+
+%% ensemble overlaps
+d1 = 2; % day 1 rest
+d2 = 2; % day 2 rest
+clusts_target = [];
+clusts_match = [];
+
+if d1 == 1
+    cross_iscue = cat(1, iscue1{sess_idx(:, 1)});
+else
+    cross_iscue = cat(1, iscue2{sess_idx(:, 1)});
+end
+
+for ii = 1:size(ROIs, 3)
+    temp = clusts{d2}{sess_idx(ii, 2)};
+    clusts_target{ii} = clusts{d1}{sess_idx(ii, 1)};
+    for jj = 1:length(temp)
+        clusts_match{ii}{jj} = ROIs{2, 1, ii}(temp{jj});
+        clusts_match{ii}{jj} = clusts_match{ii}{jj}(~isnan(clusts_match{ii}{jj}));
+    end
+end
+
+hyper_p = [];
+jaccard = [];
+for ii = 1:length(clusts_target)
+    for jj = 1:length(clusts_target{ii})
+        
+        p = nan(length(clusts_match{ii}), 1);
+        o = nan(length(clusts_match{ii}), 1);
+        for kk = 1:length(clusts_match{ii})
+            X = zeros(size(whole_stack{sess_idx(ii, 1)}, 2), 1);
+            Y = X;
+            X(clusts_target{ii}{jj}) = 1;
+            Y(clusts_match{ii}{kk}) = 1;
+            cm = accumarray([X, Y] + 1, 1, [2, 2]);
+            o(kk) = cm(2, 2) / (cm(1, 2) + cm(2, 1) + cm(2, 2));
+            [~, p(kk)] = fishertest(cm, 'tail', 'right');
+        end
+        
+        hyper_p = cat(1, hyper_p, min(p));
+        jaccard = cat(1, jaccard, max(o));
+        
+        if isempty(p)
+            hyper_p = cat(1, hyper_p, nan);
+            jaccard = cat(1, jaccard, nan);
+        end
+    end
+end
+
+figure
+subplot(2, 2, 1);
+cdfplot(jaccard(cross_iscue == 1));
+hold on
+cdfplot(jaccard(cross_iscue == 2));
+legend('cue', 'traj');
+[~, p] = kstest2(jaccard(cross_iscue == 1), jaccard(cross_iscue == 2));
+title(['kstest2 p-value = ' num2str(p)]);
+xlabel('Jaccard index')
+xlim([0 .8]);
+
+subplot(2, 2, 2);
+boxplot(jaccard, cross_iscue);
+p = ranksum(jaccard(cross_iscue == 1), jaccard(cross_iscue == 2));
+title(['ranksum p-value = ' num2str(p) ' for cue vs traj']);
+ylim([0 1]);
+
+subplot(2, 2, 3);
+temp = histcounts(hyper_p(cross_iscue == 1) < .001);
+pie(temp, {'unstable', 'stable'});
+title(['cue ensembles; ' num2str(temp(2) / sum(temp) * 100) '% stable'])
+
+subplot(2, 2, 4);
+temp = histcounts(hyper_p(cross_iscue == 2) < .001);
+pie(temp, {'unstable', 'stable'});
+title(['trajectory ensembles; ' num2str(temp(2) / sum(temp) * 100) '% stable'])
+
+
+%% plot overlaps
+
+jaccard_pool = [];
+tbl = zeros(2, 2, 4); % iscue x stability x rest
+
+count = 1;
+for d1 = 1:2
+    for d2 = 1:2
+        clusts_target = [];
+        clusts_match = [];
+
+        if d1 == 1
+            cross_iscue = cat(1, iscue1{sess_idx(:, 1)});
+        else
+            cross_iscue = cat(1, iscue2{sess_idx(:, 1)});
+        end
+
+        for ii = 1:size(ROIs, 3)
+            temp = clusts{d2}{sess_idx(ii, 2)};
+            clusts_target{ii} = clusts{d1}{sess_idx(ii, 1)};
+            for jj = 1:length(temp)
+                clusts_match{ii}{jj} = ROIs{2, 1, ii}(temp{jj});
+                clusts_match{ii}{jj} = clusts_match{ii}{jj}(~isnan(clusts_match{ii}{jj}));
+            end
+        end
+
+        hyper_p = [];
+        jaccard = [];
+        for ii = 1:length(clusts_target)
+            for jj = 1:length(clusts_target{ii})
+
+                p = nan(length(clusts_match{ii}), 1);
+                o = nan(length(clusts_match{ii}), 1);
+                for kk = 1:length(clusts_match{ii})
+                    X = zeros(size(whole_stack{sess_idx(ii, 1)}, 2), 1);
+                    Y = X;
+                    X(clusts_target{ii}{jj}) = 1;
+                    Y(clusts_match{ii}{kk}) = 1;
+                    cm = accumarray([X, Y] + 1, 1, [2, 2]);
+                    o(kk) = cm(2, 2) / (cm(1, 2) + cm(2, 1) + cm(2, 2));
+                    [~, p(kk)] = fishertest(cm, 'tail', 'right');
+                end
+
+                hyper_p = cat(1, hyper_p, min(p));
+                jaccard = cat(1, jaccard, max(o));
+
+                if isempty(p)
+                    hyper_p = cat(1, hyper_p, nan);
+                    jaccard = cat(1, jaccard, nan);
+                end
+            end
+        end
+        
+        jaccard_pool{count} = jaccard;
+        tbl(1, 1, count) = sum(hyper_p(cross_iscue == 1) < .001);
+        tbl(1, 2, count) = sum(~(hyper_p(cross_iscue == 1) < .001));
+        tbl(2, 1, count) = sum(hyper_p(cross_iscue == 2) < .001);
+        tbl(2, 2, count) = sum(~(hyper_p(cross_iscue == 2) < .001));
+        count = count + 1;
+    end
+end
+
+p = [];
+for ii = 1:4
+    o = tbl(:, :, ii);
+    e = sum(o, 2) .* sum(o, 1) ./ sum(o, 'all');
+    chi = sum((o - e).^2 ./ e, 'all');
+    df = prod(size(o) - 1);
+    p(ii) = 1 - chi2cdf(chi, df);
+end
+disp(['pairewise iscue: ' num2str(p)]);
+
+o = squeeze(sum(tbl, 3));
+e = sum(o, 2) .* sum(o, 1) ./ sum(o, 'all');
+chi = sum((o - e).^2 ./ e, 'all');
+df = prod(size(o) - 1);
+p = 1 - chi2cdf(chi, df);
+disp(['effect of iscue: ' num2str(p)]);
+
+o = squeeze(sum(tbl, 1));
+e = sum(o, 2) .* sum(o, 1) ./ sum(o, 'all');
+chi = sum((o - e).^2 ./ e, 'all');
+df = prod(size(o) - 1);
+p = 1 - chi2cdf(chi, df);
+disp(['effect of rest: ' num2str(p)]);
+
+% g = repelem((1:4)', cellfun(@length, jaccard_pool));
+% jaccard_pool = cat(1, jaccard_pool{:});
+
+figure
+subplot(1, 5, 1:2)
+p = squeeze(tbl(:, 1, :)) ./ squeeze(sum(tbl, 2));
+bar(p');
+ylim([0 .5])
+subplot(1, 5, 3:4)
+p = squeeze(sum(tbl(:, 1, :), 1)) ./ squeeze(sum(tbl, [1 2]));
+bar(p');
+ylim([0 .5])
+subplot(1, 5, 5)
+p = squeeze(sum(tbl(:, 1, :), 3)) ./ squeeze(sum(tbl, [2 3]));
+bar(p');
+ylim([0 .5])
+
+figure
+hold on
+for ii = 1:4
+    cdfplot(jaccard_pool{ii});
+end
+xlim([0 1])
 
 
 

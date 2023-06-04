@@ -3,11 +3,11 @@ clear all
 
 traj_thres = .2;
 
-root = '/mnt/storage/HaoRan/RRR_motor/M2';
-animals = dir(fullfile(root, 'RSC*'));
+% root = '/mnt/storage/HaoRan/RRR_motor/M2';
+% animals = dir(fullfile(root, 'RSC*'));
 
-% root = '/mnt/storage/rrr_magnum/M2';
-% animals = dir(fullfile(root, 'E*'));
+root = '/mnt/storage/rrr_magnum/M2';
+animals = dir(fullfile(root, 'E*'));
 
 animals = {animals.name};
 
@@ -121,26 +121,33 @@ for ii = 1:length(l2) %classify cue/traj ensembles
 end
 
 %% quantify likelihood ratios between cue/pc models
-ee_md = load('/mnt/storage/rrr_magnum/M2/ccpc_ll.mat');
+ee_md = load('/mnt/storage/rrr_magnum/M2/ccpc_ll.mat'); % this one works
 rsc_md = load('/mnt/storage/HaoRan/RRR_motor/M2/ccpc_ll.mat');
-% ee_md = load('/mnt/storage/rrr_magnum/M2/ccpc_ll_2.mat');
+% ee_md = load('/mnt/storage/rrr_magnum/M2/ccpc_ll_2.mat'); % with baseline and sd contraint
 % rsc_md = load('/mnt/storage/HaoRan/RRR_motor/M2/ccpc_ll_2.mat');
+% ee_md = load('/mnt/storage/rrr_magnum/M2/ccpc_ll_3.mat'); % no baseline but with sd contraint, didn't work too well...
+% rsc_md = load('/mnt/storage/HaoRan/RRR_motor/M2/ccpc_ll_3.mat');
+% ee_md = load('/mnt/storage/rrr_magnum/M2/ccpc_ll_4.mat'); % with baseline, sd constraint and baseline is lower than amplitude
+% rsc_md = load('/mnt/storage/HaoRan/RRR_motor/M2/ccpc_ll_4.mat');
 
 md = cat(2, rsc_md.md2, ee_md.md2);
 clusts = cat(2, rsc.clusts{2}, ee.clusts{2});
 
 ratio = [];
+% ssize = [];
 count = 1;
 for ii = 1:length(clusts)
     for jj = 1:length(clusts{ii})
         temp = md{ii}.ll(clusts{ii}{jj}, :);
         ratio{count} = -2 .* (temp(:, 2) - temp(:, 1));
+%         ssize{count} = md{ii}.ssize(clusts{ii}{jj});
         count = count + 1;
     end
 end
 
 groups = repelem(iscue2, cellfun(@length, ratio));
 subratio = cell2mat(ratio');
+% ssize = cell2mat(ssize);
 
 figure
 hold on
@@ -155,10 +162,11 @@ cdfplot(subratio(groups == 2));
 ylabel('cumulative frequency')
 xlabel('likelihood ratio (\chi^2)')
 % xlim([-600, 1400])
-xlim([-400, 400])
+% xlim([-400, 400])
 legend('combined', 'cue', 'traj')
 
 subratio = subratio(~~groups);
+% ssize = ssize(~~groups);
 groups = groups(~~groups);
 mu = diff(accumarray(groups, subratio, [2, 1], @mean));
 
@@ -172,8 +180,8 @@ figure
 edges = linspace(min(p), max(p), 2e2 + 1);
 histogram(p, edges, 'Normalization', 'probability', 'LineStyle', 'none');
 xline([0, mu])
-xlim([-40, 40]);
-ylim([0, .02])
+% xlim([-40, 40]);
+% ylim([0, .02])
 
 
 %% number of neurons per ensemble
@@ -226,7 +234,7 @@ ylim([0 .8])
 p = ranksum(acc(iscue2 == 1), acc(iscue2 == 2));
 title(['ranksum p = ', num2str(p)])
 
-%%
+%% prototyping
 clear all
 
 % rest = ensemble('/mnt/md0/Data/RSC_M2/RSC037/2017_09_13/2017_09_13_3.abf');
@@ -243,8 +251,8 @@ rest.set_ops('sig', .2);
 rest.remove_mvt;
 rest.cluster
 
-% md = ccpc_ll(rest);
-md = ens_bayes(rest);
+md = ccpc_ll(rest);
+% md = ens_bayes(rest);
 
 
 %% run batch analysis --- bayes

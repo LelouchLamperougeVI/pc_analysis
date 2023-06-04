@@ -127,6 +127,7 @@ end
 dur = cellfun(@mean, {hiepi_struct.dur});
 figure
 boxplot(dur, iscue2)
+ylim([0, .6])
 kruskalwallis(dur, iscue2)
 
 
@@ -205,6 +206,10 @@ end
 
 clearvars -except ee iscue1 iscue2
 
+% params
+wdw = 1;
+bandwidth = .1;
+
 rest = 2;
 swr_on = {ee.swr_struct{rest}(:).swr_on};
 swr_on = swr_on(:);
@@ -217,26 +222,55 @@ xcf = [];
 for ii = 1:length(swr_on)
     for jj = 1:length(hiepi_on{ii})
         temp = hiepi_on{ii}(jj).on(:)' - swr_on{ii}(:);
-        temp = temp(abs(temp) < 2);
         xcf = cat(1, xcf, {temp(:)});
     end
 end
 
-p = cellfun(@(x) histcounts(x, linspace(-2, 2, 101), 'Normalization', 'probability'), xcf, 'UniformOutput', false);
-p = cell2mat(p);
-p = fast_smooth(p, 5, 2);
+xi = linspace(-wdw, wdw, 1e3);
+f = cellfun(@(x) ksdensity(x, xi, 'bandwidth', bandwidth), xcf, 'UniformOutput', false);
+f = cell2mat(f);
+[~, delay] = max(f, [], 2);
+delay = xi(delay);
+
+g = repelem(1:2, [length(xi), length(xi)]);
+x = repmat(xi(:)', [1, 2]);
+y = cat(2, mean(f((iscue2 == 1) & (cellfun(@length, xcf) >= 200) , :)), mean(f((iscue2 == 2) & (cellfun(@length, xcf) >= 200) , :)));
+ci = cat(2, sem(f((iscue2 == 1) & (cellfun(@length, xcf) >= 200) , :)), sem(f((iscue2 == 2) & (cellfun(@length, xcf) >= 200) , :)));
+g = gramm('x', x, 'y', y, 'ymin', y - ci, 'ymax', y + ci, 'color', g);
+g.geom_line;
+g.geom_interval;
+g.axe_property('ylim', [1e-3, 1.7e-3]);
 figure
-errorbar(mean(p(iscue2 == 1, :)), sem(p(iscue2 == 1, :)))
-hold on
-errorbar(mean(p(iscue2 == 2, :)), sem(p(iscue2 == 2, :)))
+g.draw;
 
-
-delay = cellfun(@median, xcf);
+figure
+boxplot(delay(~~iscue2 & (cellfun(@length, xcf) >= 100)), iscue2(~~iscue2 & (cellfun(@length, xcf) >= 100)), 'Orientation', 'horizontal')
+xlim([-1, 1]);
+p = ranksum(delay((iscue2 == 1) & (cellfun(@length, xcf) >= 100)), delay((iscue2 == 2) & (cellfun(@length, xcf) >= 100)), 'tail', 'left');
+title(['ranksum p = ' num2str(p)])
 
 figure
 cdfplot(delay(iscue2 == 1))
 hold on
 cdfplot(delay(iscue2 == 2))
+[~, p] = kstest2(delay((iscue2 == 1) & (cellfun(@length, xcf) >= 100)), delay((iscue2 == 2) & (cellfun(@length, xcf) >= 100)), 'Tail', 'larger');
+title(['kstest2 p = ' num2str(p)])
 
-[~, p] = kstest2(delay(iscue2 == 1), delay(iscue2 == 2), 'Tail', 'larger')
-ranksum(delay(~~iscue2), iscue2(~~iscue2))
+groups = cellfun(@length, xcf) >= 100;
+subratio = delay(groups);
+groups = iscue2(groups);
+subratio = subratio(~~groups);
+groups = groups(~~groups);
+mu = diff(accumarray(groups, subratio, [2, 1], @mean));
+
+p = zeros(length(groups), 1);
+for ii = 1:1e5
+    idx = randperm(length(groups));
+    p(ii) = diff(accumarray(groups(idx), subratio, [2, 1], @mean));
+end
+
+figure
+histogram(p)
+xline(mu)
+p = 1 - sum(mu>p)/length(p);
+title(['permutation p = ' num2str(p)])

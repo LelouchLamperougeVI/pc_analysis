@@ -4,6 +4,7 @@ function [EV,REV, e1, e2] = ev(varargin)
 % corr matrix
 % If all 3 epochs are provided as 'deconv', need to specify Gaussian 
 % smoothing parameter ['sig', value] and sampling rate ['fs', value]
+% In addition, provide clusts as 'clust1' and 'clust2'
 % [EV, REV] = ev(pre, exp, post, 'sig', val, 'fs', val)
 
 [Rpre, Rexp, Rpost, clust1, clust2] = parse_inputs(varargin);
@@ -21,9 +22,10 @@ end
 
 
 function [EV, REV] = calc_ev(Rpre, Rexp, Rpost)
-Rpre = triu(Rpre,1); Rpre = Rpre(Rpre~=0);
-Rexp = triu(Rexp,1); Rexp = Rexp(Rexp~=0);
-Rpost = triu(Rpost,1); Rpost = Rpost(Rpost~=0);
+idx = triu(true(length(Rpre)),1);
+Rpre = Rpre(idx);
+Rexp = Rexp(idx);
+Rpost = Rpost(idx);
 
 nan_idx = isnan(Rpre) | isnan(Rexp) | isnan(Rpost);
 Rpre(nan_idx) = []; Rexp(nan_idx) = []; Rpost(nan_idx) = [];
@@ -73,6 +75,12 @@ while(idx<length(inputs))
         case 'fs'
             idx=idx+1;
             fs=inputs{idx};
+        case 'clust1'
+            idx = idx + 1;
+            clust1 = inputs{idx};
+        case 'clust2'
+            idx = idx + 1;
+            clust2 = inputs{idx};
         otherwise
             error(['''' inputs{idx} ''' is not a valid parameter']);
     end
