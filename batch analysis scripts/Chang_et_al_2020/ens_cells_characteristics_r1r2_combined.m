@@ -83,9 +83,11 @@ num_pf = [];
 loc = {};
 wid = [];
 frac = [];
+num_pc_ens = [];
 for ii = 1:length(clusts1)
     for jj = 1:length(clusts1{ii})
         frac = cat(1, frac, length(intersect(clusts1{ii}{jj}, pc_list{ii})) ./ length(clusts1{ii}{jj}));
+        num_pc_ens = cat(1, num_pc_ens, length(intersect(clusts1{ii}{jj}, pc_list{ii})));
         temp = width{ii}(intersect(clusts1{ii}{jj}, pc_list{ii}));
         num_pf = cat(1, num_pf, mean(cellfun(@(x) size(x, 1), temp)));
         wid = cat(1, wid, mean(cellfun(@(x) mean(x(:, 1)), temp)));
@@ -101,6 +103,7 @@ end
 for ii = 1:length(clusts2)
     for jj = 1:length(clusts2{ii})
         frac = cat(1, frac, length(intersect(clusts2{ii}{jj}, pc_list{ii})) ./ length(clusts2{ii}{jj}));
+        num_pc_ens = cat(1, num_pc_ens, length(intersect(clusts2{ii}{jj}, pc_list{ii})));
         temp = width{ii}(intersect(clusts2{ii}{jj}, pc_list{ii}));
         num_pf = cat(1, num_pf, mean(cellfun(@(x) size(x, 1), temp)));
         wid = cat(1, wid, mean(cellfun(@(x) mean(x(:, 1)), temp)));
@@ -171,9 +174,9 @@ title(['ranksum p = ' num2str(p)]);
 
 % panel c - fraction place cells
 figure
-boxplot(frac, iscue)
+boxplot(frac(num_pc_ens > 2), iscue(num_pc_ens > 2))
 ylim([0 1])
-[p, ~, stats] = kruskalwallis(frac, iscue)
+[p, ~, stats] = kruskalwallis(frac(num_pc_ens > 2), iscue(num_pc_ens > 2))
 multcompare(stats, 'ctype', 'bonferroni')
 
 % panel d - place field locations

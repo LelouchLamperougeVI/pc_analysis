@@ -155,6 +155,9 @@ tcrit = tinv([.025, .975], n - 2);
 se = sqrt( sum((y(:) - fit(:) ).^2) / (n - 2) ) .* ...
     sqrt(1/n + (xx - mean(x)).^2 ./ sum((x - mean(x)).^2));
 
+rsqr = 1 - sum((y(:) - fit(:)).^2) / sum((y(:) - mean(y)).^2);
+rsqr_adj = 1 - (1 - rsqr) * (n - 1) / (n - length(b));
+
 fit = b(1) + xx(:) .* b(2);
 ci = fit + se(:) .* tcrit(:)';
 

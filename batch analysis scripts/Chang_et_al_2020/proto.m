@@ -181,9 +181,9 @@ for ii = 1:length(f)
     end
 end
 
-imwrite(im, 'fig1d_mask_react.png')
-% figure
-% imshow(im);
+% imwrite(im, 'fig1d_mask_react.png')
+figure
+imshow(im);
 
 [~, idx] = sort(f, 'descend');
 [~, idx] = max( run.analysis.stack(:, idx(1:5)), [], 1 );
@@ -201,9 +201,9 @@ for ii = 1:length(f)
     end
 end
 
-imwrite(im, 'fig1d_mask_run.png')
-% figure
-% imshow(im);
+% imwrite(im, 'fig1d_mask_run.png')
+figure
+imshow(im);
 
 %% Fig2
 rest2.set_ops('e_size',5);
@@ -2148,9 +2148,11 @@ num_pf = [];
 loc = {};
 wid = [];
 frac = [];
+num_pc_ens = [];
 for ii = 1:length(clusts2)
     for jj = 1:length(clusts2{ii})
         frac = cat(1, frac, length(intersect(clusts2{ii}{jj}, pc_list{ii})) ./ length(clusts2{ii}{jj}));
+        num_pc_ens = cat(1, num_pc_ens, length(intersect(clusts2{ii}{jj}, pc_list{ii})));
         temp = width{ii}(intersect(clusts2{ii}{jj}, pc_list{ii}));
         num_pf = cat(1, num_pf, mean(cellfun(@(x) size(x, 1), temp)));
         wid = cat(1, wid, mean(cellfun(@(x) mean(x(:, 1)), temp)));
@@ -2206,9 +2208,9 @@ p = ranksum(wid(iscue2 == 1), wid(iscue2 == 2))
 
 % panel c - fraction place cells
 figure
-boxplot(frac, iscue2)
+boxplot(frac(num_pc_ens > 2), iscue2(num_pc_ens > 2))
 ylim([0 1])
-[p, ~, stats] = kruskalwallis(frac, iscue2)
+[p, ~, stats] = kruskalwallis(frac(num_pc_ens > 2), iscue2(num_pc_ens > 2))
 multcompare(stats, 'ctype', 'bonferroni')
 
 % panel d - place field locations
