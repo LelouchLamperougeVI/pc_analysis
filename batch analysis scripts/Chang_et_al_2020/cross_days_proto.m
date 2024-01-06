@@ -507,7 +507,7 @@ end
 
 
 %% ensemble overlaps
-d1 = 2; % day 1 rest
+d1 = 1; % day 1 rest
 d2 = 2; % day 2 rest
 clusts_target = [];
 clusts_match = [];

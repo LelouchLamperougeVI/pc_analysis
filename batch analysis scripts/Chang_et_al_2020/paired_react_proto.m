@@ -80,7 +80,7 @@ end
 
 %% build master stacks
 % (run this as well)
-rest = 1;
+rest = 2;
 
 hiepi_psth = cat(1, rsc.hiepi_psth{rest}, ee.hiepi_psth{rest});
 session = 1:length(hiepi_psth);

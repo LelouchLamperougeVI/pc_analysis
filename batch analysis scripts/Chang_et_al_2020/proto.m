@@ -2005,6 +2005,7 @@ K = repelem(cellfun(@length, pc_list), cellfun(@length, clusts{rest}));
 k = cat(1, rsc.frac_clust{rest}(:, 1), ee.frac_clust{rest}(:, 1));
 n = k ./ cat(1, rsc.frac_clust{rest}(:, 2), ee.frac_clust{rest}(:, 2));
 
+idx = k < 1;
 N(k < 1) = [];
 K(k < 1) = [];
 n(k < 1) = [];
@@ -2020,6 +2021,8 @@ m = [k,     n - k
 m = permute(round(m), [2 1 3]);
 
 [~, p1] = arrayfun(@(x) fishertest(m(:, :, x), 'tail', 'right'), 1:size(m, 3));
+temp1 = nan(length(idx), 1);
+temp1(~idx) = p1;
 
 rest = 2;
 whole_stack = cat(2, rsc.whole_stack, ee.whole_stack);
@@ -2032,6 +2035,7 @@ K = repelem(cellfun(@length, pc_list), cellfun(@length, clusts{rest}));
 k = cat(1, rsc.frac_clust{rest}(:, 1), ee.frac_clust{rest}(:, 1));
 n = k ./ cat(1, rsc.frac_clust{rest}(:, 2), ee.frac_clust{rest}(:, 2));
 
+idx = k < 1;
 N(k < 1) = [];
 K(k < 1) = [];
 n(k < 1) = [];
@@ -2047,6 +2051,8 @@ m = [k,     n - k
 m = permute(round(m), [2 1 3]);
 
 [~, p2] = arrayfun(@(x) fishertest(m(:, :, x), 'tail', 'right'), 1:size(m, 3));
+temp2 = nan(length(idx), 1);
+temp2(~idx) = p2;
 
 figure
 cdfplot(log(p1))

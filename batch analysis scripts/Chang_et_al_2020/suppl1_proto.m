@@ -158,4 +158,4 @@ subject = arrayfun(@(x) x, subject, 'UniformOutput', false);
 tab = [subject(:), g(:), cue(:), cue_err(:)];
 tab = cell2table(tab, 'VariableNames', {'subject', 'sx', 'cue', 'error'});
 
-writetable(tab, '/home/loulou/Documents/my_docs/Manuscripts/Chang_et_al_2020/R/cue_decoding_error.csv');
+% writetable(tab, '/home/loulou/Documents/my_docs/Manuscripts/Chang_et_al_2020/R/cue_decoding_error.csv');

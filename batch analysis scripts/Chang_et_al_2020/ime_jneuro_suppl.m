@@ -36,4 +36,4 @@ err = arrayfun(@(x) x.bayes.err, obj, 'UniformOutput', false);
 err = cell2mat(err);
 
 err_tab = array2table([lesioned, err'], 'VariableNames', cat(2, {'lesion'}, arrayfun(@(x) ['x', num2str(x)], 1:size(err, 1), 'UniformOutput', false)));
-writetable(err_tab, '/home/loulou/Documents/my_docs/Manuscripts/Chang_et_al_2020/R/err.csv');
+% writetable(err_tab, '/home/loulou/Documents/my_docs/Manuscripts/Chang_et_al_2020/R/err.csv');
