@@ -30,11 +30,13 @@
 tic
 
 nperms = 1e4;
-% d = fast_smooth(deconv, 10);
-d = single(deconv);
-d = zscore(d);
-v = single(zscore(behavior.speed_raw));
-rho = @(x, y) mean(x .* y);
+
+d = ca_filt(deconv);
+v = abs(behavior.speed_raw);
+d = single(zscore(d));
+v = single(zscore(v));
+
+rho = @(x, y) x' * y ./ length(x);
 rsq = rho(v, d)'.^ 2;
 rsq_n = zeros(size(deconv, 2), nperms);
 for ii = 1:nperms
@@ -47,7 +49,49 @@ disp(sum(p < .01) / length(rsq))
 toc
 
 %%
+rsq = rho(v, d)';
+[~, order] = sort(rsq);
 
+figure
+ax(1) = subplot(4, 1, 1:3);
+imagesc(zscore(fast_smooth(deconv(:, order), 10))')
+ax(2) = subplot(4, 1, 4);
+plot(behavior.speed_raw)
+linkaxes(ax, 'x')
+
+%%
+x = repmat(discretize(abs(behavior.speed_raw), 100), [1, size(deconv, 2)]);
+y = repmat(1:size(deconv, 2), [size(deconv, 1), 1]);
+stack = accumarray([x(:), y(:) ], deconv(:), [], @mean);
+stack = (stack - min(stack)) ./ range(stack);
+stack = zscore(stack);
+stack = fast_smooth(stack, 5);
+
+figure
+[~, order] = sort(rsq);
+imagesc(stack(:, order)')
+
+%%
+f = logspace(-2, 0, 2^8);
+fs = 1 / mean(diff(tcs.tt));
+
+rsq = rho(v, d)';
+isspeed = (p < .01) .* sign(rsq);
+mua = ca_filt(deconv) > 0;
+mua = fast_smooth(mua, fs/2);
+mua = [mean(mua(:, isspeed == 1), 2),...
+    mean(mua(:, isspeed == -1), 2),...
+    mean(mua(:, isspeed == 0), 2)];
+mua = mua .* fs;
+
+wdw = round(fs*200);
+nover = round(wdw * .75);
+psd = pwelch(mua(3e3:7e3,:), hann(wdw), nover, f, fs, 'psd');
+
+figure
+semilogx(f, psd)
+
+%%
 % 
 % [~, order] = sort(corr(v, fast_smooth(deconv, 10)) .^ 2, 'descend');
 % rsq = zeros(length(order), 1);
